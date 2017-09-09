@@ -1,0 +1,60 @@
+/* GCFiddle css */
+body {
+	background-color: Beige;
+}
+
+.flexBox {
+	float: left;
+	padding: 2px;
+	margin: 2px;
+	background-color: LightGrey;
+}
+
+.clearLeft {
+	clear: left;
+}
+
+.canvas {
+	width: 500px;
+	height: 500px;
+	background-color: #E6E6E6;
+}
+
+@media (max-width: 480px) {
+	.canvas {
+		width: 330px;
+	}
+}
+
+.legendButton {
+	border: 1px solid #7A7A7A;
+	background-color: LightGreen;
+	padding: 1px;
+	-webkit-touch-callout: none; /* iOS Safari */
+	-webkit-user-select: none; /* Safari */
+	-khtml-user-select: none; /* Konqueror HTML */
+	-moz-user-select: none; /* Firefox */
+	-ms-user-select: none; /* Internet Explorer/Edge */
+	user-select: none; /* currently Chrome and Opera */
+}
+
+.legendButton:hover {
+	background-color: LimeGreen
+}
+
+.label {
+	background-color: WhiteSmoke;
+	border: 1px transparent;
+	padding: 1px 0px;
+	margin: 1px;
+}
+
+.area {
+	padding: 2px;
+	margin: 1px;
+	border: 0.5px solid #7A7A7A;
+}
+
+.editable {
+	background-color: white;
+}

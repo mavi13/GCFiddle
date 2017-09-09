@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="gcfiddle.css" />
+<title id="title">GCFiddle v0.47</title>
+</head>
+
+<body>
+	<fieldset class="flexBox">
+		<legend>
+			<span id="inputLegend" class="legendButton" title="Show/Hide Input">Input:</span>
+			<select id="exampleIndexSelect" title="Example Index/Directory">
+				<option value="test" title="Test" selected="selected">Test</option>
+				<option value="tofind" title="To Find">To find</option>
+				<option value="found" title="Found">Found</option>
+			</select>
+			<select id="exampleSelect" title="Load Example">
+			</select>
+		</legend>
+		<textarea id="inputArea" rows="15" cols="40"></textarea>
+		<div>
+			<button id="executeButton" title="Execute input source">Execute</button>
+			<button id="preprocessButton" title="Preprocess input source">Preprocess</button>
+			<button id="reloadButton" title="Reload page with URL parameter settings">Reload</button>
+		</div>
+	</fieldset>
+	<fieldset class="flexBox">
+		<legend>
+			<span id="outputLegend" class="legendButton" title="Show/Hide Output">Output:</span>
+		</legend>
+		<textarea id="outputArea" placeholder="Use input field, press 'Execute'" rows="12" cols="40" readonly></textarea>
+	</fieldset>
+	<fieldset class="flexBox">
+			<legend>
+				<span id="varLegend" class="legendButton" title="Show/Hide variable">Variable:</span>
+				<select id="varSelect" title="Select variable">
+				</select>
+			</legend>
+			<div id="varArea">
+				<div class="area">
+					<label id="varLabel" for="varInput" class="label" title="Variable Name"></label>
+					<input id="varInput" value="" min="0" max="9999" step="1" type="text" placeholder="value">
+				</div>
+				<div class="area">
+					<label for="varViewSelect" title="Variable View">View</label>
+					<select id="varViewSelect" title="Variable Type">
+						<option value="text">Text</option>
+						<option value="number" selected="selected">Number</option>
+						<option value="range">Range</option>
+					</select>
+				</div>
+			</div>
+	</fieldset>
+	<fieldset class="flexBox">
+		<legend>
+			<span id="noteLegend" class="legendButton" title="Show/Hide note">Note:</span>
+		</legend>
+		<div id="nodeArea" contenteditable="true" class="area editable">&nbsp;</div>
+	</fieldset>
+	<fieldset class="flexBox clearLeft">
+		<legend>
+			<span id="waypointLegend" class="legendButton" title="Show/Hide Waypoint">Waypoint:</span>
+			<select id="waypointSelect" title="Select waypoint">
+			</select>
+		</legend>
+		<div id="waypointArea" class="area">
+			<label id="waypointLabel" for="waypointInput" class="label" title="Waypoint Name"></label>
+			<input id="waypointInput" value="" size="26" type="text" placeholder="value">
+		</div>
+	</fieldset>
+	<fieldset class="flexBox clearLeft" id="mapArea">
+		<legend>
+			<span id="mapLegend" class="legendButton" title="Show/Hide Map">Map:</span>
+			<select id="mapTypeSelect" title="Map Type">
+				<option value="simple" title="Simple Drawing (offline)" selected="selected">Simple</option>
+				<option value="google" title="Google Maps">Google</option>
+			</select>
+		</legend>
+		<div class="canvas" id="mapCanvas-simple" hidden></div>
+		<div class="canvas" id="mapCanvas-google" hidden></div>
+	</fieldset>
+	<fieldset class="flexBox clearLeft" id="consoleLogBox" hidden>
+		<legend id="consoleLogLegend" class="legendButton" title="Show/Hide Console log">Console log:</legend>
+		<textarea id="consoleLogArea" rows="12" cols="40"></textarea>
+	</fieldset>
+<script src="gcconfig.js"></script>
+<script src="gcfiddle.js"></script>
+</body>
+</html>
