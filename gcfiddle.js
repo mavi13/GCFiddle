@@ -43,20 +43,30 @@ function hereDoc(fn) {
 		replace(/\*\/[^/]+$/, "");
 }
 
-// called from files GCxxxxx.js
-function addExample(input) { // eslint-disable-line no-unused-vars
-	var sInput = (typeof input === "string") ? input.trim() : hereDoc(input).trim(),
-		aParts = sInput.match(/^#([^:\n]+)/),
-		sId = (aParts) ? aParts[1] : "<unknown>";
 
-	if (!aParts) {
+// called also from files GCxxxxx.js
+function addExample(input) {
+	var sInput = (typeof input === "string") ? input.trim() : hereDoc(input).trim(),
+		sLine = sInput.split("\n", 1)[0],
+		aParts = sLine.match(/^#([\w\d]+)\s*:\s*(.+)/),
+		sKey, sTitle;
+
+	if (aParts) {
+		sKey = aParts[1];
+		sTitle = aParts[2];
+	} else {
+		sKey = "<unknown>";
 		sInput = '"WARNING: Example must start with #<id>: <title>"\n\n' + sInput;
 	}
-	gcFiddle.examples[sId] = sInput;
+	gcFiddle.examples[sKey] = sInput;
+	return {
+		key: sKey,
+		title: sTitle
+	};
 }
 
-// called from file 0index.js
-function setExampleIndex(index, indexList) { // eslint-disable-line no-unused-vars
+// called also from file 0index.js
+function setExampleIndex(index, indexList) {
 	gcFiddle.exampleIndex[index] = indexList;
 }
 
@@ -77,7 +87,7 @@ function myObjectAssign(oTarget) { // varargs; Object.assign is ES6, not in IE
 	return oTo;
 }
 
-function loadScript(url, callback) {
+function loadScript(url, callback, arg) {
 	var script = document.createElement("script");
 
 	script.type = "text/javascript";
@@ -93,7 +103,7 @@ function loadScript(url, callback) {
 		};
 	} else { // Others
 		script.onload = function () {
-			callback();
+			callback(arg);
 		};
 	}
 	script.src = url;
@@ -1617,7 +1627,7 @@ function setExampleList() {
 		sTitle,
 		sText,
 		option,
-		i = 1;
+		i = 0;
 
 	for (sId in oExamples) {
 		if (oExamples.hasOwnProperty(sId)) {
@@ -1853,72 +1863,103 @@ function onPreprocessButtonClick() {
 	document.getElementById("outputArea").value = sInput;
 }
 
+function onExampleLoaded(sExample) {
+	var oExamples = gcFiddle.examples,
+		sExampleIndex = document.getElementById("exampleIndexSelect").value,
+		sName = sExampleIndex + "/" + sExample + ".js";
+
+	gcFiddle.config.example = sExample;
+	window.console.log("NOTE: Example " + sName + " loaded");
+	if (oExamples[sExample] === undefined) { // example without id loaded?
+		window.console.log("WARNING: Example " + sName + ": Wrong format! Must start with #<id>: <title>");
+		if (oExamples["<unknown>"]) {
+			oExamples[sExample] = oExamples["<unknown>"];
+			delete oExamples["<unknown>"];
+		}
+	}
+	document.getElementById("inputArea").value = oExamples[sExample];
+	onExecuteButtonClick();
+}
+
 function onExampleSelectChange() {
 	var exampleIndexSelect = document.getElementById("exampleIndexSelect"),
 		sExampleIndex = exampleIndexSelect.value,
 		exampleSelect = document.getElementById("exampleSelect"),
+		sExample = exampleSelect.value,
 		oExamples = gcFiddle.examples,
-		sValue = exampleSelect.value,
 		sName;
 
-	exampleSelect.title = exampleSelect.options[exampleSelect.selectedIndex].title;
-	if (oExamples[sValue] !== undefined) {
-		gcFiddle.config.example = sValue;
-		document.getElementById("inputArea").value = oExamples[sValue];
+	exampleSelect.title = (exampleSelect.selectedIndex >= 0) ? exampleSelect.options[exampleSelect.selectedIndex].title : "";
+	if (oExamples[sExample] !== undefined) {
+		gcFiddle.config.example = sExample;
+		document.getElementById("inputArea").value = oExamples[sExample];
 		onExecuteButtonClick();
-	} else {
-		document.getElementById("inputArea").value = "#loading " + sValue + "...";
+	} else if (sExample) {
+		document.getElementById("inputArea").value = "#loading " + sExample + "...";
 		document.getElementById("outputArea").value = "waiting...";
-		sName = sExampleIndex + "/" + sValue + ".js";
-		loadScript(sName, function () {
-			gcFiddle.config.example = sValue;
-			window.console.log("NOTE: Example " + sName + " loaded");
-			if (oExamples[sValue] === undefined) { // example without id loaded?
-				window.console.log("WARNING: Example " + sName + ": Wrong format! Must start with #<id>: <title>");
-				if (oExamples["<unknown>"]) {
-					oExamples[sValue] = oExamples["<unknown>"];
-					delete oExamples["<unknown>"];
-				}
-			}
-			document.getElementById("inputArea").value = oExamples[sValue];
-			onExecuteButtonClick();
-		});
+		sName = sExampleIndex + "/" + sExample + ".js";
+		loadScript(sName, onExampleLoaded, sExample);
+	} else {
+		document.getElementById("inputArea").value = "#GCTMPL1: Template1\n";
+		document.getElementById("outputArea").value = "";
 	}
+}
+
+function onExampleIndexLoaded(sExampleIndex) {
+	var exampleSelect = document.getElementById("exampleSelect"),
+		sName = sExampleIndex + "/0index.js",
+		i;
+
+	gcFiddle.config.exampleIndex = sExampleIndex;
+	window.console.log("NOTE: ExampleIndex " + sName + " loaded");
+	removeSelectOptions(exampleSelect);
+	setExampleList();
+	if (gcFiddle.config.example) {
+		for (i = 0; i < exampleSelect.length; i += 1) {
+			if (exampleSelect.options[i].value === gcFiddle.config.example) {
+				exampleSelect.value = gcFiddle.config.example;
+			}
+		}
+	}
+	onExampleSelectChange();
+}
+
+function loadExampleIndexLocalStorage(sExampleIndex) {
+	var	oStorage = window.localStorage,
+		oExamples = {},
+		i, sKey, sItem;
+
+	for (i = 0; i < oStorage.length; i += 1) {
+		sKey = oStorage.key(i);
+		sItem = oStorage.getItem(sKey);
+		oExamples[sKey] = addExample(sItem);
+	}
+	setExampleIndex(sExampleIndex, oExamples);
+	onExampleIndexLoaded(sExampleIndex);
 }
 
 function onExampleIndexSelectChange() {
 	var exampleIndexSelect = document.getElementById("exampleIndexSelect"),
+		sExampleIndex = exampleIndexSelect.value,
 		exampleSelect = document.getElementById("exampleSelect"),
-		sValue = exampleIndexSelect.value,
 		oExampleIndex = gcFiddle.exampleIndex,
-		sName,
-		i;
+		sName;
 
-	if (oExampleIndex[sValue] !== undefined) {
-		gcFiddle.config.exampleIndex = sValue;
+	if (oExampleIndex[sExampleIndex] !== undefined) {
+		gcFiddle.config.exampleIndex = sExampleIndex;
 		removeSelectOptions(exampleSelect);
 		setExampleList();
 		onExampleSelectChange();
 	} else {
-		document.getElementById("inputArea").value = "#loading index " + sValue + "...";
-		sName = sValue + "/0index.js";
-		loadScript(sName, function () {
-			gcFiddle.config.exampleIndex = sValue;
-			window.console.log("NOTE: " + sName + " loaded");
-			removeSelectOptions(exampleSelect);
-			setExampleList();
-			if (gcFiddle.config.example) {
-				for (i = 0; i < exampleSelect.length; i += 1) {
-					if (exampleSelect.options[i].value === gcFiddle.config.example) {
-						exampleSelect.value = gcFiddle.config.example;
-					}
-				}
-			}
-			onExampleSelectChange();
-		});
+		document.getElementById("inputArea").value = "#loading index " + sExampleIndex + "...";
+		if (sExampleIndex === "saved") {
+			loadExampleIndexLocalStorage(sExampleIndex);
+		} else {
+			sName = sExampleIndex + "/0index.js";
+			loadScript(sName, onExampleIndexLoaded, sExampleIndex);
+		}
 	}
 }
-
 
 function setHidden(id, bHidden) {
 	var element = document.getElementById(id);
@@ -2129,6 +2170,26 @@ function onReloadButtonClick() {
 	window.location.search = "?" + encodeUriParam(oChanged); // jQuery.param(oChanged, true)
 }
 
+function onSaveButtonClick() {
+	var sInput = document.getElementById("inputArea").value,
+		oExample,
+		oSavedList = gcFiddle.exampleIndex.saved;
+
+	oExample = addExample(sInput);
+	window.console.log("Saving " + oExample.key);
+	window.localStorage.setItem(oExample.key, sInput);
+	gcFiddle.config.example = oExample.key;
+
+	if (oSavedList) {
+		if (oSavedList[oExample.key]) {
+			oSavedList[oExample.key] = oExample;
+		} else {
+			oSavedList[oExample.key] = oExample;
+			setExampleList();
+		}
+	}
+}
+
 // https://stackoverflow.com/questions/6604192/showing-console-errors-and-alerts-in-a-div-inside-the-page
 function redirectConsole() {
 	var aVerbs = [
@@ -2173,6 +2234,7 @@ function onLoad() {
 	document.getElementById("executeButton").onclick = onExecuteButtonClick;
 	document.getElementById("preprocessButton").onclick = onPreprocessButtonClick;
 	document.getElementById("reloadButton").onclick = onReloadButtonClick;
+	document.getElementById("saveButton").onclick = onSaveButtonClick;
 	document.getElementById("exampleIndexSelect").onchange = onExampleIndexSelectChange;
 	document.getElementById("exampleSelect").onchange = onExampleSelectChange;
 	document.getElementById("varSelect").onchange = onVarSelectChange;

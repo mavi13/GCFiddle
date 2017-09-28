@@ -38,6 +38,8 @@ GCFiddle Links:
    To execute the output, it must be copied into the input field.
  - The "Reload" button reloads the page with the current settings. (Please note that changes to the script are lost!)
    See the list of URL parameters below.
+ - The "Save" button saves the current input in local storage. Usually it is kept until the browser is closed.
+   It can also be seen in the "Saved" category.
 
 ### Output box
 
