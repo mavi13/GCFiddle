@@ -1813,54 +1813,112 @@ function onExecuteButtonClick() {
 function onPreprocessButtonClick() {
 	var sInput = document.getElementById("inputArea").value,
 		aParts,
-		iIndex;
+		sSection,
+		sOutput = "",
+		iIndex,
+		fnFindTitle = function(str) {
+			var sOut = "",
+				aParts2 = str.match(/(GC\w+) \S\n([^\n]*)\n([^\n]*)/);
 
-	sInput = sInput.replace(/[\t ]+/g, " ");
-	aParts = sInput.match(/Geocache Description:([\s\S]*?)Additional Hints \(Decrypt\)([\s\S]*?)Decryption Key([\s\S]*?)Additional Waypoints([\s\S]*?)View Larger Map/m);
+			if (aParts2) {
+				sOut = "#" + aParts2[1] + ": " + aParts2[3] + "\n";
+			}
+			return sOut;
+		},
+		fnVariables = function(str) { // Find Variables (x=) and set them to 0
+			str = str.replace(/(\w+)[ ]*=[ ]*([0-9]*)(.*)/g, function(match, p1, p2, p3) {
+				match = match + "\n" + p1 + "=" + ((p2.length > 0) ? p2 : "0") + " #" + ((p3.length > 0) ? (p3.replace(/x/g, "*")) : ""); // some guys write x for *
+				// debugVars += p1 + "=" + ((p2.length > 0) ? p2 : "0") + " #" + ((p3.length > 0) ? (p3.replace(/x/g, "*")) : "") + "\n"; // some guys write x for *
+				return match;
+			});
+			return str;
+		},
+		fnWaypoints = function(str) {
+			var iWpIndex = 1;
+
+			str = str.replace(/N\s*(\S+)°\s*(\S+)\.(\S+)[\s#]+E\s*(\S+)°\s*(\S+)\.(\S+)[#\n ]/g, function(sMatch) { // varargs
+				var aArgs = [],
+					sArg,
+					i;
+
+				for (i = 1; i < arguments.length; i += 1) {
+					sArg = arguments[i];
+					sArg = sArg.toString().replace(/['"]/, ""); // remove apostropthes, quotes
+					aArgs.push((/^\d+$/.test(sArg)) ? sArg : '" (' + sArg + ') "');
+				}
+				if (sMatch.indexOf("\n", sMatch.length - "\n".length) === -1) { // endsWith
+					sMatch += "\n";
+				}
+				sArg = "N " + aArgs[0] + "° " + aArgs[1] + "." + aArgs[2] + " E " + aArgs[3] + "° " + aArgs[4] + "." + aArgs[5];
+				if (sArg.indexOf('"') >= 0) {
+					sArg = '["' + sArg + '"]';
+				} else {
+					sArg = '"' + sArg + '"';
+				}
+				sMatch += "$W" + iWpIndex + "=" + sArg + "\n#";
+				// debugWp += "$W" + iWpIndex + "=" + sArg + "\n";
+				iWpIndex += 1;
+				return sMatch;
+			});
+			return str;
+		},
+		fnPrefixHash = function(str) {
+			// Prefix lines with hash (if not already there)
+			str = str.replace(/\n(?!#)/g, "\n#");
+			return str;
+		};
+
+	// multi line trim
+	sInput = sInput.replace(/\s*\n\s*/gm, "\n");
+
+	// find parts
+	aParts = sInput.split(/(Geocache Description:|Additional Hints \((?:Decrypt|Encrypt)\)|Decryption Key|Additional Waypoints|View Larger Map)/);
 	if (aParts && aParts.length > 2) {
-		sInput = aParts[1] + "\n#Waypoints\n" + aParts[4];
-	}
-	sInput = "#" + sInput.replace(/\n+/g, "\n#");
-
-	// Find Variables (x=) and set them to 0
-	sInput = sInput.replace(/(\w+)[ ]*=[ ]*([0-9]*)(.*)/g, function(match, p1, p2, p3) {
-		match = match + "\n" + p1 + "=" + ((p2.length > 0) ? p2 : "0") + ((p3.length > 0) ? (" #" + p3.replace(/x/g, "*")) : ""); // some guys write x for *
-		return match;
-	});
-
-	// find WP...
-	iIndex = 1;
-	sInput = sInput.replace(/N\s*(\S+)°\s*(\S+)\.(\S+)[\s#]+E\s*(\S+)°\s*(\S+)\.(\S+)[#\n ]/g, function(sMatch) { // varargs
-		var aArgs = [],
-			sArg,
-			i;
-
-		for (i = 1; i < arguments.length; i += 1) {
-			sArg = arguments[i];
-			sArg = sArg.toString().replace(/[']/, ""); // remove apostropthes
-			aArgs.push((/^\d+$/.test(sArg)) ? sArg : '" (' + sArg + ') "');
-		}
-		if (sMatch.indexOf("\n", sMatch.length - "\n".length) === -1) { // endsWith
-			sMatch += "\n";
-		}
-		sArg = "N " + aArgs[0] + "° " + aArgs[1] + "." + aArgs[2] + " E " + aArgs[3] + "° " + aArgs[4] + "." + aArgs[5];
-		if (sArg.indexOf('"') >= 0) {
-			sArg = '["' + sArg + '"]';
-		} else {
-			sArg = '"' + sArg + '"';
-		}
-		sMatch += "$W" + iIndex + "=" + sArg + "\n#";
+		iIndex = 0;
+		sOutput = fnFindTitle(aParts[iIndex]);
 		iIndex += 1;
-		return sMatch;
-	});
-
-	/*
-	s2 = str.match(/(Additional Waypoints([\s\S]*?)View Larger Map)/m);
-	if (s2 && s2.length > 2) {
-		s2 = s2[1];
+		sSection = "";
+		while (iIndex < aParts.length) {
+			if (!sSection) {
+				sSection = aParts[iIndex];
+			} else {
+				sInput = fnPrefixHash(aParts[iIndex]);
+				switch (sSection) {
+				case "Geocache Description:":
+					sInput = fnVariables(sInput);
+					sInput = fnWaypoints(sInput);
+					break;
+				case "Additional Hints (Decrypt)":
+				case "Additional Hints (Encrypt)":
+					// sInput contains hint
+					break;
+				case "Decryption Key":
+					sInput = ""; // ignore part
+					break;
+				case "Additional Waypoints":
+					sInput = fnVariables(sInput);
+					sInput = fnWaypoints(sInput);
+					break;
+				case "View Larger Map":
+					sInput = ""; // ignore logs
+					break;
+				default:
+					// unknown part ??
+					break;
+				}
+				sOutput += sInput;
+				sSection = "";
+			}
+			iIndex += 1;
+		}
+	} else {
+		sOutput = fnFindTitle(sInput);
+		sInput = fnVariables(sInput);
+		sInput = fnWaypoints(sInput);
+		sOutput += sInput;
 	}
-	*/
-	document.getElementById("outputArea").value = sInput;
+
+	document.getElementById("outputArea").value = sOutput;
 }
 
 function onExampleLoaded(sExample) {
