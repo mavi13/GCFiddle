@@ -38,8 +38,9 @@ GCFiddle Links:
    To execute the output, it must be copied into the input field.
  - The "Reload" button reloads the page with the current settings. (Please note that changes to the script are lost!)
    See the list of URL parameters below.
- - The "Save" button saves the current input in local storage. Usually it is kept until the browser is closed.
-   It can also be seen in the "Saved" category.
+ - The "Save" button saves the current input in "Saved" category and selects it.
+   It is stored in browser local storage which means that it is kept also during page reloads.
+ - When the "Saved" category is selected, the selected geocache will be deleted. There is a confirmation dialog.
 
 ### Output box
 
@@ -77,18 +78,18 @@ GCFiddle Links:
  - Line comments start with a hash "#": `# comment until end of line`
  - Numbers are composed of digits 0..9 and a decimal point: `34` or `3.14`
  - Strings are surrounded by quotations: `"3.14"`
-   - Strings can also be surrounded by apostrophes: `'3.14'`, can contain quatations: `'quotations: "'`
+   - Strings can also be surrounded by apostrophes: `'3.14'`, can contain quotations: `'quotations: "'`
    - No character escaping: `"\n"` = `\n`
    - Strings in brackets are concatenated: `["5" "3." "14"]` = `"53.14"`
    - Type conversion: Numbers in brackets are converted to strings: `[ 5 "3." 14 ]` = `"53.14"`
  - Operators +, -, *, / % ^ are used for for numerical addition, subtraction, multiplication, division, modulo and exponential operation.
-   - Parenthesis "(", ")" can be used as usual
+   - Parenthesis "(", ")" can be used for grouping as usual
    - Type conversion: Strings are converted to numbers: `"5"+3.14` = `8.14`, `"5"+"3.14"` = `8.14`
- - Variabe names start with a character and can contain digits: `a1=3.14`, use: `a1` = `3.14`
+ - Variable names start with a character and may contain digits: `a1=3.14`, use: `a1` = `3.14`
  - Waypoints are string variables with a special format starting with dollar sign: `$W1="N 49° 16.130 E 008° 40.453"`
  - Functions can be defined `f()=3.14` or called: `f()` = `3.14`
    - Functions with parameter: `f(x)=3.14*x`, called: `f(2)` = `6.28`
-   - Functions with multiple parameters: `f(x,y)=x*y`, `f(2,3)` = `6`
+   - Functions with multiple parameters: `f(x,y)=x*y`, called: `f(2,3)` = `6`
 
 ### List of predefined functions
 
@@ -177,7 +178,7 @@ $W2="N 49° 15.903 E 008° 40.777"
 
 ### Differences in the calculation language of GCFiddle and WolfLanguage from CacheWolf
 
- - Most of the functions are also available in CacheWolf, so it is possible to write calculation stripts for both.
+ - Most of the functions are also available in CacheWolf, so it is possible to write calculation scripts for both interpreters.
  - Please see the examples on the test page "test/GCTEST1.js".
  - A description of the WolfLanguage (only in German) can be found at: http://cachewolf.aldos.de/index.php/Doku/WolfLanguage
 
@@ -192,7 +193,7 @@ $W2="N 49° 15.903 E 008° 40.777"
  - No statement separator, especially no semicolon ";"
  - Functions must be used exactly as they are defined, there are no abbreviations or aliases (e.g. `crosstotal` is always `ct`)
  - No error check for incorrect number of arguments for functions
- - No function: `goto(wp)`
+ - No function: `goto(wp)`, `sk(n)`
  - No statements: `IF`, `THEN`, `ENDIF`, `STOP`
 
 ## URL parameters as settings

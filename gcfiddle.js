@@ -11,7 +11,7 @@ var gDebug,
 	gcFiddle = {
 		config: {
 			debug: 0,
-			exampleIndex: "test", // test, tofind, found
+			exampleIndex: "test", // test, tofind, found, archived, saved
 			example: "GCNEW1",
 			showInput: true,
 			showOutput: true,
@@ -1960,6 +1960,7 @@ function onExampleSelectChange() {
 	} else {
 		document.getElementById("inputArea").value = "#GCTMPL1: Template1\n";
 		document.getElementById("outputArea").value = "";
+		gcFiddle.config.example = "";
 	}
 }
 
@@ -1980,6 +1981,12 @@ function onExampleIndexLoaded(sExampleIndex) {
 		}
 	}
 	onExampleSelectChange();
+}
+
+function setDisabled(id, bDisabled) {
+	var element = document.getElementById(id);
+
+	element.disabled = bDisabled;
 }
 
 function loadExampleIndexLocalStorage(sExampleIndex) {
@@ -2017,6 +2024,7 @@ function onExampleIndexSelectChange() {
 			loadScript(sName, onExampleIndexLoaded, sExampleIndex);
 		}
 	}
+	setDisabled("deleteButton", (sExampleIndex !== "saved") || !Object.keys(gcFiddle.exampleIndex.saved).length);
 }
 
 function setHidden(id, bHidden) {
@@ -2222,6 +2230,12 @@ function encodeUriParam(params) {
 	return aParts.join("&");
 }
 
+function myConfirm(message) {
+	var confirm = window.confirm;
+
+	return confirm(message);
+}
+
 function onReloadButtonClick() {
 	var oChanged = getChangedParameters(gcFiddle.config, gcFiddle.initialConfig);
 
@@ -2229,22 +2243,59 @@ function onReloadButtonClick() {
 }
 
 function onSaveButtonClick() {
-	var sInput = document.getElementById("inputArea").value,
+	var exampleIndexSelect = document.getElementById("exampleIndexSelect"),
+		sExampleIndex = exampleIndexSelect.value,
+		exampleSelect = document.getElementById("exampleSelect"),
+		sInput = document.getElementById("inputArea").value,
 		oExample,
-		oSavedList = gcFiddle.exampleIndex.saved;
+		oSavedList;
 
 	oExample = addExample(sInput);
 	window.console.log("Saving " + oExample.key);
 	window.localStorage.setItem(oExample.key, sInput);
 	gcFiddle.config.example = oExample.key;
 
+	if (sExampleIndex !== "saved") {
+		exampleIndexSelect.value = "saved";
+		onExampleIndexSelectChange();
+	}
+	oSavedList = gcFiddle.exampleIndex.saved;
+
+	if (oSavedList[oExample.key]) {
+		oSavedList[oExample.key] = oExample;
+	} else {
+		oSavedList[oExample.key] = oExample;
+		setExampleList();
+	}
+
+	exampleSelect.value = oExample.key;
+	onExampleSelectChange();
+	setDisabled("deleteButton", !Object.keys(oSavedList).length);
+}
+
+function onDeleteButtonClick() {
+	var sExampleIndex = document.getElementById("exampleIndexSelect").value,
+		exampleSelect = document.getElementById("exampleSelect"),
+		sExample = exampleSelect.value,
+		oSavedList = gcFiddle.exampleIndex.saved;
+
+	if (sExampleIndex !== "saved") {
+		return;
+	}
+	if (!myConfirm("Delete " + sExampleIndex + "/" + sExample)) {
+		return;
+	}
+	window.console.log("Deleting " + sExample);
+	window.localStorage.removeItem(sExample);
+
 	if (oSavedList) {
-		if (oSavedList[oExample.key]) {
-			oSavedList[oExample.key] = oExample;
-		} else {
-			oSavedList[oExample.key] = oExample;
+		if (oSavedList[sExample]) {
+			delete oSavedList[sExample];
+			removeSelectOptions(exampleSelect);
 			setExampleList();
+			onExampleSelectChange();
 		}
+		setDisabled("deleteButton", !Object.keys(oSavedList).length);
 	}
 }
 
@@ -2293,6 +2344,7 @@ function onLoad() {
 	document.getElementById("preprocessButton").onclick = onPreprocessButtonClick;
 	document.getElementById("reloadButton").onclick = onReloadButtonClick;
 	document.getElementById("saveButton").onclick = onSaveButtonClick;
+	document.getElementById("deleteButton").onclick = onDeleteButtonClick;
 	document.getElementById("exampleIndexSelect").onchange = onExampleIndexSelectChange;
 	document.getElementById("exampleSelect").onchange = onExampleSelectChange;
 	document.getElementById("varSelect").onchange = onVarSelectChange;

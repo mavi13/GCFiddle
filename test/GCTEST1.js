@@ -42,7 +42,7 @@ assert(sin(r2d(d2r(90))), 1)
 assert(sin(90), 1)
 assert(cos(0), 1)
 f(x)=sin(x)/cos(x)
-assert(tan(45), f(45))
+assert(int(tan(45)*1000+0.5)/1000, f(45))
 assert(atan(1), 45)
 #asin
 #acos
