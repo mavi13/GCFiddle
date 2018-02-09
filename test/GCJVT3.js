@@ -2,9 +2,10 @@
 
 "use strict";
 
-addExample(function() {
+addExample("test", function() {
 /*!#GCJVT3: Irren ist menschlich - To err is human (archived)
 #https://coord.info/GCJVT3
+#(Example with permission by rosszwerg.)
 #
 # Parking
 $W0="N 49° 18.071 E 008° 42.167"

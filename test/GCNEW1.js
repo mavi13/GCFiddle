@@ -2,6 +2,6 @@
 
 "use strict";
 
-addExample(function() {
+addExample("test", function() {
 /*!#GCNEW1: New Page 1
 */ });

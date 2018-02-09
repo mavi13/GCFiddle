@@ -40,7 +40,7 @@ GCFiddle Links:
    See the list of URL parameters below.
  - The "Save" button saves the current input in "Saved" category and selects it.
    It is stored in browser local storage which means that it is kept also during page reloads.
- - When the "Saved" category is selected, the selected geocache will be deleted. There is a confirmation dialog.
+ - The "Delete" button deletes the current geocache in "Saved" category. There is a confirmation dialog to prevent accidential delete.
 
 ### Output box
 
@@ -198,13 +198,13 @@ $W2="N 49° 15.903 E 008° 40.777"
 
 ## URL parameters as settings
 
- - `exampleIndex=test`: Set the example index to `test` or `tofind` or `found`
-   - Directory `exampleIndex` must exist there must be an index file `0index.js`
+ - `category=test`: Set the category to `test`, `tofind`, `found`, `archived` or `saved`
+   - Directory `category` must exist and must contain an index file `0index.js`
  - `example=GCNEW1`: Set example
  - `showInput=true`: Show the input box
  - `showOutput=true`: Show the output box
  - `showVariable=true`: Show the variable box
- - `showNote=true`: Show the notes box
+ - `showNotes=true`: Show the notes box
  - `showWaypoint=true`: Show waypoint box
  - `showMap=true`: Show the map box
  - `variableType=number`: Set general type of variables to `number`, `text` or `range`

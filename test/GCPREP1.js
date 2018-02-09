@@ -2,9 +2,10 @@
 
 "use strict";
 
-addExample(function() {
+addExample("test", function() {
 /*!#GCPREP1: Test 1 for Preprocess (based on GCJVT3)
 #https://coord.info/GCJVT3
+#(Example with permission by rosszwerg.)
 #
 . NOTE: This example cannot be executed. Press the "Preprocess" button...
 #

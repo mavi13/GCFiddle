@@ -11,12 +11,12 @@ var gDebug,
 	gcFiddle = {
 		config: {
 			debug: 0,
-			exampleIndex: "test", // test, tofind, found, archived, saved
+			category: "test", // test, tofind, found, archived, saved
 			example: "GCNEW1",
 			showInput: true,
 			showOutput: true,
 			showVariable: true,
-			showNote: true,
+			showNotes: true,
 			showWaypoint: true,
 			showMap: true,
 			showConsole: false, // for debugging
@@ -28,7 +28,7 @@ var gDebug,
 		initialConfig: null,
 		map: { },
 		maFa: null,
-		exampleIndex: { },
+		categories: { },
 		examples: { },
 		variables: { gcfOriginal: { }}
 	};
@@ -45,7 +45,7 @@ function hereDoc(fn) {
 
 
 // called also from files GCxxxxx.js
-function addExample(input) {
+function addExample(category, input) {
 	var sInput = (typeof input === "string") ? input.trim() : hereDoc(input).trim(),
 		sLine = sInput.split("\n", 1)[0],
 		aParts = sLine.match(/^#([\w\d]+)\s*:\s*(.+)/),
@@ -58,7 +58,7 @@ function addExample(input) {
 		sKey = "<unknown>";
 		sInput = '"WARNING: Example must start with #<id>: <title>"\n\n' + sInput;
 	}
-	gcFiddle.examples[sKey] = sInput;
+	gcFiddle.examples[category][sKey] = sInput;
 	return {
 		key: sKey,
 		title: sTitle
@@ -67,7 +67,10 @@ function addExample(input) {
 
 // called also from file 0index.js
 function setExampleIndex(index, indexList) {
-	gcFiddle.exampleIndex[index] = indexList;
+	gcFiddle.categories[index] = indexList;
+	if (!gcFiddle.examples[index]) {
+		gcFiddle.examples[index] = {};
+	}
 }
 
 function myObjectAssign(oTarget) { // varargs; Object.assign is ES6, not in IE
@@ -1620,9 +1623,9 @@ function setWaypointSelectOptions() {
 }
 
 function setExampleList() {
-	var exampleIndexSelect = document.getElementById("exampleIndexSelect"),
+	var categorySelect = document.getElementById("categorySelect"),
 		exampleSelect = document.getElementById("exampleSelect"),
-		oExamples = gcFiddle.exampleIndex[exampleIndexSelect.value],
+		oExamples = gcFiddle.categories[categorySelect.value],
 		sId,
 		sTitle,
 		sText,
@@ -1922,9 +1925,9 @@ function onPreprocessButtonClick() {
 }
 
 function onExampleLoaded(sExample) {
-	var oExamples = gcFiddle.examples,
-		sExampleIndex = document.getElementById("exampleIndexSelect").value,
-		sName = sExampleIndex + "/" + sExample + ".js";
+	var sCategory = gcFiddle.config.category,
+		oExamples = gcFiddle.examples[sCategory],
+		sName = sCategory + "/" + sExample + ".js";
 
 	gcFiddle.config.example = sExample;
 	window.console.log("NOTE: Example " + sName + " loaded");
@@ -1940,11 +1943,10 @@ function onExampleLoaded(sExample) {
 }
 
 function onExampleSelectChange() {
-	var exampleIndexSelect = document.getElementById("exampleIndexSelect"),
-		sExampleIndex = exampleIndexSelect.value,
+	var sCategory = gcFiddle.config.category,
 		exampleSelect = document.getElementById("exampleSelect"),
 		sExample = exampleSelect.value,
-		oExamples = gcFiddle.examples,
+		oExamples = gcFiddle.examples[sCategory],
 		sName;
 
 	exampleSelect.title = (exampleSelect.selectedIndex >= 0) ? exampleSelect.options[exampleSelect.selectedIndex].title : "";
@@ -1955,7 +1957,7 @@ function onExampleSelectChange() {
 	} else if (sExample) {
 		document.getElementById("inputArea").value = "#loading " + sExample + "...";
 		document.getElementById("outputArea").value = "waiting...";
-		sName = sExampleIndex + "/" + sExample + ".js";
+		sName = sCategory + "/" + sExample + ".js";
 		loadScript(sName, onExampleLoaded, sExample);
 	} else {
 		document.getElementById("inputArea").value = "#GCTMPL1: Template1\n";
@@ -1964,13 +1966,13 @@ function onExampleSelectChange() {
 	}
 }
 
-function onExampleIndexLoaded(sExampleIndex) {
+function onCategoryLoaded(sCategory) {
 	var exampleSelect = document.getElementById("exampleSelect"),
-		sName = sExampleIndex + "/0index.js",
+		sName = sCategory + "/0index.js",
 		i;
 
-	gcFiddle.config.exampleIndex = sExampleIndex;
-	window.console.log("NOTE: ExampleIndex " + sName + " loaded");
+	gcFiddle.config.category = sCategory;
+	window.console.log("NOTE: category " + sName + " loaded");
 	removeSelectOptions(exampleSelect);
 	setExampleList();
 	if (gcFiddle.config.example) {
@@ -1989,42 +1991,42 @@ function setDisabled(id, bDisabled) {
 	element.disabled = bDisabled;
 }
 
-function loadExampleIndexLocalStorage(sExampleIndex) {
+function loadCategoryLocalStorage(sCategory) {
 	var	oStorage = window.localStorage,
 		oExamples = {},
 		i, sKey, sItem;
 
+	setExampleIndex(sCategory, oExamples); // create category, set example object
 	for (i = 0; i < oStorage.length; i += 1) {
 		sKey = oStorage.key(i);
 		sItem = oStorage.getItem(sKey);
-		oExamples[sKey] = addExample(sItem);
+		oExamples[sKey] = addExample(sCategory, sItem);
 	}
-	setExampleIndex(sExampleIndex, oExamples);
-	onExampleIndexLoaded(sExampleIndex);
+	onCategoryLoaded(sCategory);
 }
 
-function onExampleIndexSelectChange() {
-	var exampleIndexSelect = document.getElementById("exampleIndexSelect"),
-		sExampleIndex = exampleIndexSelect.value,
+function onCategorySelectChange() {
+	var categorySelect = document.getElementById("categorySelect"),
+		sCategory = categorySelect.value,
 		exampleSelect = document.getElementById("exampleSelect"),
-		oExampleIndex = gcFiddle.exampleIndex,
+		oCategories = gcFiddle.categories,
 		sName;
 
-	if (oExampleIndex[sExampleIndex] !== undefined) {
-		gcFiddle.config.exampleIndex = sExampleIndex;
+	if (oCategories[sCategory] !== undefined) {
+		gcFiddle.config.category = sCategory;
 		removeSelectOptions(exampleSelect);
 		setExampleList();
 		onExampleSelectChange();
 	} else {
-		document.getElementById("inputArea").value = "#loading index " + sExampleIndex + "...";
-		if (sExampleIndex === "saved") {
-			loadExampleIndexLocalStorage(sExampleIndex);
+		document.getElementById("inputArea").value = "#loading index " + sCategory + "...";
+		if (sCategory === "saved") {
+			loadCategoryLocalStorage(sCategory);
 		} else {
-			sName = sExampleIndex + "/0index.js";
-			loadScript(sName, onExampleIndexLoaded, sExampleIndex);
+			sName = sCategory + "/0index.js";
+			loadScript(sName, onCategoryLoaded, sCategory);
 		}
 	}
-	setDisabled("deleteButton", (sExampleIndex !== "saved") || !Object.keys(gcFiddle.exampleIndex.saved).length);
+	setDisabled("deleteButton", (sCategory !== "saved") || !Object.keys(gcFiddle.categories.saved).length);
 }
 
 function setHidden(id, bHidden) {
@@ -2052,8 +2054,8 @@ function onVarLegendClick() {
 	gcFiddle.config.showVariable = toogleHidden("varArea");
 }
 
-function onNoteLegendClick() {
-	gcFiddle.config.showNote = toogleHidden("nodeArea");
+function onNotesLegendClick() {
+	gcFiddle.config.showNotes = toogleHidden("notesArea");
 }
 
 function onWaypointLegendClick() {
@@ -2243,23 +2245,25 @@ function onReloadButtonClick() {
 }
 
 function onSaveButtonClick() {
-	var exampleIndexSelect = document.getElementById("exampleIndexSelect"),
-		sExampleIndex = exampleIndexSelect.value,
+	var categorySelect = document.getElementById("categorySelect"),
+		sCategory = categorySelect.value,
 		exampleSelect = document.getElementById("exampleSelect"),
 		sInput = document.getElementById("inputArea").value,
 		oExample,
 		oSavedList;
 
-	oExample = addExample(sInput);
+	if (sCategory !== "saved") {
+		sCategory = "saved";
+		categorySelect.value = sCategory;
+		onCategorySelectChange();
+	}
+
+	oExample = addExample(sCategory, sInput);
 	window.console.log("Saving " + oExample.key);
 	window.localStorage.setItem(oExample.key, sInput);
 	gcFiddle.config.example = oExample.key;
 
-	if (sExampleIndex !== "saved") {
-		exampleIndexSelect.value = "saved";
-		onExampleIndexSelectChange();
-	}
-	oSavedList = gcFiddle.exampleIndex.saved;
+	oSavedList = gcFiddle.categories.saved;
 
 	if (oSavedList[oExample.key]) {
 		oSavedList[oExample.key] = oExample;
@@ -2274,15 +2278,15 @@ function onSaveButtonClick() {
 }
 
 function onDeleteButtonClick() {
-	var sExampleIndex = document.getElementById("exampleIndexSelect").value,
+	var sCategory = document.getElementById("categorySelect").value,
 		exampleSelect = document.getElementById("exampleSelect"),
 		sExample = exampleSelect.value,
-		oSavedList = gcFiddle.exampleIndex.saved;
+		oSavedList = gcFiddle.categories.saved;
 
-	if (sExampleIndex !== "saved") {
+	if (sCategory !== "saved") {
 		return;
 	}
-	if (!myConfirm("Delete " + sExampleIndex + "/" + sExample)) {
+	if (!myConfirm("Delete " + sCategory + "/" + sExample)) {
 		return;
 	}
 	window.console.log("Deleting " + sExample);
@@ -2345,7 +2349,7 @@ function onLoad() {
 	document.getElementById("reloadButton").onclick = onReloadButtonClick;
 	document.getElementById("saveButton").onclick = onSaveButtonClick;
 	document.getElementById("deleteButton").onclick = onDeleteButtonClick;
-	document.getElementById("exampleIndexSelect").onchange = onExampleIndexSelectChange;
+	document.getElementById("categorySelect").onchange = onCategorySelectChange;
 	document.getElementById("exampleSelect").onchange = onExampleSelectChange;
 	document.getElementById("varSelect").onchange = onVarSelectChange;
 	document.getElementById("varViewSelect").onchange = onVarViewSelectChange;
@@ -2353,7 +2357,7 @@ function onLoad() {
 	document.getElementById("varLegend").onclick = onVarLegendClick;
 	document.getElementById("inputLegend").onclick = onInputLegendClick;
 	document.getElementById("outputLegend").onclick = onOutputLegendClick;
-	document.getElementById("noteLegend").onclick = onNoteLegendClick;
+	document.getElementById("notesLegend").onclick = onNotesLegendClick;
 	document.getElementById("waypointLegend").onclick = onWaypointLegendClick;
 	document.getElementById("mapLegend").onclick = onMapLegendClick;
 	document.getElementById("mapTypeSelect").onchange = onMapTypeSelectChange;
@@ -2376,8 +2380,8 @@ function onLoad() {
 	if (!oConfig.showVariable) {
 		onVarLegendClick();
 	}
-	if (!oConfig.showNote) {
-		onNoteLegendClick();
+	if (!oConfig.showNotes) {
+		onNotesLegendClick();
 	}
 	if (!oConfig.showWaypoint) {
 		onWaypointLegendClick();
@@ -2390,9 +2394,9 @@ function onLoad() {
 		document.getElementById("exampleSelect").value = oConfig.example;
 	}
 
-	if (oConfig.exampleIndex) {
-		document.getElementById("exampleIndexSelect").value = oConfig.exampleIndex;
-		onExampleIndexSelectChange();
+	if (oConfig.category) {
+		document.getElementById("categorySelect").value = oConfig.category;
+		onCategorySelectChange();
 	} else {
 		onExampleSelectChange();
 	}
