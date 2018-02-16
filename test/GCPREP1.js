@@ -2,10 +2,11 @@
 
 "use strict";
 
-addExample("test", function() {
-/*!#GCPREP1: Test 1 for Preprocess (based on GCJVT3)
+addExample(function() { /*
+#GCPREP1: Test 1 for Preprocess (based on GCJVT3)
 #https://coord.info/GCJVT3
-#(Example with permission by rosszwerg.)
+#
+#Example provided with friendly permission by rosszwerg.
 #
 . NOTE: This example cannot be executed. Press the "Preprocess" button...
 #
@@ -28,10 +29,10 @@ Message this owner
 Hidden : 07/01/2004
 
 Difficulty:
-    2.5 out of 5 
+    2.5 out of 5
 
 Terrain:
-    2.5 out of 5 
+    2.5 out of 5
 
 Size: Size: regular (regular)
 10 Favorites
@@ -48,10 +49,10 @@ In Baden-Württemberg, Germany
 NE NE 1 km from your home location
 
 Print:
-    No Logs 5 Logs 10 Logs Driving Directions 
+    No Logs 5 Logs 10 Logs Driving Directions
 
 Download:
-    Read about waypoint downloads 
+    Read about waypoint downloads
 
 Please note Use of geocaching.com services is subject to the terms and conditions in our disclaimer.
 Geocache Description:
@@ -202,7 +203,7 @@ For online maps...
 391 Logged Visits
 Decrypt
 
-Found it 345     Didn't find it 16     Write note 13     Archive 1     Post Reviewer Note 2     Temporarily Disable Listing 3     Enable Listing 2     Needs Maintenance 1     Owner Maintenance 7     Post Reviewer Note 1 
+Found it 345     Didn't find it 16     Write note 13     Archive 1     Post Reviewer Note 2     Temporarily Disable Listing 3     Enable Listing 2     Needs Maintenance 1     Owner Maintenance 7     Post Reviewer Note 1
 
 View Logbook | View the Image Gallery of 48 images
 

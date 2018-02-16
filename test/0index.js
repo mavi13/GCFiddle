@@ -3,10 +3,11 @@
 
 "use strict";
 
-setExampleIndex("test", {
-	GCNEW1: { title: "New Page 1" },
-	GCJVT3: { title: "To err is human (solution)" },
-	GCTEST1: { title: "Test Page 1" },
-	GCTEST6: { title: "Test Page ES6 Multiline String" },
-	GCPREP1: { title: "GCPREP1: Test 1 für preprocess" }
-});
+setExampleIndex(function() { /*
+#GCNEW1: New Page 1
+#GC5TER7: Das gute alte Schmetterlingsbuch als Mystery (Template)
+#GCJVT3: Irren ist menschlich - To err is human (solution)
+#GCTEST1: Test Page
+#GCTEST6: Test Page ES6 Template, Multiline String
+#GCPREP1: Test 1 for Preprocess (based on GCJVT3)
+*/ });

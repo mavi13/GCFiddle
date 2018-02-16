@@ -82,6 +82,7 @@ GCFiddle Links:
    - No character escaping: `"\n"` = `\n`
    - Strings in brackets are concatenated: `["5" "3." "14"]` = `"53.14"`
    - Type conversion: Numbers in brackets are converted to strings: `[ 5 "3." 14 ]` = `"53.14"`
+   - Number formatting with suffix pattern: `3.14159:000.00:` = `"003.14"`
  - Operators +, -, *, / % ^ are used for for numerical addition, subtraction, multiplication, division, modulo and exponential operation.
    - Parenthesis "(", ")" can be used for grouping as usual
    - Type conversion: Strings are converted to numbers: `"5"+3.14` = `8.14`, `"5"+"3.14"` = `8.14`
@@ -129,7 +130,7 @@ GCFiddle Links:
    - Crosstotal of crosstotal: `ct(ct(1234567890))` = `9`
  - cti(n): crosstotal iterative of the number n (sum of digits until < 10): `cti("1234567890")` = `9`
    - Other characters are ignored: `cti("R9z876gh5432%.*^/+-10")` = `9`
- - zformat(n, len): zero padding to len characters: `zformat(0, 3)` = `"000"`,  `zformat(8.2, 5)` = `"008.2"`
+ - (zformat(n, len): zero padding to len characters: `zformat(0, 3)` = `"000"`,  `zformat(8.2, 5)` = `"008.2"`)
    
 #### String functions
  - val(s): sum of the character values: `val("a")` = `1`, `val("Z")` = `26`
@@ -188,7 +189,7 @@ $W2="N 49° 15.903 E 008° 40.777"
  - To concatenate strings, they must be placed in brackets "[", "]". Separation by spaces is not enough
  - Variables are case-sensitive (In WolfLanguage this can be set with `ic(0)`)
  - Possibility to define new functions, e.g. `s(x, y)=x+y`
- - Number formatting with `zformat()`  (not with `"3.14159:000.00:"` = `"003.14"`)
+ - Number formatting with suffix pattern may contain "0" and "." but not "#"
  - Geodetic calculation of waypoints uses another model with other formulas, so there are slightly different results
  - No statement separator, especially no semicolon ";"
  - Functions must be used exactly as they are defined, there are no abbreviations or aliases (e.g. `crosstotal` is always `ct`)

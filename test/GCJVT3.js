@@ -2,10 +2,12 @@
 
 "use strict";
 
-addExample("test", function() {
-/*!#GCJVT3: Irren ist menschlich - To err is human (archived)
+addExample(function() { /*
+#GCJVT3: Irren ist menschlich - To err is human (solution)
 #https://coord.info/GCJVT3
-#(Example with permission by rosszwerg.)
+#
+#Solution provided with friendly permission by rosszwerg.
+#This is an archived cache.
 #
 # Parking
 $W0="N 49° 18.071 E 008° 42.167"
@@ -44,7 +46,7 @@ GGG=(age) * 9
 # date of decease - 1487
 HHH=decease - 1487
 #
-$GCJVT3=["N 49° 18." GGG " E 008° 42." HHH]
+$00JVT3=["N 49° 18." GGG " E 008° 42." HHH]
 # N 49° 18.585 E 008° 42.453
 #
 */ });

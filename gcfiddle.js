@@ -39,13 +39,24 @@ var gDebug,
 // see: https://stackoverflow.com/questions/805107/creating-multiline-strings-in-javascript?rq=1
 function hereDoc(fn) {
 	return fn.toString().
-		replace(/^[^/]+\/\*!?/, "").
+		replace(/^[^/]+\/\*\S*/, "").
 		replace(/\*\/[^/]+$/, "");
 }
 
+function getLoadedFile() {
+	var sFile = "";
 
-// called also from files GCxxxxx.js
-function addExample(category, input) {
+	try {
+		throw new Error("getStackTrace");
+	} catch (e) {
+		sFile = e.stack.trim().split("\n").pop();
+		// e.g. Google: "file:///E:/work/develop/2018/GCFiddle/test/GCNEW1.js:5:1"; FF: "@file:///E:/work/develop/2018/GCFiddle/test/GCNEW1.js:5:1"
+	}
+	return sFile;
+}
+
+// if category is not specified it is extracted from the filename in the call stack
+function parseExample(input, category) {
 	var sInput = (typeof input === "string") ? input.trim() : hereDoc(input).trim(),
 		sLine = sInput.split("\n", 1)[0],
 		aParts = sLine.match(/^#([\w\d]+)\s*:\s*(.+)/),
@@ -58,19 +69,68 @@ function addExample(category, input) {
 		sKey = "<unknown>";
 		sInput = '"WARNING: Example must start with #<id>: <title>"\n\n' + sInput;
 	}
-	gcFiddle.examples[category][sKey] = sInput;
+
+	if (!category) {
+		sLine = getLoadedFile();
+		aParts = sLine.match(/(\w+)\/(\w+)\.js/);
+		if (aParts) {
+			category = aParts[1];
+			if ((sKey !== aParts[2]) && aParts[2] !== "0index") {
+				window.console.warn("parseExample: different example keys found: " + sKey + " <> " + aParts[2]);
+			}
+		}
+	}
 	return {
+		category: category,
 		key: sKey,
-		title: sTitle
+		title: sTitle,
+		input: sInput
 	};
 }
 
-// called also from file 0index.js
-function setExampleIndex(index, indexList) {
-	gcFiddle.categories[index] = indexList;
-	if (!gcFiddle.examples[index]) {
-		gcFiddle.examples[index] = {};
+// called also from files GCxxxxx.js
+// if category is not specified it is extracted from the filename in the call stack
+function addExample(input, category) {
+	var oItem = parseExample(input, category);
+
+	window.console.log("INFO: addExample: category=" + oItem.category + "(" + gcFiddle.config.category + ") key=" + oItem.key);
+	/*
+	if (!gcFiddle.examples[oItem.category]) { // if not defined for some reason
+		gcFiddle.examples[oItem.category] = {};
 	}
+	*/
+	if (gcFiddle.examples[oItem.category]) {
+		gcFiddle.examples[oItem.category][oItem.key] = oItem.input;
+	} else {
+		window.console.warn("ERROR: Unknown category: " + oItem.category);
+	}
+	return oItem;
+}
+
+// called also from file 0index.js
+// if category is not specified it is extracted from the filename in the call stack
+function setExampleIndex(input, category) {
+	var sInput = (typeof input === "string") ? input.trim() : hereDoc(input).trim(),
+		aLines,
+		mItems = {};
+
+	if (sInput) {
+		aLines = sInput.split("\n");
+		aLines.forEach(function(sLine) {
+			var oItem = parseExample(sLine, category);
+
+			if (!category) {
+				category = oItem.category;
+			}
+			mItems[oItem.key] = { title: oItem.title };
+		});
+	}
+
+	gcFiddle.categories[category] = mItems;
+	if (!gcFiddle.examples[category]) {
+		gcFiddle.examples[category] = {};
+	}
+	return mItems;
 }
 
 function myObjectAssign(oTarget) { // varargs; Object.assign is ES6, not in IE
@@ -424,7 +484,7 @@ function ErrorObject(message, value, pos) {
 }
 
 // based on: https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript
-// (and: http://javascript.crockford.com/tdop/tdop.html ; test online: http://jsfiddle.net/h3xwj/embedded/result/)
+// (and: http://crockford.com/javascript/tdop/tdop.html ; test online: http://jsfiddle.net/h3xwj/embedded/result/)
 // How to write a simple interpreter in JavaScript
 // Peter_Olson, 30 Oct 2014
 function ScriptParser() {
@@ -458,6 +518,12 @@ ScriptParser.prototype.lex = function (input) {
 		},
 		isIdentifier = function (c) {
 			return typeof c === "string" && (/[$\w]/).test(c);
+		},
+		isFormatter = function (c) {
+			return (/[:]/).test(c);
+		},
+		isNotFormatter = function (c) {
+			return typeof c === "string" && (/[0#.]/).test(c);
 		},
 		isNotNewLine = function (c) {
 			return typeof c === "string" && c !== "\n";
@@ -528,6 +594,14 @@ ScriptParser.prototype.lex = function (input) {
 		} else if (isIdentifier(sChar)) {
 			sToken = advanceWhile(isIdentifier);
 			addToken("identifier", sToken, iStartPos);
+		} else if (isFormatter(sChar)) {
+			sChar = "";
+			sToken = advanceWhile(isNotFormatter);
+			addToken("formatter", sToken, iStartPos);
+			if (!isFormatter(sChar)) {
+				throw new ErrorObject("Unterminated formatter", sToken, iStartPos + 1);
+			}
+			sChar = advance();
 		} else {
 			throw new ErrorObject("Unrecognized token", sChar, iStartPos);
 		}
@@ -536,7 +610,7 @@ ScriptParser.prototype.lex = function (input) {
 	return aTokens;
 };
 
-// http://javascript.crockford.com/tdop/tdop.html
+// http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
 // Operator precedence parsing
 // Operator: With left binding power (lbp) and operational function.
 // Manipulates tokens to its left (e.g: +)? => left denotative function (led), otherwise null denotative function (nud), (e.g. unary -)
@@ -623,6 +697,16 @@ ScriptParser.prototype.parse = function (tokens) {
 				};
 			});
 		};
+		/*
+		suffix = function (id, lbp, led) {
+			symbol(id, null, lbp, led || function (left) {
+				return {
+					type: id,
+					left: left
+				};
+			});
+		};
+		*/
 
 	symbol(",");
 	symbol(")");
@@ -696,6 +780,15 @@ ScriptParser.prototype.parse = function (tokens) {
 		}
 		advance();
 		return oValue;
+	});
+
+	// sort of suffix function
+	symbol("formatter", null, 3, function (left) {
+		return {
+			type: "formatter",
+			value: tokens[iIndex - 1].value, //fast hack
+			left: left
+		};
 	});
 
 	prefix("-", 8);
@@ -1023,6 +1116,19 @@ ScriptParser.prototype.evaluate = function (parseTree, variables) {
 				}
 				return s;
 			},
+			nformat: function (s, format) {
+				var aFormat;
+
+				if (format.indexOf(".") < 0) {
+					s = Number(s).toFixed(0);
+					s = oFunctions.zformat(s, format.length);
+				} else { // assume 000.00
+					aFormat = format.split(".", 2);
+					s = Number(s).toFixed(aFormat[1].length);
+					s = oFunctions.zformat(s, format.length);
+				}
+				return s;
+			},
 			// isEqual - or return 0,1?
 			isEqual: function (a, b) {
 				return a === b;
@@ -1111,6 +1217,9 @@ ScriptParser.prototype.evaluate = function (parseTree, variables) {
 					oArgs = {};
 					return sValue;
 				};
+			} else if (node.type === "formatter") {
+				sValue = parseNode(node.left);
+				sValue = oFunctions.nformat(sValue, node.value);
 			} else {
 				window.console.log("ERROR: parseNode node=%o unknown type=" + node.type, node);
 				sValue = node;
@@ -1630,7 +1739,8 @@ function setExampleList() {
 		sTitle,
 		sText,
 		option,
-		i = 0;
+		i = 0,
+		selectExample;
 
 	for (sId in oExamples) {
 		if (oExamples.hasOwnProperty(sId)) {
@@ -1649,8 +1759,14 @@ function setExampleList() {
 					option.text = sText;
 				}
 			}
+			if (option.value === gcFiddle.config.example) {
+				selectExample = option.value;
+			}
 			i += 1;
 		}
+	}
+	if (selectExample) {
+		exampleSelect.value = selectExample;
 	}
 }
 
@@ -1718,6 +1834,15 @@ function onWaypointSelectChange() {
 	waypointSelect.title = (waypointSelect.selectedIndex >= 0) ? waypointSelect.options[waypointSelect.selectedIndex].title : "";
 }
 
+// scrolling needed for Chrome (https://stackoverflow.com/questions/7464282/javascript-scroll-to-selection-after-using-textarea-setselectionrange-in-chrome)
+function scrollToSelection(textArea) {
+	var charsPerRow = textArea.cols,
+		selectionRow = (textArea.selectionStart - (textArea.selectionStart % charsPerRow)) / charsPerRow,
+		lineHeight = textArea.clientHeight / textArea.rows;
+
+	textArea.scrollTop = lineHeight * selectionRow;
+}
+
 function calculate2() {
 	var variables = gcFiddle.variables,
 		inputArea = document.getElementById("inputArea"),
@@ -1733,6 +1858,7 @@ function calculate2() {
 			inputArea.focus();
 			inputArea.selectionStart = output.pos;
 			inputArea.selectionEnd = iEndPos;
+			scrollToSelection(inputArea);
 		}
 		output = output.message + ": '" + output.value + "' (pos " + output.pos + "-" + iEndPos + ")";
 	}
@@ -1963,25 +2089,18 @@ function onExampleSelectChange() {
 		document.getElementById("inputArea").value = "#GCTMPL1: Template1\n";
 		document.getElementById("outputArea").value = "";
 		gcFiddle.config.example = "";
+		onExecuteButtonClick();
 	}
 }
 
 function onCategoryLoaded(sCategory) {
 	var exampleSelect = document.getElementById("exampleSelect"),
-		sName = sCategory + "/0index.js",
-		i;
+		sName = sCategory + "/0index.js";
 
 	gcFiddle.config.category = sCategory;
 	window.console.log("NOTE: category " + sName + " loaded");
 	removeSelectOptions(exampleSelect);
 	setExampleList();
-	if (gcFiddle.config.example) {
-		for (i = 0; i < exampleSelect.length; i += 1) {
-			if (exampleSelect.options[i].value === gcFiddle.config.example) {
-				exampleSelect.value = gcFiddle.config.example;
-			}
-		}
-	}
 	onExampleSelectChange();
 }
 
@@ -1993,14 +2112,14 @@ function setDisabled(id, bDisabled) {
 
 function loadCategoryLocalStorage(sCategory) {
 	var	oStorage = window.localStorage,
-		oExamples = {},
+		oExamples,
 		i, sKey, sItem;
 
-	setExampleIndex(sCategory, oExamples); // create category, set example object
+	oExamples = setExampleIndex("", sCategory); // create category, set example object
 	for (i = 0; i < oStorage.length; i += 1) {
 		sKey = oStorage.key(i);
 		sItem = oStorage.getItem(sKey);
-		oExamples[sKey] = addExample(sCategory, sItem);
+		oExamples[sKey] = addExample(sItem, sCategory);
 	}
 	onCategoryLoaded(sCategory);
 }
@@ -2258,22 +2377,22 @@ function onSaveButtonClick() {
 		onCategorySelectChange();
 	}
 
-	oExample = addExample(sCategory, sInput);
-	window.console.log("Saving " + oExample.key);
+	oExample = addExample(sInput, sCategory);
 	window.localStorage.setItem(oExample.key, sInput);
-	gcFiddle.config.example = oExample.key;
-
 	oSavedList = gcFiddle.categories.saved;
 
 	if (oSavedList[oExample.key]) {
 		oSavedList[oExample.key] = oExample;
+		if (exampleSelect.value !== oExample.key) {
+			exampleSelect.value = oExample.key;
+			onExampleSelectChange();
+		}
 	} else {
 		oSavedList[oExample.key] = oExample;
+		gcFiddle.config.example = oExample.key;
 		setExampleList();
+		onExampleSelectChange();
 	}
-
-	exampleSelect.value = oExample.key;
-	onExampleSelectChange();
 	setDisabled("deleteButton", !Object.keys(oSavedList).length);
 }
 

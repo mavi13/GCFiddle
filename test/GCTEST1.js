@@ -2,8 +2,8 @@
 
 "use strict";
 
-addExample("test", function() {
-/*!#GCTEST1: Test Page
+addExample(function() { /*
+#GCTEST1: Test Page
 #
 #Basic tests
 a1=3.14 #Number
@@ -42,7 +42,7 @@ assert(sin(r2d(d2r(90))), 1)
 assert(sin(90), 1)
 assert(cos(0), 1)
 f(x)=sin(x)/cos(x)
-assert(int(tan(45)*1000+0.5)/1000, f(45))
+assert(int(tan(45)*1000+0.5)/1000, int(f(45)*1000+0.5)/1000)
 assert(atan(1), 45)
 #asin
 #acos
@@ -151,6 +151,9 @@ assert(replace("abcABCabc", "bc", "Xy"), "aXyABCaXy")
 assert(reverse("abcZ"), "Zcba")
 #rot13
 assert(rot13("abcdefghijklmnopqrstuvexyzABC"), "nopqrstuvwxyzabcdefghirklmNOP")
+#nformat
+assert(0:000:, "000")
+assert(8.2:000.0:, "008.2")
 #zformat
 assert(zformat(0, 3), "000")
 assert(zformat(8.2, 5), "008.2")
