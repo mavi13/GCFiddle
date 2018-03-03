@@ -7,14 +7,16 @@ It can also extract waypoints and variables from geocache descriptions.
 
 GCFiddle Links:
 [Source code](https://github.com/mavi13/GCFiddle/),
-[working example](https://mavi13.github.io/GCFiddle/gcfiddle.html),
-[HTML Readme](https://mavi13.github.io/GCFiddle/)
+[HTML Readme](https://mavi13.github.io/GCFiddle/),
+Examples:
+[GCNEW1](https://mavi13.github.io/GCFiddle/gcfiddle.html),
+[GCJVT3](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCJVT3&mapType=osm),
 
 ## Features
 
  - Calculation language similar to "Wolf Language" used by CacheWolf's solver
  - Modify variables temporarily and see its effect on the calculation
- - Show waypoints on a simple map or with Google Maps (needs [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key))
+ - Show waypoints on a simple map, Open Street Map or with Google Maps (needs [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key))
  - Extract waypoints and variables from geocache descriptions
  - Load geocache scripts from an archive
  - Runs locally without a server, also on mobile devices
@@ -63,11 +65,11 @@ GCFiddle Links:
 
  - Allows you to select a waypoint found during script execution and fiddle with it. That means you can change it temporarily without changing the script.
    Changed waypoints are marked with "[c]".
- - Waypoints are variables that begin with a dollar sign "$".
+ - Waypoints are variables that begin with a dollar sign "$": e.g. `$W1`.
 
 ### Map box
- - Allows you to show waypoints on a map.
- - The selection field selects a simple map (offline) or Google Maps (online).
+ - To show waypoints on a map.
+ - The selection field selects a simple map (offline), Open Street Map (online) or Google Maps (online).
  - When using Google Maps: Get a Google API key and set it in gcfiddle.js, in gcconfig.js or as a URL parameter.
    Clicking on a waypoint opens an info box with coordinates.
    When you move the waypoint around, the coordinates in the information box are updated. Clicking on "x" closes the info box.
@@ -79,18 +81,18 @@ GCFiddle Links:
  - Numbers are composed of digits 0..9 and a decimal point: `34` or `3.14`
  - Strings are surrounded by quotations: `"3.14"`
    - Strings can also be surrounded by apostrophes: `'3.14'`, can contain quotations: `'quotations: "'`
-   - No character escaping: `"\n"` = `\n`
+   - No character escaping: `"\n"` => `\n`
    - Strings in brackets are concatenated: `["5" "3." "14"]` = `"53.14"`
    - Type conversion: Numbers in brackets are converted to strings: `[ 5 "3." 14 ]` = `"53.14"`
-   - Number formatting with suffix pattern: `3.14159:000.00:` = `"003.14"`
+   - Number formatting with suffix pattern: `3.14159:000.00:` => `"003.14"`
  - Operators +, -, *, / % ^ are used for for numerical addition, subtraction, multiplication, division, modulo and exponential operation.
    - Parenthesis "(", ")" can be used for grouping as usual
-   - Type conversion: Strings are converted to numbers: `"5"+3.14` = `8.14`, `"5"+"3.14"` = `8.14`
+   - Type conversion: Strings are converted to numbers: `"5"+3.14` => `8.14`, `"5"+"3.14"` = `8.14`
  - Variable names start with a character and may contain digits: `a1=3.14`, use: `a1` = `3.14`
  - Waypoints are string variables with a special format starting with dollar sign: `$W1="N 49° 16.130 E 008° 40.453"`
- - Functions can be defined `f()=3.14` or called: `f()` = `3.14`
-   - Functions with parameter: `f(x)=3.14*x`, called: `f(2)` = `6.28`
-   - Functions with multiple parameters: `f(x,y)=x*y`, called: `f(2,3)` = `6`
+ - Functions can be defined `f()=3.14` or called: `f()` => `3.14`
+   - Functions with parameter: `f(x)=3.14*x`, called: `f(2)` => `6.28`
+   - Functions with multiple parameters: `f(x,y)=x*y`, called: `f(2,3)` => `6`
 
 ### List of predefined functions
 
@@ -181,7 +183,7 @@ $W2="N 49° 15.903 E 008° 40.777"
 
  - Most of the functions are also available in CacheWolf, so it is possible to write calculation scripts for both interpreters.
  - Please see the examples on the test page "test/GCTEST1.js".
- - A description of the WolfLanguage (only in German) can be found at: http://cachewolf.aldos.de/index.php/Doku/WolfLanguage
+ - Please check the description of the [WolfLanguage](http://cachewolf.aldos.de/index.php/Doku/WolfLanguage) (only in German). 
 
 #### Some differences when using GCFiddle
 
@@ -210,7 +212,7 @@ $W2="N 49° 15.903 E 008° 40.777"
  - `showMap=true`: Show the map box
  - `variableType=number`: Set general type of variables to `number`, `text` or `range`
    - If a variable is not a number, `text` is used
- - `mapType=simple`: Set type of map to `simple` or `google`.
+ - `mapType=simple`: Set type of map to `simple`, `osm` or `google`.
    - For `google`, an API key must be set
  - `key=""`: Set [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key)
    - Can also be set in file `gcconfig.js` or `gcfiddle.js`
@@ -220,16 +222,24 @@ $W2="N 49° 15.903 E 008° 40.777"
 
 ## Acknowledgements
 
- - CacheWolf, I use it for years now...
+ - [CacheWolf](https://github.com/cachewolf/cachewolf), I use it for years now...
+
+ - Description of [GCJVT3](https://coord.info/GCJVT3) with friendly permission by rosszwerg.
+   (Archived cache, solution provided.)
+ 
+ - Formulas for [GC5TER7](https://coord.info/GC5TER7) with friendly permission by Onetrain.
+   (Try to find the solution!)
 
  - Geodesy tools (c) Chris Veness 2002-2016
-   - [Latitude/longitude spherical geodesy tools](http://www.movable-type.co.uk/scripts/latlong.html)
+   - [Latitude/longitude spherical geodesy tools](https://www.movable-type.co.uk/scripts/latlong.html)
    - I picked just the functions that I needed, modified LanLon object to be compatible with Google LatLng object and removed Greek symbols which JSlint does not like.
    - [latlon-spherical on GitHub](https://github.com/chrisveness/geodesy/blob/master/latlon-spherical.js)
    - Thanks for the excellent explanation on geodesy calculations and the library!
    
  - Peter_Olson for an article on [How to write a simple interpreter in JavaScript](https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript). It was a good starting point for the calculator in GCFiddle.
 
- - Description of [GCJVT3](http://coord.info/GCJVT3) by rosszwerg.
+ - [OpenLayers 2](https://openlayers.org/two/) to display the [Open Street Map](https://www.openstreetmap.org/)
 
-#### mavi13, 09/2017
+ - [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/)
+
+#### mavi13, 03/2018

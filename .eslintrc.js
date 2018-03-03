@@ -195,7 +195,6 @@ module.exports = {
         "no-spaced-func": "error",
         "no-sync": "error",
         "no-tabs": "off",
-        "no-template-curly-in-string": "error",
         "no-ternary": "off",
         "no-this-before-super": "warn",
         "no-throw-literal": "warn",
@@ -219,7 +218,7 @@ module.exports = {
         "no-whitespace-before-property": "error",
         "no-with": "error",
         "nonblock-statement-body-position": "error",
-        "object-curly-newline": "error",
+        "object-curly-newline": ["error", { "ObjectExpression": { "multiline": true, "minProperties": 1 } } ],
         "object-curly-spacing": ["warn", "always", { "arraysInObjects": false, "objectsInObjects": false } ],
         "object-property-newline": [
             "error",
