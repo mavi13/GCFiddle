@@ -8,9 +8,8 @@ It can also extract waypoints and variables from geocache descriptions.
 GCFiddle Links:
 [Source code](https://github.com/mavi13/GCFiddle/),
 [HTML Readme](https://mavi13.github.io/GCFiddle/),
-Examples:
 [GCNEW1](https://mavi13.github.io/GCFiddle/gcfiddle.html),
-[GCJVT3](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCJVT3&mapType=osm),
+[GCJVT3](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCJVT3&mapType=osm)
 
 ## Features
 

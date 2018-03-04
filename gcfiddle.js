@@ -23,7 +23,10 @@ var gDebug,
 			variableType: "number", // number, text, range
 			mapType: "simple", // simple, google, osm
 			key: "", // Google API key
-			zoom: 15 // zoom level for Google maps, OSM
+			zoom: 15, // zoom level for Google maps, OSM
+			openLayersUrl: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js"
+			// openLayersUrl: "http://www.openlayers.org/api/OpenLayers.js" // http only
+			// openLayersUrl: "lib/OpenLayers.js" // local version; or "lib/OpenLayers.light.js"
 		},
 		initialConfig: null,
 		map: { },
@@ -2543,12 +2546,17 @@ function onOpenLayersLoaded() {
 
 		oMap.addControls([
 			new OpenLayers.Control.Navigation(),
-			new OpenLayers.Control.KeyboardDefaults(),
 			new OpenLayers.Control.Zoom(),
-			new OpenLayers.Control.OverviewMap(),
 			new OpenLayers.Control.LayerSwitcher(),
 			oSelect
 		]);
+
+		if (OpenLayers.Control.KeyboardDefaults) {
+			oMap.addControl(new OpenLayers.Control.KeyboardDefaults()); // not in OpenLayers.light version
+		}
+		if (OpenLayers.Control.OverviewMap) {
+			oMap.addControl(new OpenLayers.Control.OverviewMap()); // not in OpenLayers.light version
+		}
 	}
 	if (gcFiddle.maFa) {
 		gcFiddle.maFa.initMap(gcFiddle.map[sMapType]);
@@ -2564,6 +2572,7 @@ function onMapTypeSelectChange() {
 		sMapType = mapTypeSelect.value,
 		sMapTypeId = "mapCanvas-" + sMapType,
 		mapCanvas,
+		sProtocol,
 		sUrl,
 		oItem,
 		i;
@@ -2585,18 +2594,19 @@ function onMapTypeSelectChange() {
 			gcFiddle.map[sMapType] = new SimpleMap(mapCanvas, oMapSettings);
 			break;
 		case "osm":
-			sUrl = (window.location.protocol === "https:") ? window.location.protocol : "http:";
-			sUrl += "//www.openlayers.org/api/OpenLayers.js";
+			sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
+			sUrl = gcFiddle.config.openLayersUrl.replace(/^http(s)?:/, sProtocol);
 			loadScript(sUrl, function () {
-				window.console.log("NOTE: Openlayers loaded");
+				window.console.log("NOTE: OpenLayers loaded");
 				onOpenLayersLoaded();
 			});
 			break;
 		case "google":
-			sUrl = (window.location.protocol === "https:") ? window.location.protocol : "http:";
-			sUrl += "//maps.googleapis.com/maps/api/js?callback=onGoogleApiLoaded" + ((gcFiddle.config.key) ? "&key=" + gcFiddle.config.key : "");
+			sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
+			sUrl = sProtocol + "//maps.googleapis.com/maps/api/js?callback=onGoogleApiLoaded" + ((gcFiddle.config.key) ? "&key=" + gcFiddle.config.key : "");
 			loadScript(sUrl, function () {
 				window.console.log("NOTE: GoogleMaps API loaded");
+				// onGoogleApiLoaded();
 			});
 			break;
 		default:
