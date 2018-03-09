@@ -392,7 +392,8 @@ function position2dms(position) {
 		lngmin = Math.floor((lng - lngdeg) * 60),
 		lngsec = Math.floor((lng - lngdeg - lngmin / 60) * 1000 * 3600) / 1000;
 
-	return latNS + " " + strZeroFormat(latdeg, 2) + "° " + strZeroFormat(latmin, 2) + "' " + strZeroFormat(latsec.toFixed(2), 5) + "'' " + lngEW + " " + strZeroFormat(lngdeg, 3) + "° " + strZeroFormat(lngmin, 2) + "' " + strZeroFormat(lngsec.toFixed(2), 5) + "''";
+	return latNS + " " + strZeroFormat(latdeg, 2) + "° " + strZeroFormat(latmin, 2) + "' " + strZeroFormat(latsec.toFixed(2), 5) + "\" "
+		+ lngEW + " " + strZeroFormat(lngdeg, 3) + "° " + strZeroFormat(lngmin, 2) + "' " + strZeroFormat(lngsec.toFixed(2), 5) + "\"";
 }
 
 function position2dd(position) {
@@ -408,31 +409,6 @@ function latLng2position(lat, lng) {
 	var position = new LatLng(lat, lng);
 
 	return position;
-}
-
-function dmm2position(dmm) { // N gg mm.ddd E ggg mm.ddd
-	var aParts,
-		lat = 0,
-		lng = 0;
-
-	if (dmm) {
-		aParts = dmm.match(/\s*(N|S)\s*(\d+)°?\s*(\d+\.\d+)\s*(E|W)\s*(\d+)°?\s*(\d+\.\d+)/);
-		if (aParts && aParts.length === 7) {
-			lat = parseInt(aParts[2], 10) + parseFloat(aParts[3]) / 60;
-			lng = parseInt(aParts[5], 10) + parseFloat(aParts[6]) / 60;
-			if (aParts[1] === "S") {
-				lat = -lat;
-			}
-			if (aParts[4] === "W") {
-				lng = -lng;
-			}
-		} else {
-			window.console.log("WARNING: dmm2position: Cannot parse '" + dmm + "'");
-		}
-	} else {
-		window.console.log("WARNING: dmm2position: dmm='" + dmm + "'");
-	}
-	return latLng2position(lat, lng);
 }
 
 /* currently unused
@@ -453,26 +429,66 @@ function mmParts2position(latminP1, latminP2, lngminP1, lngminP2) {
 }
 */
 
-function dd2position(dd) {
+function parse2position(coord) {
 	var aParts,
 		lat = 0,
-		lng = 0;
+		lng = 0,
+		sPos;
 
-	if (dd) {
-		aParts = dd.match(/^(\d+\.\d+)\s*(\d+\.\d+)$/);
-		if (aParts && aParts.length === 3) {
-			lat = parseFloat(aParts[1]);
-			lng = parseFloat(aParts[2]);
+	function dmm2position() {
+		aParts = coord.match(/^\s*(N|S)\s*(\d+)°?\s*(\d+\.\d+)\s*(E|W)\s*(\d+)°?\s*(\d+\.\d+)/); // dmm
+		if (aParts && aParts.length === 7) {
+			lat = parseInt(aParts[2], 10) + parseFloat(aParts[3]) / 60;
+			lng = parseInt(aParts[5], 10) + parseFloat(aParts[6]) / 60;
+			if (aParts[1] === "S") {
+				lat = -lat;
+			}
+			if (aParts[4] === "W") {
+				lng = -lng;
+			}
+			return latLng2position(lat, lng);
 		}
+		return null;
 	}
-	return latLng2position(lat, lng);
-}
 
-function parse2position(coord) {
-	if (coord.match(/^\d+\.\d+\s*\d+\.\d+$/)) {
-		return dd2position(coord);
+	function dms2position() {
+		aParts = coord.match(/\s*(N|S)\s*(\d+)°?\s*(\d+)'\s*(\d+\.?\d*)"\s*(E|W)\s*(\d+)°?\s*(\d+)'\s*(\d+\.?\d*)"/);
+		if (aParts && aParts.length === 9) {
+			lat = parseInt(aParts[2], 10) + parseFloat(aParts[3]) / 60 + parseFloat(aParts[4]) / 3600;
+			lng = parseInt(aParts[6], 10) + parseFloat(aParts[7]) / 60 + parseFloat(aParts[8]) / 3600;
+			if (aParts[1] === "S") {
+				lat = -lat;
+			}
+			if (aParts[5] === "W") {
+				lng = -lng;
+			}
+			return latLng2position(lat, lng);
+		}
+		return null;
 	}
-	return dmm2position(coord);
+
+	function dd2position() {
+		aParts = coord.match(/^\s*(N|S)\s*(\d+\.\d+)°?\s*(E|W)\s*(\d+\.\d+)°?$/);
+		if (aParts && aParts.length === 5) {
+			lat = parseFloat(aParts[2]);
+			lng = parseFloat(aParts[4]);
+			if (aParts[1] === "S") {
+				lat = -lat;
+			}
+			if (aParts[3] === "W") {
+				lng = -lng;
+			}
+			return latLng2position(lat, lng);
+		}
+		return null;
+	}
+
+	sPos = dmm2position() || dms2position() || dd2position();
+	if (!sPos) {
+		window.console.log("WARNING: parse2position: Do not know how to parse '" + coord + "'");
+		sPos = latLng2position(lat, lng);
+	}
+	return sPos;
 }
 
 //
@@ -547,6 +563,21 @@ ScriptParser.prototype.lex = function (input) {
 			} while (fn(sChar));
 			return sToken2;
 		},
+		advanceWhileEscape = function(fn) {
+			var sToken2 = "";
+
+			do {
+				if (sChar === "\\") {
+					sChar = advance();
+					if (sChar === "n") {
+						sChar = "\n";
+					}
+				}
+				sToken2 += sChar;
+				sChar = advance();
+			} while (fn(sChar));
+			return sToken2;
+		},
 		addToken = function (type, value, iPos) {
 			aTokens.push({
 				type: type,
@@ -577,7 +608,7 @@ ScriptParser.prototype.lex = function (input) {
 			addToken("number", sToken, iStartPos);
 		} else if (isQuotes(sChar)) {
 			sChar = "";
-			sToken = advanceWhile(isNotQuotes);
+			sToken = advanceWhileEscape(isNotQuotes);
 			addToken("string", sToken, iStartPos + 1);
 			if (!isQuotes(sChar)) {
 				throw new ErrorObject("Unterminated string", sToken, iStartPos + 1);
@@ -939,16 +970,16 @@ ScriptParser.prototype.evaluate = function (parseTree, variables) {
 				return toRadians(degrees);
 			},
 
-			bearing: function (dmm1, dmm2) {
-				var oPosition1 = dmm2position(dmm1),
-					oPosition2 = dmm2position(dmm2);
+			bearing: function (w1, w2) {
+				var oPosition1 = parse2position(w1),
+					oPosition2 = parse2position(w2);
 
 				return LatLng.prototype.bearingTo.call(oPosition1, oPosition2);
 			},
 			// cb (crossbearing)
-			cb: function (dmm1, angle1, dmm2, angle2) {
-				var oPosition1 = dmm2position(dmm1),
-					oPosition2 = dmm2position(dmm2),
+			cb: function (w1, angle1, w2, angle2) {
+				var oPosition1 = parse2position(w1),
+					oPosition2 = parse2position(w2),
 					oPosition3,
 					sValue;
 
@@ -956,16 +987,16 @@ ScriptParser.prototype.evaluate = function (parseTree, variables) {
 				sValue = position2dmm(oPosition3);
 				return sValue;
 			},
-			distance: function (dmm1, dmm2) {
-				var oPosition1 = dmm2position(dmm1),
-					oPosition2 = dmm2position(dmm2),
+			distance: function (w1, w2) {
+				var oPosition1 = parse2position(w1),
+					oPosition2 = parse2position(w2),
 					nValue;
 
 				nValue = LatLng.prototype.distanceTo.call(oPosition1, oPosition2);
 				return nValue;
 			},
-			project: function (dmm, bearing, distance) {
-				var oPosition1 = dmm2position(dmm),
+			project: function (w1, bearing, distance) {
+				var oPosition1 = parse2position(w1),
 					oPosition2,
 					sValue;
 
@@ -974,10 +1005,10 @@ ScriptParser.prototype.evaluate = function (parseTree, variables) {
 				return sValue;
 			},
 
-			// midpoint(dm1, dm2): Same as: project(dm1, bearing(dm1, dm2), distance(dm1, dm2) / 2)
-			midpoint: function (dmm1, dmm2) {
-				var oPosition1 = dmm2position(dmm1),
-					oPosition2 = dmm2position(dmm2),
+			// midpoint(w1, w2): Same as: project(w1, bearing(w1, w2), distance(w1, w2) / 2)
+			midpoint: function (w1, w2) {
+				var oPosition1 = parse2position(w1),
+					oPosition2 = parse2position(w2),
 					oPosition3,
 					sValue;
 
@@ -986,8 +1017,8 @@ ScriptParser.prototype.evaluate = function (parseTree, variables) {
 				return sValue;
 			},
 
-			format: function (dmm, format) {
-				var oPosition = parse2position(dmm),
+			format: function (w1, format) {
+				var oPosition = parse2position(w1),
 					sValue;
 
 				switch (format) {
@@ -1772,7 +1803,6 @@ MarkerFactory.prototype.setPolyline = function (map) {
 					if (!map1) {
 						oLines = map.getLayersByName("Lines")[0];
 						oLines.removeAllFeatures();
-						//this.destroy(); //needed?
 					}
 				};
 
@@ -1846,7 +1876,7 @@ function setMarkers(variables) {
 	for (sPar in variables) {
 		if (variables.hasOwnProperty(sPar) && isWaypoint(sPar)) {
 			oSettings = {
-				position: dmm2position(variables[sPar]),
+				position: parse2position(variables[sPar]),
 				title: sPar
 			};
 			gcFiddle.maFa.setMarker(oSettings, i, map);

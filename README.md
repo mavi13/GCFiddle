@@ -79,8 +79,8 @@ GCFiddle Links:
  - Line comments start with a hash "#": `# comment until end of line`
  - Numbers are composed of digits 0..9 and a decimal point: `34` or `3.14`
  - Strings are surrounded by quotations: `"3.14"`
-   - Strings can also be surrounded by apostrophes: `'3.14'`, can contain quotations: `'quotations: "'`
-   - No character escaping: `"\n"` => `\n`
+   - Character escaping with backslash in quoted strings: `"a\"b\"\nc"` => `a"b"<newline>c`
+   - Strings can also be surrounded by apostrophes  (no escaping): `'3.14'`, can contain quotations: `'quotations: "'`
    - Strings in brackets are concatenated: `["5" "3." "14"]` = `"53.14"`
    - Type conversion: Numbers in brackets are converted to strings: `[ 5 "3." 14 ]` = `"53.14"`
    - Number formatting with suffix pattern: `3.14159:000.00:` => `"003.14"`
@@ -151,13 +151,18 @@ GCFiddle Links:
  - rot13(s): rotate the alphabet by 13 positions: `rot13("abcdefghijklmnopqrstuvexyzABC")` = `"nopqrstuvwxyzabcdefghirklmNOP"`
  
 #### Waypoint computations
- (based on coordinate format "dmm", e.g. "N 49° 16.130 E 008° 40.453")
- - We assume here:
+Coordinate formats:
+ - `dmm` (degrees, minutes, minutes), e.g. `"N 49° 16.130 E 008° 40.453"` (default)
+ - `dms` (degrees, minutes, seconds), e.g. `"N 49° 16' 07.80\" E 008° 40' 27.18\""`
+ - `dd` (decimal degrees), e.g. `"N 49.26883° E 008.67422°"`
+
+We assume here:
 ```
 $W1="N 49° 16.130 E 008° 40.453"
 $W2="N 49° 15.903 E 008° 40.777"
 ```
- - bearing($W1, $W2): bearing between $W1 and $W2 in degrees: `round(bearing($W0, $W1))` = `137`
+ - bearing($W1, $W2): bearing between $W1 and $W2 in degrees:
+   - `round(bearing($W0, $W1))` = `137`
  - cb($W1, b1, $W1, b2): crossbearing
    - `cb($W1, 78, $W2, 7)` = `"N 49° 16.182 E 008° 40.830"`
  - distance($W1, $W2): distance in meters:
@@ -168,7 +173,7 @@ $W2="N 49° 15.903 E 008° 40.777"
    - `midpoint($W1, $W2)` = `project($W1, bearing($W1,$W2), distance($W1,$W2)/2)`
  - format($W1, fmt): format waypoint $W1 (dmm, dms, dd):
    - `format($W1, "dmm")` = `$W1` = `"N 49° 16.130 E 008° 40.453"`
-   - `format($W1, "dms")` = `"N 49° 16' 07.80'' E 008° 40' 27.18''"`
+   - `format($W1, "dms")` = `"N 49° 16' 07.80\" E 008° 40' 27.18\""`
    - `format($W1, "dd")` = `"N 49.26883° E 008.67422°"`
 
 #### Other functions
@@ -181,18 +186,18 @@ $W2="N 49° 15.903 E 008° 40.777"
 ### Differences in the calculation language of GCFiddle and WolfLanguage from CacheWolf
 
  - Most of the functions are also available in CacheWolf, so it is possible to write calculation scripts for both interpreters.
- - Please see the examples on the test page "test/GCTEST1.js".
+ - Please see the examples on the test page [GCTEST1](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCTEST1).
  - Please check the description of the [WolfLanguage](http://cachewolf.aldos.de/index.php/Doku/WolfLanguage) (only in German). 
 
 #### Some differences when using GCFiddle
 
- - Strings can be surrounded by quotations '"' or by apostrophes "'", no character escaping.
- - To concatenate strings, they must be placed in brackets "[", "]". Separation by spaces is not enough
+ - Strings can also be surrounded by apostrophes `'` (no character escaping).
+ - To concatenate strings, they must be placed in brackets `[`...`]`. Separation by spaces is not enough
  - Variables are case-sensitive (In WolfLanguage this can be set with `ic(0)`)
  - Possibility to define new functions, e.g. `s(x, y)=x+y`
- - Number formatting with suffix pattern may contain "0" and "." but not "#"
+ - Number formatting with suffix pattern may contain zero `0` and dot `.` but no hash `#`
  - Geodetic calculation of waypoints uses another model with other formulas, so there are slightly different results
- - No statement separator, especially no semicolon ";"
+ - No statement separator, especially no semicolon `;`
  - Functions must be used exactly as they are defined, there are no abbreviations or aliases (e.g. `crosstotal` is always `ct`)
  - No error check for incorrect number of arguments for functions
  - No function: `goto(wp)`, `sk(n)`
@@ -202,6 +207,7 @@ $W2="N 49° 15.903 E 008° 40.777"
 
  - `category=test`: Set the category to `test`, `tofind`, `found`, `archived` or `saved`
    - Directory `category` must exist and must contain an index file `0index.js`
+ - `debug=0`: Set the debug level, 0=off, 1=some, 2=some more,...
  - `example=GCNEW1`: Set example
  - `showInput=true`: Show the input box
  - `showOutput=true`: Show the output box
@@ -209,15 +215,19 @@ $W2="N 49° 15.903 E 008° 40.777"
  - `showNotes=true`: Show the notes box
  - `showWaypoint=true`: Show waypoint box
  - `showMap=true`: Show the map box
- - `variableType=number`: Set general type of variables to `number`, `text` or `range`
+ - `showConsole=false`: Show console box (for debugging messages)
+  - `variableType=number`: Set general type of variables in the variable box to `number`, `text` or `range`
    - If a variable is not a number, `text` is used
  - `mapType=simple`: Set type of map to `simple`, `osm` or `google`.
    - For `google`, an API key must be set
  - `key=""`: Set [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key)
    - Can also be set in file `gcconfig.js` or `gcfiddle.js`
  - `zoom=15`: Set initial zoom level for Google Maps (usually automatically set)
- - `debug=0`: Set the debug level, 0=off, 1=some, 2=some more,...
- - `showConsole=false`: Show console box (for debugging messages)
+-  `openLayersUrl`: Set URL for the OpenLayers library
+      - "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js" (default)  
+      or "http://www.openlayers.org/api/OpenLayers.js" (http only)  
+      or "lib/OpenLayers.js" (if available locally)  
+      or "lib/OpenLayers.light.js" (light version with some features missing, e.g. Overview map, keyboard defaults)
 
 ## Acknowledgements
 
