@@ -189,22 +189,16 @@ function toDegrees(rad) {
 // Latitude/longitude spherical geodesy tools
 // (c) Chris Veness 2002-2016
 function LatLng(lat, lng) {
-	lat = Number(lat);
-	lng = Number(lng);
-	this.lat = function () {
-		return lat;
-	};
-	this.lng = function () {
-		return lng;
-	};
+	this.lat = Number(lat);
+	this.lng = Number(lng);
 }
 
 LatLng.prototype.distanceTo = function (point) {
 	var radius = 6371e3,
-		phi1 = toRadians(this.lat()),
-		lambda1 = toRadians(this.lng()),
-		phi2 = toRadians(point.lat()),
-		lambda2 = toRadians(point.lng()),
+		phi1 = toRadians(this.lat),
+		lambda1 = toRadians(this.lng),
+		phi2 = toRadians(point.lat),
+		lambda2 = toRadians(point.lng),
 		deltaphi = phi2 - phi1,
 		deltalambda = lambda2 - lambda1,
 
@@ -216,9 +210,9 @@ LatLng.prototype.distanceTo = function (point) {
 };
 
 LatLng.prototype.bearingTo = function (point) {
-	var phi1 = toRadians(this.lat()),
-		phi2 = toRadians(point.lat()),
-		deltalambda = toRadians(point.lng() - this.lng()),
+	var phi1 = toRadians(this.lat),
+		phi2 = toRadians(point.lat),
+		deltalambda = toRadians(point.lng - this.lng),
 
 		// see http://mathforum.org/library/drmath/view/55417.html
 		y = Math.sin(deltalambda) * Math.cos(phi2),
@@ -233,8 +227,8 @@ LatLng.prototype.destinationPoint = function (distance, bearing) {
 		delta = Number(distance) / radius, // angular distance in radians
 		theta = toRadians(Number(bearing)),
 
-		phi1 = toRadians(this.lat()),
-		lambda1 = toRadians(this.lng()),
+		phi1 = toRadians(this.lat),
+		lambda1 = toRadians(this.lng),
 
 		sinphi1 = Math.sin(phi1),
 		cosphi1 = Math.cos(phi1),
@@ -254,10 +248,10 @@ LatLng.prototype.destinationPoint = function (distance, bearing) {
 
 LatLng.intersection = function (p1, bearing1, p2, bearing2) {
 	// see http://williams.best.vwh.net/avform.htm#Intersection
-	var phi1 = toRadians(p1.lat()),
-		lambda1 = toRadians(p1.lng()),
-		phi2 = toRadians(p2.lat()),
-		lambda2 = toRadians(p2.lng()),
+	var phi1 = toRadians(p1.lat),
+		lambda1 = toRadians(p1.lng),
+		phi2 = toRadians(p2.lat),
+		lambda2 = toRadians(p2.lng),
 		theta13 = toRadians(Number(bearing1)),
 		theta23 = toRadians(Number(bearing2)),
 		deltaphi = phi2 - phi1,
@@ -301,10 +295,10 @@ LatLng.intersection = function (p1, bearing1, p2, bearing2) {
 };
 
 LatLng.prototype.midpointTo = function(point) {
-	var phi1 = toRadians(this.lat()),
-		lambda1 = toRadians(this.lng()),
-		phi2 = toRadians(point.lat()),
-		deltaLambda = toRadians(point.lng() - this.lng()),
+	var phi1 = toRadians(this.lat),
+		lambda1 = toRadians(this.lng),
+		phi2 = toRadians(point.lat),
+		deltaLambda = toRadians(point.lng - this.lng),
 
 		Bx = Math.cos(phi2) * Math.cos(deltaLambda),
 		By = Math.cos(phi2) * Math.sin(deltaLambda),
@@ -320,8 +314,8 @@ LatLng.prototype.midpointTo = function(point) {
 // https://stackoverflow.com/questions/18838915/convert-lat-lon-to-pixel-coordinate
 // map={width, height, latBottom, latTop, lngLeft, lngRight}
 function convertGeoToPixel(position, map) {
-	var lat = toRadians(position.lat()),
-		lng = toRadians(position.lng()),
+	var lat = toRadians(position.lat),
+		lng = toRadians(position.lng),
 		south = toRadians(map.latBottom),
 		north = toRadians(map.latTop),
 		west = toRadians(map.lngLeft),
@@ -368,10 +362,10 @@ function strZeroFormat(s, iLen) {
 //
 //
 function position2dmm(position) {
-	var lat = Math.abs(position.lat()),
-		lng = Math.abs(position.lng()),
-		latNS = (position.lat() >= 0) ? "N" : "S",
-		lngEW = (position.lng() >= 0) ? "E" : "W",
+	var lat = Math.abs(position.lat),
+		lng = Math.abs(position.lng),
+		latNS = (position.lat >= 0) ? "N" : "S",
+		lngEW = (position.lng >= 0) ? "E" : "W",
 		latdeg = Math.floor(lat),
 		latmin = (lat - latdeg) * 60,
 		lngdeg = Math.floor(lng),
@@ -381,10 +375,10 @@ function position2dmm(position) {
 }
 
 function position2dms(position) {
-	var lat = Math.abs(position.lat()),
-		lng = Math.abs(position.lng()),
-		latNS = (position.lat() >= 0) ? "N" : "S",
-		lngEW = (position.lng() >= 0) ? "E" : "W",
+	var lat = Math.abs(position.lat),
+		lng = Math.abs(position.lng),
+		latNS = (position.lat >= 0) ? "N" : "S",
+		lngEW = (position.lng >= 0) ? "E" : "W",
 		latdeg = Math.floor(lat),
 		latmin = Math.floor((lat - latdeg) * 60),
 		latsec = Math.round((lat - latdeg - latmin / 60) * 1000 * 3600) / 1000,
@@ -397,11 +391,11 @@ function position2dms(position) {
 }
 
 function position2dd(position) {
-	var latNS = (position.lat() >= 0) ? "N" : "S",
-		lngEW = (position.lng() >= 0) ? "E" : "W",
+	var latNS = (position.lat >= 0) ? "N" : "S",
+		lngEW = (position.lng >= 0) ? "E" : "W",
 		sDD;
 
-	sDD = latNS + " " + strZeroFormat(position.lat().toFixed(5), 8) + "° " + lngEW + " " + strZeroFormat(position.lng().toFixed(5), 9) + "°";
+	sDD = latNS + " " + strZeroFormat(position.lat.toFixed(5), 8) + "° " + lngEW + " " + strZeroFormat(position.lng.toFixed(5), 9) + "°";
 	return sDD;
 }
 
@@ -452,7 +446,7 @@ function parse2position(coord) {
 	}
 
 	function dms2position() {
-		aParts = coord.match(/\s*(N|S)\s*(\d+)°?\s*(\d+)'\s*(\d+\.?\d*)"\s*(E|W)\s*(\d+)°?\s*(\d+)'\s*(\d+\.?\d*)"/);
+		aParts = coord.match(/^\s*(N|S)\s*(\d+)°?\s*(\d+)'\s*(\d+\.?\d*)"\s*(E|W)\s*(\d+)°?\s*(\d+)'\s*(\d+\.?\d*)"/);
 		if (aParts && aParts.length === 9) {
 			lat = parseInt(aParts[2], 10) + parseFloat(aParts[3]) / 60 + parseFloat(aParts[4]) / 3600;
 			lng = parseInt(aParts[6], 10) + parseFloat(aParts[7]) / 60 + parseFloat(aParts[8]) / 3600;
@@ -1330,36 +1324,49 @@ SimpleLatLngBounds.prototype.getBounds = function () {
 };
 
 SimpleLatLngBounds.prototype.extend = function (position) {
-	this.oBounds.latBottom = Math.min(this.oBounds.latBottom, position.lat());
-	this.oBounds.latTop = Math.max(this.oBounds.latTop, position.lat());
-	this.oBounds.lngLeft = Math.min(this.oBounds.lngLeft, position.lng());
-	this.oBounds.lngRight = Math.max(this.oBounds.lngRight, position.lng());
+	this.oBounds.latBottom = Math.min(this.oBounds.latBottom, position.lat);
+	this.oBounds.latTop = Math.max(this.oBounds.latTop, position.lat);
+	this.oBounds.lngLeft = Math.min(this.oBounds.lngLeft, position.lng);
+	this.oBounds.lngRight = Math.max(this.oBounds.lngRight, position.lng);
 };
 
 //
 // SimpleMap: settings={zoom}
 function SimpleMap(mapCanvas, settings) {
 	var bHidden = mapCanvas.hidden,
-		canvas;
+		iWidth, iHeight, canvas, i;
 
 	this.div = mapCanvas;
-	this.zoom = settings.zoom; // not used
+	this.settings = myObjectAssign({
+		markerStyle: "green",
+		textStyle: "black",
+		lineStyle: "red",
+		backgroundStyle: "#E6E6E6",
+		zoom: 0 // not used
+	}, settings);
 
-	canvas = document.createElement("CANVAS");
 	if (bHidden) {
 		mapCanvas.hidden = false; // allow to get width, height
 	}
-	canvas.width = mapCanvas.clientWidth;
-	canvas.height = mapCanvas.clientHeight;
+	iWidth = mapCanvas.clientWidth;
+	iHeight = mapCanvas.clientHeight;
 	mapCanvas.hidden = bHidden;
-	mapCanvas.appendChild(canvas);
+	window.console.log("SimpleMap: width=" + iWidth + " height=" + iHeight);
 
-	window.console.log("SimpleMap: canvas.width=" + canvas.width + " canvas.height=" + canvas.height);
-	this.canvas = canvas;
+	this.aCanvas = [];
+	for (i = 0; i <= 1; i += 1) {
+		canvas = document.createElement("CANVAS");
+		canvas.width = iWidth;
+		canvas.height = iHeight;
+		canvas.id = "canvas" + (i + 1);
+		canvas.style.position = "absolute";
+		mapCanvas.appendChild(canvas);
+		this.aCanvas.push(canvas);
+	}
 
 	this.oPixelMap = {
-		width: canvas.width * 8 / 10,
-		height: canvas.height * 8 / 10
+		width: iWidth * 8 / 10,
+		height: iHeight * 8 / 10
 		// will be extended by latBottom, latTop, lngLeft, lngRight
 	};
 }
@@ -1372,54 +1379,74 @@ SimpleMap.prototype.setCenter = function (/* position */) {
 	// currently empty
 };
 
-SimpleMap.prototype.fitBounds = function (bounds) {
-	var oBounds = bounds.getBounds();
-
-	myObjectAssign(this.oPixelMap, oBounds);
-};
-
 SimpleMap.prototype.myDrawPath = function (path, lineStyle) {
-	var context, i, oPos;
+	var context, i, oPos,
+		strokeStyle = lineStyle || this.settings.lineStyle,
+		iLineWidth = 1,
+		canvas = this.aCanvas[0];
 
 	if (path.length) {
-		context = this.canvas.getContext("2d");
-		context.save();
-		context.translate((this.canvas.width - this.oPixelMap.width) / 2, (this.canvas.height - this.oPixelMap.height) / 2);
-		context.strokeStyle = lineStyle;
-		context.beginPath();
-		for (i = 0; i < path.length; i += 1) {
-			oPos = convertGeoToPixel(path[i], this.oPixelMap);
-			if (i === 0) {
-				context.moveTo(oPos.x, oPos.y);
-			} else {
-				context.lineTo(oPos.x, oPos.y);
+		context = canvas.getContext("2d");
+		if (strokeStyle !== this.settings.backgroundStyle) {
+			context.save();
+			context.translate((canvas.width - this.oPixelMap.width) / 2, (canvas.height - this.oPixelMap.height) / 2);
+			context.strokeStyle = strokeStyle;
+			context.lineWidth = iLineWidth;
+			context.beginPath();
+			for (i = 0; i < path.length; i += 1) {
+				oPos = convertGeoToPixel(path[i], this.oPixelMap);
+				if (i === 0) {
+					context.moveTo(oPos.x, oPos.y);
+				} else {
+					context.lineTo(oPos.x, oPos.y);
+				}
 			}
+			context.stroke();
+			context.restore();
+		} else {
+			context.clearRect(0, 0, canvas.width, canvas.height); // we simply clear all
 		}
-		context.stroke();
-		context.restore();
 	}
 };
 
-SimpleMap.prototype.myDrawMarker = function (marker, style) {
-	var context, oPos;
-
-	context = this.canvas.getContext("2d");
-	context.save();
-	context.translate((this.canvas.width - this.oPixelMap.width) / 2, (this.canvas.height - this.oPixelMap.height) / 2);
-	context.strokeStyle = style || "green";
-	context.textAlign = "center";
-	context.textBaseline = "middle";
-	context.font = "14px sans-serif";
+SimpleMap.prototype.myDrawMarker = function (marker, markerStyle, textStyle) {
+	var context, oPos,
+		strokeStyle = markerStyle || this.settings.markerStyle,
+		fillStyle = textStyle || this.settings.textStyle,
+		iRadius = 10,
+		iLineWidth = 1,
+		canvas = this.aCanvas[1];
 
 	oPos = convertGeoToPixel(marker.position, this.oPixelMap);
-	context.beginPath();
-	context.arc(oPos.x, oPos.y, 10, 0, 2 * Math.PI);
-	context.fillText(marker.label, oPos.x, oPos.y);
-	context.stroke();
 
+	context = canvas.getContext("2d");
+	context.save();
+	context.translate((canvas.width - this.oPixelMap.width) / 2, (canvas.height - this.oPixelMap.height) / 2);
+	if (strokeStyle !== this.settings.backgroundStyle) {
+		context.strokeStyle = strokeStyle;
+		context.lineWidth = iLineWidth;
+		context.textAlign = "center";
+		context.textBaseline = "middle";
+		context.font = "14px sans-serif";
+		context.fillStyle = fillStyle;
+
+		context.beginPath();
+		context.arc(oPos.x, oPos.y, iRadius, 0, 2 * Math.PI);
+		context.fillText(marker.label, oPos.x, oPos.y);
+		context.stroke();
+	} else {
+		iRadius += Math.ceil(iLineWidth / 2);
+		context.clearRect(oPos.x - iRadius, oPos.y - iRadius, iRadius * 2, iRadius * 2);
+	}
 	context.restore();
 };
 
+SimpleMap.prototype.fitBounds = function (bounds) {
+	var oBounds = bounds.getBounds();
+
+	// We do no redraw here. Please clear, redraw if needed.
+	myObjectAssign(this.oPixelMap, oBounds);
+};
 
 //
 // SimpleMarker: settings={position, title, label, [map]}
@@ -1430,18 +1457,22 @@ function SimpleMarker(settings) {
 	this.map = settings.map;
 }
 
+SimpleMarker.prototype.getSimplePosition = function () {
+	return this.position;
+};
+
 SimpleMarker.prototype.getPosition = function () {
 	return this.position;
 };
 
 SimpleMarker.prototype.setPosition = function (position) {
-	if (this.position !== position) {
+	if (this.position.lat !== position.lat || this.position.lng !== position.lng) {
 		if (this.map) {
-			this.map.myDrawMarker(this, "white"); // old marker
+			this.map.myDrawMarker(this, this.map.settings.backgroundStyle, this.map.settings.backgroundStyle); // old marker
 		}
 		this.position = position;
 		if (this.map) {
-			this.map.myDrawMarker(this, "green"); // new marker
+			this.map.myDrawMarker(this); // new marker
 		}
 	}
 };
@@ -1462,13 +1493,17 @@ SimpleMarker.prototype.setLabel = function (label) {
 	this.label = label;
 };
 
+SimpleMarker.prototype.getMap = function () {
+	return this.map;
+};
+
 SimpleMarker.prototype.setMap = function (map) {
 	if (this.map) {
-		this.map.myDrawMarker(this, "white"); // old marker
+		this.map.myDrawMarker(this, this.map.settings.backgroundStyle, this.map.settings.backgroundStyle); // old marker
 	}
 	this.map = map;
 	if (this.map) {
-		this.map.myDrawMarker(this, "green"); // new marker
+		this.map.myDrawMarker(this); // new marker
 	}
 };
 
@@ -1476,34 +1511,37 @@ SimpleMarker.prototype.setMap = function (map) {
 // MyPolyline: settings={map, strokeColor, strokeOpacity, strokeWeight}
 function SimplePolyline(settings) {
 	this.map = settings.map;
-	this.strokeColor = settings.strokeColor || "black";
+	this.strokeColor = settings.strokeColor;
 }
 
 SimplePolyline.prototype.setPath = function (path) {
 	if (this.map) {
 		if (this.path) {
-			this.map.myDrawPath(this.path, "white"); // old path: background (draw over old path)
+			this.map.myDrawPath(this.path, this.map.settings.backgroundStyle); // old path: background (draw over old path)
 		}
 		this.map.myDrawPath(path, this.strokeColor); // new path
 	}
 	this.path = path;
 };
 
-SimplePolyline.prototype.setMap = function (map) {
-	var canvas, context;
+SimplePolyline.prototype.getMap = function () {
+	return this.map;
+};
 
-	if (this.map && map === null && this.path) {
-		canvas = this.map.canvas;
-		context = canvas.getContext("2d");
-		context.clearRect(0, 0, canvas.width, canvas.height);
+SimplePolyline.prototype.setMap = function (map) {
+	if (this.map && this.path) {
+		this.map.myDrawPath(this.path, this.map.settings.backgroundStyle); // old path: background (draw over old path)
 	}
-	this.map1 = map;
+	this.map = map;
+	if (this.map && this.path) {
+		this.map.myDrawPath(this.path, this.strokeColor); // new path
+	}
 };
 
 
 // Special OpenLayers Marker
 function OlMarker(settings) {
-	var oPosition = new OpenLayers.LonLat(settings.position.lng(), settings.position.lat()).transform(new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection("EPSG:900913"));
+	var oPosition = new OpenLayers.LonLat(settings.position.lng, settings.position.lat).transform(new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection("EPSG:900913"));
 
 	OpenLayers.Feature.Vector.call(this,
 		new OpenLayers.Geometry.Point(oPosition.lon, oPosition.lat),
@@ -1513,24 +1551,29 @@ function OlMarker(settings) {
 			label: settings.label
 		}
 	);
-	this.map1 = settings.map;
+	this.map = settings.map;
 	this.lonlat1 = oPosition;
 }
 
 OlMarker.createPrototype = function () {
 	OlMarker.prototype = Object.create(OpenLayers.Feature.Vector.prototype);
-	OlMarker.prototype.getPosition = function () {
+
+	OlMarker.prototype.getSimplePosition = function () {
 		return this.attributes.position;
 	};
 
-	OlMarker.prototype.getTransformedPosition = function () {
-		return this.lonlat1;
+	OlMarker.prototype.getPosition = function () {
+		return this.lonlat1; // tansformed position
 	};
 
 	OlMarker.prototype.setPosition = function (position) {
 		this.attributes.position = position;
-		this.lonlat1 = new OpenLayers.LonLat(position.lng(), position.lat()).transform(new OpenLayers.Projection("EPSG:4326"), this.map1.getProjectionObject());
+		this.lonlat1 = new OpenLayers.LonLat(position.lng, position.lat).transform(new OpenLayers.Projection("EPSG:4326"), this.map.getProjectionObject());
 		this.move(this.lonlat1);
+	};
+
+	OlMarker.prototype.getMap = function () {
+		return this.map;
 	};
 
 	OlMarker.prototype.setMap = function (map) {
@@ -1539,12 +1582,11 @@ OlMarker.createPrototype = function () {
 		if (map) {
 			oMarkers = map.getLayersByName("Markers")[0];
 			oMarkers.addFeatures(this);
-			this.map1 = map;
-		} else if (this.map1) {
-			oMarkers = this.map1.getLayersByName("Markers")[0];
+		} else if (this.map) { // delete map?
+			oMarkers = this.map.getLayersByName("Markers")[0];
 			oMarkers.removeFeatures(this);
-			delete this.map1;
 		}
+		this.map = map;
 	};
 
 	OlMarker.prototype.getTitle = function () {
@@ -1562,6 +1604,76 @@ OlMarker.createPrototype = function () {
 	OlMarker.prototype.setLabel = function (label) {
 		this.attributes.label = label;
 	};
+};
+
+function OlPolyline(settings) {
+	OpenLayers.Geometry.LineString.call(this);
+	this.settings1 = settings;
+	this.map = settings.map;
+}
+
+OlPolyline.createPrototype = function () {
+	OlPolyline.prototype = Object.create(OpenLayers.Geometry.LineString.prototype);
+
+	OlPolyline.prototype.setPath = function (aList) {
+		var oPosition,
+			oPoint,
+			i;
+
+		for (i = 0; i < aList.length; i += 1) {
+			oPosition = aList[i];
+			if (i >= this.components.length) {
+				this.addPoint(new OpenLayers.Geometry.Point(oPosition.lon, oPosition.lat));
+			} else {
+				oPoint = this.components[i];
+				oPoint.move(oPosition.lon - oPoint.x, oPosition.lat - oPoint.y);
+			}
+		}
+		if (this.map) {
+			this.map.getLayersByName("Lines")[0].redraw();
+		}
+	};
+
+	OlPolyline.prototype.getMap = function () {
+		return this.map;
+	};
+
+	OlPolyline.prototype.setMap = function (map) {
+		var oLines,	oFeature;
+
+		if (map) {
+			oFeature = new OpenLayers.Feature.Vector(this, {}, this.settings1);
+			oLines = map.getLayersByName("Lines")[0];
+			oLines.addFeatures(oFeature);
+		} else if (this.map) {
+			oLines = this.map.getLayersByName("Lines")[0];
+			oLines.removeAllFeatures();
+		}
+		this.map = map;
+	};
+};
+
+function OlInfoWindow() {
+	this.popup = new OpenLayers.Popup.FramedCloud();
+	//this.popup = new OpenLayers.Popup.FramedCloud(null, null, null, null, null, true); this.popup.addCloseBox(); // TODO
+}
+
+OlInfoWindow.prototype.open = function (map, marker) {
+	this.popup.lonlat = OpenLayers.LonLat.fromString(marker.geometry.toShortString());
+	this.popup.setContentHTML('<div style="font-size:.8em">' + marker.getTitle() + ": " + position2dmm(marker.getSimplePosition()) + "</div>");
+	map.addPopup(this.popup);
+	this.popup.updateSize(); // updatePosition() not needed
+	this.map = map;
+};
+
+OlInfoWindow.prototype.getAnchor = function() { // TODO
+	return false;
+};
+
+OlInfoWindow.prototype.close = function () {
+	if (this.map) {
+		this.map.removePopup(this.popup);
+	}
 };
 
 
@@ -1596,7 +1708,7 @@ MarkerFactory.prototype.initMap = function (map) {
 			oMarker = this.aMarkerList[i];
 			aMarkerOptions.push(
 				{
-					position: oMarker.getPosition(),
+					position: oMarker.getSimplePosition(),
 					label: oMarker.getLabel(),
 					title: oMarker.getTitle()
 				}
@@ -1605,8 +1717,9 @@ MarkerFactory.prototype.initMap = function (map) {
 		this.deleteMarkers();
 		this.deletePolyline();
 		if (this.oInfoWindow) {
-			if (this.oInfoWindow.close) { // not for osm
-				this.oInfoWindow.close();
+			this.oInfoWindow.close();
+			if (this.oInfoWindow.dispose) {
+				this.oInfoWindow.dispose(); // osm
 			}
 			this.oInfoWindow = null;
 		}
@@ -1622,13 +1735,7 @@ MarkerFactory.prototype.initMap = function (map) {
 			if (this.getMapType(map) === "google") {
 				this.oInfoWindow = new google.maps.InfoWindow({});
 			} else if (this.getMapType(map) === "osm") {
-				/*
-				// currently not used
-				this.oInfoWindow = new OpenLayers.Popup.FramedCloud("popup", null, null, null, null, true);
-				this.oInfoWindow.getAnchor = function() { // TODO
-					return false;
-				};
-				*/
+				this.oInfoWindow = new OlInfoWindow();
 			}
 		}
 	}
@@ -1656,10 +1763,6 @@ MarkerFactory.prototype.setMarker = function (options, i, map) {
 		oMarkerOptions.position = (oMarkerOptions.position)();
 	}
 
-	if (map && (this.getMapType(map) === "google")) {
-		oMarkerOptions.position = new google.maps.LatLng(oMarkerOptions.position.lat(), oMarkerOptions.position.lng()); // make Google happy: LatLng or LatLngLiteral
-	}
-
 	if (!oMarkerOptions.label) {
 		oMarkerOptions.label = strZeroFormat(i.toString(), 2);
 	}
@@ -1670,13 +1773,17 @@ MarkerFactory.prototype.setMarker = function (options, i, map) {
 	if (i >= this.aMarkerList.length) { // add new marker?
 		if (map) {
 			if (this.getMapType(map) === "google") {
+				oMarkerOptions.position = new google.maps.LatLng(oMarkerOptions.position.lat, oMarkerOptions.position.lng); // make Google happy: LatLng or LatLngLiteral
 				oMarker = new google.maps.Marker(oMarkerOptions);
-				if (this.aMarkerList.length === 0) {
-					map.setCenter(oMarker.getPosition());
-				}
+				oMarker.getSimplePosition = function() {
+					return {
+						lat: this.position.lat(),
+						lng: this.position.lng()
+					};
+				};
 				google.maps.event.addListener(oMarker, "click", function () {
 					if (that.oInfoWindow.getAnchor() !== oMarker) {
-						that.oInfoWindow.setContent(oMarker.getTitle() + ": " + position2dmm(oMarker.getPosition()));
+						that.oInfoWindow.setContent(oMarker.getTitle() + ": " + position2dmm(oMarker.getSimplePosition()));
 						that.oInfoWindow.open(map, oMarker);
 					} else {
 						that.oInfoWindow.close();
@@ -1684,19 +1791,18 @@ MarkerFactory.prototype.setMarker = function (options, i, map) {
 				});
 				google.maps.event.addListener(oMarker, "drag", function () {
 					if (that.oInfoWindow.getAnchor() === oMarker) {
-						that.oInfoWindow.setContent(oMarker.getTitle() + ": " + position2dmm(oMarker.getPosition()));
+						that.oInfoWindow.setContent(oMarker.getTitle() + ": " + position2dmm(oMarker.getSimplePosition()));
 					}
 				});
 			} else if (this.getMapType(map) === "osm") {
 				oMarker = new OlMarker(oMarkerOptions);
-
-				if (this.aMarkerList.length === 0) {
-					map.setCenter(oMarker.getTransformedPosition());
-				}
 			} else {
 				oMarker = new SimpleMarker(oMarkerOptions);
 			}
-		} else {
+			if (this.aMarkerList.length === 0) {
+				map.setCenter(oMarker.getPosition());
+			}
+		} else { // !map
 			oMarker = new SimpleMarker(oMarkerOptions);
 		}
 	} else {
@@ -1711,7 +1817,7 @@ MarkerFactory.prototype.setMarker = function (options, i, map) {
 			oMarker.setLabel(oMarkerOptions.label);
 		}
 		if (this.oInfoWindow && this.oInfoWindow.getAnchor() === oMarker) {
-			this.oInfoWindow.setContent(oMarker.getTitle() + ": " + position2dmm(oMarker.getPosition()));
+			this.oInfoWindow.setContent(oMarker.getTitle() + ": " + position2dmm(oMarker.getSimplePosition()));
 		}
 	}
 	this.aMarkerList[i] = oMarker;
@@ -1722,7 +1828,7 @@ MarkerFactory.prototype.setMapOnAllMarkers = function (map) {
 
 	for (i = 0; i < this.aMarkerList.length; i += 1) {
 		oMarker = this.aMarkerList[i];
-		if (oMarker.map !== map) {
+		if (oMarker.getMap() !== map) {
 			this.aMarkerList[i].setMap(map);
 		}
 	}
@@ -1750,11 +1856,15 @@ MarkerFactory.prototype.deleteMarkers = function () {
 	this.aMarkerList = [];
 };
 
-MarkerFactory.prototype.deletePolyline = function () {
+MarkerFactory.prototype.clearPolyline = function () {
 	if (this.oPolyLine) {
 		this.oPolyLine.setMap(null);
-		this.oPolyLine = null;
 	}
+};
+
+MarkerFactory.prototype.deletePolyline = function () {
+	this.clearPolyline();
+	this.oPolyLine = null;
 };
 
 MarkerFactory.prototype.setPolyline = function (map) {
@@ -1766,60 +1876,31 @@ MarkerFactory.prototype.setPolyline = function (map) {
 			strokeWeight: 0.5,
 			map: map
 		},
-		mapType,
-		i,
-		fnAddPolyLine1;
+		mapType, i;
 
 	if (map) {
 		mapType = this.getMapType(map);
 		for (i = 0; i < this.aMarkerList.length; i += 1) {
-			aList.push((mapType !== "osm") ? this.aMarkerList[i].getPosition() : this.aMarkerList[i].getTransformedPosition());
+			aList.push(this.aMarkerList[i].getPosition());
 		}
 
 		if (!this.oPolyLine) {
-			if (mapType === "google") {
+			switch (mapType) {
+			case "google":
 				this.oPolyLine = new google.maps.Polyline(oPolyLineOptions);
-			} else if (mapType === "osm") {
-				this.oPolyLine = new OpenLayers.Geometry.LineString(); // OpenLayers.Geometry.Curve()?
-
-				this.oPolyLine.setPath = function (aList1) {
-					var oPosition,
-						oPoint;
-
-					for (i = 0; i < aList1.length; i += 1) {
-						oPosition = aList1[i];
-						if (i >= this.components.length) {
-							this.addPoint(new OpenLayers.Geometry.Point(oPosition.lon, oPosition.lat));
-						} else {
-							oPoint = this.components[i];
-							oPoint.move(oPosition.lon - oPoint.x, oPosition.lat - oPoint.y);
-						}
-					}
-					map.getLayersByName("Lines")[0].redraw();
-				};
-				this.oPolyLine.setMap = function (map1) {
-					var oLines;
-
-					if (!map1) {
-						oLines = map.getLayersByName("Lines")[0];
-						oLines.removeAllFeatures();
-					}
-				};
-
-				fnAddPolyLine1 = function (polyLine) {
-					var oLines = map.getLayersByName("Lines")[0],
-						oFeature = new OpenLayers.Feature.Vector(polyLine, {}, oPolyLineOptions);
-
-					oLines.addFeatures(oFeature);
-				};
-				fnAddPolyLine1(this.oPolyLine);
-			} else {
+				break;
+			case "osm":
+				this.oPolyLine = new OlPolyline(oPolyLineOptions);
+				break;
+			case "simple":
 				this.oPolyLine = new SimplePolyline(oPolyLineOptions);
+				break;
+			default:
+				throw new Error("setPolyline: Unknown mapType " + mapType);
 			}
 		}
-		if (this.oPolyLine) {
-			this.oPolyLine.setPath(aList);
-		}
+		this.oPolyLine.setMap(map);
+		this.oPolyLine.setPath(aList);
 	}
 };
 
@@ -1845,21 +1926,22 @@ MarkerFactory.prototype.fitBounds = function (map) {
 			}
 
 			for (i = 0; i < this.aMarkerList.length; i += 1) {
-				oBounds.extend((mapType !== "osm") ? this.aMarkerList[i].getPosition() : this.aMarkerList[i].getTransformedPosition());
+				oBounds.extend(this.aMarkerList[i].getPosition());
 			}
-			if (map.fitBounds) {
-				map.fitBounds(oBounds);
-				if (mapType === "google" && this.aMarkerList.length === 1) { // google: limit zoom level for 1 waypoint
-					window.setTimeout(function () {
-						map.setZoom(gcFiddle.config.zoom);
-					}, 100);
-				}
-			} else {
-				map.zoomToExtent(oBounds); // osm
+			map.fitBounds(oBounds);
+			if (mapType === "google" && this.aMarkerList.length === 1) { // google: limit zoom level for 1 waypoint
+				window.setTimeout(function () {
+					map.setZoom(gcFiddle.config.zoom);
+				}, 100);
 			}
 		}
 	}
 };
+
+MarkerFactory.prototype.getInfoWindow = function () {
+	return this.oInfoWindow;
+};
+
 
 //
 //
@@ -1942,10 +2024,9 @@ function setVarSelectOptions() {
 
 function setWaypointSelectOptions() {
 	var fnTextFormat = function (parameter, value) {
-		var aValue = value.split(" ");
+		value = value.replace(/(N|S|E|W)\s*(\d+)°?\s*/g, "");
 
 		parameter = parameter.substring(1, 4);
-		value = aValue[2] + " " + aValue[5];
 		return parameter + "=" + value;
 	};
 
@@ -2028,19 +2109,18 @@ function onWaypointSelectChange() {
 		waypointInput = document.getElementById("waypointInput"),
 		sPar = waypointSelect.value,
 		aMarkers = gcFiddle.maFa.getMarkers(),
-		sValue,
-		oMarker,
-		oPosition,
-		i;
+		sValue,	oMarker, oPosition,	i, map;
 
 	// center to selected waypoint
 	for (i = 0; i < aMarkers.length; i += 1) {
 		oMarker = aMarkers[i];
-		if (oMarker && sPar === oMarker.title) {
+		if (oMarker && sPar === oMarker.getTitle()) {
 			oPosition = oMarker.getPosition();
-			if (oMarker.map) {
-				oMarker.map.setCenter(oPosition);
+			map = oMarker.getMap();
+			if (map) {
+				map.setCenter(oPosition);
 			}
+			break;
 		}
 	}
 	if (!sPar) {
@@ -2425,6 +2505,61 @@ function onConsoleLogLegendClick() {
 	gcFiddle.config.showConsole = toogleHidden("consoleLogArea");
 }
 
+function onLocationButtonClick() {
+	function showPosition(position) {
+		var oPos = latLng2position(position.coords.latitude, position.coords.longitude),
+			map = gcFiddle.map[gcFiddle.config.mapType],
+			aMarkers = gcFiddle.maFa.getMarkers();
+
+		window.console.log(position2dmm(oPos));
+		gcFiddle.maFa.setMarker({
+			position: oPos
+		}, aMarkers.length, map);
+
+		gcFiddle.maFa.clearMarkers(); // clear needed for SimpleMarker
+		gcFiddle.maFa.clearPolyline();
+		gcFiddle.maFa.fitBounds(map);
+		setPolyline();
+		gcFiddle.maFa.setMapOnAllMarkers(map);
+	}
+
+	function showError(error) {
+		switch (error.code) {
+		case error.PERMISSION_DENIED:
+			window.console.log("User denied the request for Geolocation.");
+			break;
+		case error.POSITION_UNAVAILABLE:
+			window.console.log("Location information is unavailable.");
+			break;
+		case error.TIMEOUT:
+			window.console.log("The request to get user location timed out.");
+			break;
+		case error.UNKNOWN_ERROR:
+			window.console.log("An unknown error occurred.");
+			break;
+		default:
+			window.console.log("An error occurred.");
+			break;
+		}
+	}
+
+	if (navigator.geolocation) {
+		navigator.geolocation.getCurrentPosition(showPosition, showError);
+	} else {
+		window.console.log("Geolocation is not supported by this browser.");
+	}
+}
+
+function onFitBoundsButtonClick() {
+	var map = gcFiddle.map[gcFiddle.config.mapType];
+
+	gcFiddle.maFa.clearMarkers(); // clear needed for SimpleMarker
+	gcFiddle.maFa.clearPolyline();
+	gcFiddle.maFa.fitBounds(map);
+	setPolyline();
+	gcFiddle.maFa.setMapOnAllMarkers(map);
+}
+
 function onOutputAreaClick(event) {
 	var variables = gcFiddle.variables,
 		oTarget = event.target,
@@ -2501,10 +2636,15 @@ function onOpenLayersLoaded() {
 		oSelect;
 
 	if (!gcFiddle.map[sMapType]) {
-		OlMarker.createPrototype(); //fast hack
+		//fast hack: create prototypes for loaded OpenLayers library
+		OlMarker.createPrototype();
+		OlPolyline.createPrototype();
 		oMap = new OpenLayers.Map(sMapCanvasId, oMapSettings);
 		oMap.getDiv = function () {
 			return this.div;
+		};
+		oMap.fitBounds = function (bounds) {
+			return this.zoomToExtent(bounds);
 		};
 		gcFiddle.map[sMapType] = oMap;
 
@@ -2537,23 +2677,20 @@ function onOpenLayersLoaded() {
 		oMarkers.events.on({
 			featureselected: function(event) {
 				var oMarker = event.feature,
-					oPopup = new OpenLayers.Popup.FramedCloud("popup",
-						OpenLayers.LonLat.fromString(oMarker.geometry.toShortString()),
-						null,
-						'<div style="font-size:.8em">' + oMarker.getTitle() + ": " + position2dmm(oMarker.getPosition()) + "</div>",
-						null,
-						true
-					);
+					oInfoWindow = gcFiddle.maFa.getInfoWindow(),
+					map;
 
-				oMarker.popup = oPopup;
-				oMap.addPopup(oPopup);
+				if (oInfoWindow) {
+					map = oMarker.getMap();
+					oInfoWindow.open(map, oMarker);
+				}
 			},
-			featureunselected: function(event) {
-				var oMarker = event.feature;
+			featureunselected: function() {
+				var oInfoWindow = gcFiddle.maFa.getInfoWindow();
 
-				oMap.removePopup(oMarker.popup);
-				oMarker.popup.destroy();
-				oMarker.popup = null;
+				if (oInfoWindow) {
+					oInfoWindow.close();
+				}
 			}
 		});
 
@@ -2578,6 +2715,7 @@ function onOpenLayersLoaded() {
 			new OpenLayers.Control.Navigation(),
 			new OpenLayers.Control.Zoom(),
 			new OpenLayers.Control.LayerSwitcher(),
+			//new OpenLayers.Control.DragFeature(oMarkers, { autoActivate: true }), //TODO
 			oSelect
 		]);
 
@@ -2842,6 +2980,8 @@ function onLoad() {
 	document.getElementById("waypointLegend").onclick = onWaypointLegendClick;
 	document.getElementById("mapLegend").onclick = onMapLegendClick;
 	document.getElementById("mapTypeSelect").onchange = onMapTypeSelectChange;
+	document.getElementById("locationButton").onclick = onLocationButtonClick;
+	document.getElementById("fitBoundsButton").onclick = onFitBoundsButtonClick;
 	document.getElementById("consoleLogLegend").onclick = onConsoleLogLegendClick;
 
 	document.getElementById("outputArea").onclick = onOutputAreaClick;
