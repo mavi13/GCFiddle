@@ -27,6 +27,8 @@ GCFiddle Links:
    The user interface shows several boxes which can be shrunk and expanded by pressing the green buttons.
    There are boxes for input, output, variable, note, waypoint and map.
 
+![A sample with GCJVT3](./img/gcjvt3.jpg)
+
 ### Input box
 
  - The first selection field sets the category of the geocache, e.g. "Test", "To Find" or "Found".

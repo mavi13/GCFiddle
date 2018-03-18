@@ -312,6 +312,7 @@ LatLng.prototype.midpointTo = function(point) {
 };
 
 // https://stackoverflow.com/questions/18838915/convert-lat-lon-to-pixel-coordinate
+// (stretched) Mercator projection
 // map={width, height, latBottom, latTop, lngLeft, lngRight}
 function convertGeoToPixel(position, map) {
 	var lat = toRadians(position.lat),
@@ -1367,9 +1368,13 @@ function SimpleMap(mapCanvas, settings) {
 	this.oPixelMap = {
 		width: iWidth * 8 / 10,
 		height: iHeight * 8 / 10
-		// will be extended by latBottom, latTop, lngLeft, lngRight
+		// will be extended by latBottom, latTop, lngLeft, lngRight in fitBounds()
 	};
 }
+
+SimpleMap.prototype.getDiv = function () {
+	return this.div;
+};
 
 SimpleMap.prototype.setZoom = function (zoom) {
 	this.zoom = zoom;
@@ -1552,42 +1557,10 @@ function OlMarker(settings) {
 		}
 	);
 	this.map = settings.map;
-	this.lonlat1 = oPosition;
 }
 
 OlMarker.createPrototype = function () {
 	OlMarker.prototype = Object.create(OpenLayers.Feature.Vector.prototype);
-
-	OlMarker.prototype.getSimplePosition = function () {
-		return this.attributes.position;
-	};
-
-	OlMarker.prototype.getPosition = function () {
-		return this.lonlat1; // tansformed position
-	};
-
-	OlMarker.prototype.setPosition = function (position) {
-		this.attributes.position = position;
-		this.lonlat1 = new OpenLayers.LonLat(position.lng, position.lat).transform(new OpenLayers.Projection("EPSG:4326"), this.map.getProjectionObject());
-		this.move(this.lonlat1);
-	};
-
-	OlMarker.prototype.getMap = function () {
-		return this.map;
-	};
-
-	OlMarker.prototype.setMap = function (map) {
-		var oMarkers;
-
-		if (map) {
-			oMarkers = map.getLayersByName("Markers")[0];
-			oMarkers.addFeatures(this);
-		} else if (this.map) { // delete map?
-			oMarkers = this.map.getLayersByName("Markers")[0];
-			oMarkers.removeFeatures(this);
-		}
-		this.map = map;
-	};
 
 	OlMarker.prototype.getTitle = function () {
 		return this.attributes.title;
@@ -1604,7 +1577,54 @@ OlMarker.createPrototype = function () {
 	OlMarker.prototype.setLabel = function (label) {
 		this.attributes.label = label;
 	};
+
+	OlMarker.prototype.getSimplePosition = function () {
+		return this.attributes.position;
+	};
+
+	OlMarker.prototype.setSimplePosition = function (position) {
+		this.attributes.position = position;
+	};
+
+	OlMarker.prototype.getPosition = function () {
+		return new OpenLayers.LonLat(this.geometry.x, this.geometry.y); // tansformed position
+	};
+
+	OlMarker.prototype.setPosition = function (position) {
+		var oLonLat = new OpenLayers.LonLat(position.lng, position.lat).transform(new OpenLayers.Projection("EPSG:4326"), this.map.getProjectionObject()),
+			oInfoWindow;
+
+		this.move(oLonLat);
+		this.setSimplePosition(position);
+
+		oInfoWindow = this.map && this.map.popups[0];
+		if (oInfoWindow && oInfoWindow.getAnchor() === this) {
+			oInfoWindow.setPosition(oLonLat);
+		}
+	};
+
+	OlMarker.prototype.getMap = function () {
+		return this.map;
+	};
+
+	OlMarker.prototype.setMap = function (map) {
+		var oMarkers, oInfoWindow;
+
+		if (map) {
+			oMarkers = map.getLayersByName("Markers")[0];
+			oMarkers.addFeatures(this);
+		} else if (this.map) { // delete map?
+			oMarkers = this.map.getLayersByName("Markers")[0];
+			oMarkers.removeFeatures(this);
+			oInfoWindow = this.map.popups[0];
+			if (oInfoWindow && oInfoWindow.getAnchor() === this) {
+				oInfoWindow.close();
+			}
+		}
+		this.map = map;
+	};
 };
+
 
 function OlPolyline(settings) {
 	OpenLayers.Geometry.LineString.call(this);
@@ -1653,27 +1673,51 @@ OlPolyline.createPrototype = function () {
 	};
 };
 
+
 function OlInfoWindow() {
-	this.popup = new OpenLayers.Popup.FramedCloud();
-	//this.popup = new OpenLayers.Popup.FramedCloud(null, null, null, null, null, true); this.popup.addCloseBox(); // TODO
+	var that = this,
+		fncloseBoxCallback = function(event) {
+			that.close();
+			OpenLayers.Event.stop(event);
+		};
+
+	OpenLayers.Popup.FramedCloud.call(this, null, null, null, null, null, true, fncloseBoxCallback);
+	// or: this.addCloseBox(); this.closeDiv.style.zIndex = 1;
 }
 
-OlInfoWindow.prototype.open = function (map, marker) {
-	this.popup.lonlat = OpenLayers.LonLat.fromString(marker.geometry.toShortString());
-	this.popup.setContentHTML('<div style="font-size:.8em">' + marker.getTitle() + ": " + position2dmm(marker.getSimplePosition()) + "</div>");
-	map.addPopup(this.popup);
-	this.popup.updateSize(); // updatePosition() not needed
-	this.map = map;
-};
+OlInfoWindow.createPrototype = function () {
+	OlInfoWindow.prototype = Object.create(OpenLayers.Popup.FramedCloud.prototype);
 
-OlInfoWindow.prototype.getAnchor = function() { // TODO
-	return false;
-};
+	OlInfoWindow.prototype.setContent = function(content) {
+		this.setContentHTML('<div style="font-size:.8em">' + content + "</div>");
+	};
 
-OlInfoWindow.prototype.close = function () {
-	if (this.map) {
-		this.map.removePopup(this.popup);
-	}
+	OlInfoWindow.prototype.setPosition = function (lonlat) {
+		this.lonlat = lonlat;
+		this.updatePosition();
+	};
+
+	OlInfoWindow.prototype.open = function (map, marker) {
+		this.anchor1 = marker;
+		this.lonlat = OpenLayers.LonLat.fromString(marker.geometry.toShortString());
+		map.addPopup(this);
+		this.updateSize();
+	};
+
+	OlInfoWindow.prototype.getMap = function() {
+		return this.map;
+	};
+
+	OlInfoWindow.prototype.getAnchor = function() {
+		return this.anchor1;
+	};
+
+	OlInfoWindow.prototype.close = function () {
+		this.anchor1 = null;
+		if (this.map) {
+			this.map.removePopup(this);
+		}
+	};
 };
 
 
@@ -1688,12 +1732,7 @@ MarkerFactory.prototype.getMapType = function (map) {
 	var mapType;
 
 	if (map) {
-		if (map.getDiv) { // google
-			mapType = map.getDiv().id;
-		} else {
-			mapType = map.div.id;
-		}
-		mapType = mapType.split("-", 2)[1];
+		mapType = map.getDiv().id.split("-", 2)[1];
 	}
 	return mapType;
 };
@@ -1732,10 +1771,17 @@ MarkerFactory.prototype.initMap = function (map) {
 		gcFiddle.maFa.setMapOnAllMarkers(map);
 
 		if (!this.oInfoWindow) {
-			if (this.getMapType(map) === "google") {
+			switch (this.getMapType(map)) {
+			case "google":
 				this.oInfoWindow = new google.maps.InfoWindow({});
-			} else if (this.getMapType(map) === "osm") {
+				break;
+			case "osm":
 				this.oInfoWindow = new OlInfoWindow();
+				break;
+			case "simple":
+				break;
+			default:
+				throw new Error("initMap: Unknown mapType " + this.getMapType(map));
 			}
 		}
 	}
@@ -1754,6 +1800,24 @@ MarkerFactory.prototype.getMarkers = function () {
 };
 
 
+MarkerFactory.prototype.prepareInfoWindowContent = function (marker) {
+	var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
+		sContent, oPreviousMarker, iIndex, oPosition1, oPosition2, iAngle, iDistance, sDirection;
+
+	sContent = marker.getTitle() + ": " + position2dmm(marker.getSimplePosition());
+	iIndex = this.aMarkerList.indexOf(marker);
+	if (iIndex >= 1) {
+		oPreviousMarker = this.aMarkerList[iIndex - 1];
+		oPosition1 = oPreviousMarker.getSimplePosition();
+		oPosition2 = marker.getSimplePosition();
+		iAngle = Math.round(LatLng.prototype.bearingTo.call(oPosition1, oPosition2));
+		iDistance = Math.round(LatLng.prototype.distanceTo.call(oPosition1, oPosition2));
+		sDirection = aDirections[Math.round(iAngle / (360 / aDirections.length)) % aDirections.length];
+		sContent += "<br>" + sDirection + ": " + iAngle + "° " + iDistance + "m";
+	}
+	return sContent;
+};
+
 MarkerFactory.prototype.setMarker = function (options, i, map) {
 	var oMarkerOptions = myObjectAssign({}, this.settings, options),
 		oMarker,
@@ -1770,9 +1834,10 @@ MarkerFactory.prototype.setMarker = function (options, i, map) {
 		oMarkerOptions.title = "W" + oMarkerOptions.label;
 	}
 
-	if (i >= this.aMarkerList.length) { // add new marker?
+	if (i >= this.aMarkerList.length) { // add new marker
 		if (map) {
-			if (this.getMapType(map) === "google") {
+			switch (this.getMapType(map)) {
+			case "google":
 				oMarkerOptions.position = new google.maps.LatLng(oMarkerOptions.position.lat, oMarkerOptions.position.lng); // make Google happy: LatLng or LatLngLiteral
 				oMarker = new google.maps.Marker(oMarkerOptions);
 				oMarker.getSimplePosition = function() {
@@ -1783,7 +1848,7 @@ MarkerFactory.prototype.setMarker = function (options, i, map) {
 				};
 				google.maps.event.addListener(oMarker, "click", function () {
 					if (that.oInfoWindow.getAnchor() !== oMarker) {
-						that.oInfoWindow.setContent(oMarker.getTitle() + ": " + position2dmm(oMarker.getSimplePosition()));
+						that.oInfoWindow.setContent(that.prepareInfoWindowContent(oMarker));
 						that.oInfoWindow.open(map, oMarker);
 					} else {
 						that.oInfoWindow.close();
@@ -1791,21 +1856,26 @@ MarkerFactory.prototype.setMarker = function (options, i, map) {
 				});
 				google.maps.event.addListener(oMarker, "drag", function () {
 					if (that.oInfoWindow.getAnchor() === oMarker) {
-						that.oInfoWindow.setContent(oMarker.getTitle() + ": " + position2dmm(oMarker.getSimplePosition()));
+						that.oInfoWindow.setContent(that.prepareInfoWindowContent(oMarker));
 					}
 				});
-			} else if (this.getMapType(map) === "osm") {
+				break;
+			case "osm":
 				oMarker = new OlMarker(oMarkerOptions);
-			} else {
+				break;
+			case "simple":
 				oMarker = new SimpleMarker(oMarkerOptions);
+				break;
+			default:
+				throw new Error("setMarker: Unknown mapType " + this.getMapType(map));
 			}
-			if (this.aMarkerList.length === 0) {
+			if (this.aMarkerList.length === 0) { // for the first marker
 				map.setCenter(oMarker.getPosition());
 			}
 		} else { // !map
 			oMarker = new SimpleMarker(oMarkerOptions);
 		}
-	} else {
+	} else { // adapt existing marker
 		oMarker = this.aMarkerList[i];
 		if (oMarkerOptions.position) {
 			oMarker.setPosition(oMarkerOptions.position);
@@ -1817,7 +1887,7 @@ MarkerFactory.prototype.setMarker = function (options, i, map) {
 			oMarker.setLabel(oMarkerOptions.label);
 		}
 		if (this.oInfoWindow && this.oInfoWindow.getAnchor() === oMarker) {
-			this.oInfoWindow.setContent(oMarker.getTitle() + ": " + position2dmm(oMarker.getSimplePosition()));
+			this.oInfoWindow.setContent(this.prepareInfoWindowContent(oMarker));
 		}
 	}
 	this.aMarkerList[i] = oMarker;
@@ -1876,16 +1946,15 @@ MarkerFactory.prototype.setPolyline = function (map) {
 			strokeWeight: 0.5,
 			map: map
 		},
-		mapType, i;
+		i;
 
 	if (map) {
-		mapType = this.getMapType(map);
 		for (i = 0; i < this.aMarkerList.length; i += 1) {
 			aList.push(this.aMarkerList[i].getPosition());
 		}
 
 		if (!this.oPolyLine) {
-			switch (mapType) {
+			switch (this.getMapType(map)) {
 			case "google":
 				this.oPolyLine = new google.maps.Polyline(oPolyLineOptions);
 				break;
@@ -1896,7 +1965,7 @@ MarkerFactory.prototype.setPolyline = function (map) {
 				this.oPolyLine = new SimplePolyline(oPolyLineOptions);
 				break;
 			default:
-				throw new Error("setPolyline: Unknown mapType " + mapType);
+				throw new Error("setPolyline: Unknown mapType " + this.getMapType(map));
 			}
 		}
 		this.oPolyLine.setMap(map);
@@ -1946,7 +2015,7 @@ MarkerFactory.prototype.getInfoWindow = function () {
 //
 //
 function isWaypoint(s) {
-	return s.indexOf("$") === 0; // waypoint starts with "$"
+	return s.indexOf("$") === 0; // waypoints start with "$"
 }
 
 function setMarkers(variables) {
@@ -1996,7 +2065,7 @@ function setSelectOptions(select, fnSel, fnTextFormat) {
 			} else {
 				option = aOptions[i];
 				if (option.text !== sText) {
-					if (gDebug) {
+					if (gDebug) { // eslint-disable-line max-depth
 						gDebug.log("DEBUG: setSelect: " + sText);
 					}
 					option.text = sText;
@@ -2485,12 +2554,9 @@ function onWaypointLegendClick() {
 }
 
 function onMapLegendClick() {
-	var sMapType = gcFiddle.config.mapType,
-		sOtherMapType = (sMapType === "google") ? "simple" : "google";
+	var sMapType = gcFiddle.config.mapType;
 
 	gcFiddle.config.showMap = toogleHidden("mapCanvas-" + sMapType);
-	setHidden("mapCanvas-" + sOtherMapType, true);
-
 	if (gcFiddle.config.showMap) {
 		if (gcFiddle.map[sMapType]) {
 			gcFiddle.maFa.fitBounds(gcFiddle.map[sMapType]);
@@ -2605,7 +2671,7 @@ function onOutputAreaClick(event) {
 	}
 }
 
-function onGoogleApiLoaded() { // eslint-disable-line no-unused-vars
+function onGoogleApiLoaded() {
 	var oMapSettings = {
 			zoom: gcFiddle.config.zoom
 		},
@@ -2630,22 +2696,25 @@ function onOpenLayersLoaded() {
 		},
 		sMapType = "osm",
 		sMapCanvasId = "mapCanvas-" + sMapType,
-		oMap,
-		oMarkers,
-		oLines,
-		oSelect;
+		oMap, oMarkers,	oLines,	oSelect, oDrag;
 
 	if (!gcFiddle.map[sMapType]) {
 		//fast hack: create prototypes for loaded OpenLayers library
 		OlMarker.createPrototype();
 		OlPolyline.createPrototype();
+		OlInfoWindow.createPrototype();
+
+		setHidden(sMapCanvasId, false); // make sure canvas is not hidden
 		oMap = new OpenLayers.Map(sMapCanvasId, oMapSettings);
+		setHidden(sMapCanvasId, !gcFiddle.config.showMap);
+
 		oMap.getDiv = function () {
 			return this.div;
 		};
 		oMap.fitBounds = function (bounds) {
 			return this.zoomToExtent(bounds);
 		};
+
 		gcFiddle.map[sMapType] = oMap;
 
 		oMarkers = new OpenLayers.Layer.Vector("Markers", {
@@ -2681,6 +2750,7 @@ function onOpenLayersLoaded() {
 					map;
 
 				if (oInfoWindow) {
+					oInfoWindow.setContent(gcFiddle.maFa.prepareInfoWindowContent(oMarker));
 					map = oMarker.getMap();
 					oInfoWindow.open(map, oMarker);
 				}
@@ -2703,19 +2773,33 @@ function onOpenLayersLoaded() {
 		]);
 
 		oSelect = new OpenLayers.Control.SelectFeature(
-			oMarkers,
-			{
+			oMarkers, {
 				toggle: true,
 				toggleKey: "ctrlKey",
 				autoActivate: true
 			}
 		);
 
+		oDrag = new OpenLayers.Control.DragFeature(oMarkers, {
+			autoActivate: true,
+			onDrag: function(marker /* , pixelPos */) {
+				var oPosition = marker.getPosition(), // new (transformed) position
+					oPosition2 = oPosition.clone().transform(new OpenLayers.Projection("EPSG:900913"), new OpenLayers.Projection("EPSG:4326")), // transform back
+					oInfoWindow = gcFiddle.maFa.getInfoWindow();
+
+				marker.setSimplePosition(new LatLng(oPosition2.lat, oPosition2.lon));
+				if (oInfoWindow && oInfoWindow.getMap()) {
+					oInfoWindow.setContent(gcFiddle.maFa.prepareInfoWindowContent(marker));
+					oInfoWindow.setPosition(oPosition);
+				}
+			}
+		});
+
 		oMap.addControls([
 			new OpenLayers.Control.Navigation(),
 			new OpenLayers.Control.Zoom(),
 			new OpenLayers.Control.LayerSwitcher(),
-			//new OpenLayers.Control.DragFeature(oMarkers, { autoActivate: true }), //TODO
+			oDrag,
 			oSelect
 		]);
 
@@ -2758,8 +2842,13 @@ function onMapTypeSelectChange() {
 
 	if (!gcFiddle.map[sMapType]) {
 		switch (sMapType) {
-		case "simple":
-			gcFiddle.map[sMapType] = new SimpleMap(mapCanvas, oMapSettings);
+		case "google":
+			sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
+			sUrl = sProtocol + "//maps.googleapis.com/maps/api/js" + ((gcFiddle.config.key) ? "?key=" + gcFiddle.config.key : "");
+			loadScript(sUrl, function () {
+				window.console.log("NOTE: GoogleMaps API loaded");
+				onGoogleApiLoaded();
+			});
 			break;
 		case "osm":
 			sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
@@ -2769,16 +2858,17 @@ function onMapTypeSelectChange() {
 				onOpenLayersLoaded();
 			});
 			break;
-		case "google":
-			sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
-			sUrl = sProtocol + "//maps.googleapis.com/maps/api/js?callback=onGoogleApiLoaded" + ((gcFiddle.config.key) ? "&key=" + gcFiddle.config.key : "");
-			loadScript(sUrl, function () {
-				window.console.log("NOTE: GoogleMaps API loaded");
-				// onGoogleApiLoaded();
-			});
+		case "simple":
+			gcFiddle.map[sMapType] = new SimpleMap(mapCanvas, oMapSettings);
+			mapCanvas.addEventListener("click", function(event) { // TODO
+				var x = event.pageX - mapCanvas.offsetLeft,
+					y = event.pageY - mapCanvas.offsetTop;
+
+				window.console.log("clicked x=" + x + " y=" + y);
+			}, false);
 			break;
 		default:
-			break;
+			throw new Error("onMapTypeSelectChange: Unknown mapType " + sMapType);
 		}
 	}
 	if (gcFiddle.map[sMapType]) {
