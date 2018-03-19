@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="gcfiddle.css" />
-<title id="title">GCFiddle v0.52</title>
+<title id="title">GCFiddle v0.53</title>
 </head>
 
 <body>
@@ -79,13 +79,15 @@
 			<span id="mapLegend" class="legendButton" title="Show/Hide Map">Map:</span>
 			<select id="mapTypeSelect" title="Map Type">
 				<option value="simple" title="Simple Drawing (offline)" selected="selected">Simple</option>
-				<option value="osm" title="Open Street Map">OSM</option>
+				<option value="osm" title="Open Street Map (OpenLayers)">OSM</option>
+				<option value="leaflet" title="Open Street Map (Leaflet)">Leaflet</option>
 				<option value="google" title="Google Maps">Google</option>
 			</select>
 		</legend>
-		<div class="canvas" id="mapCanvas-simple" hidden></div>
-		<div class="canvas" id="mapCanvas-osm" hidden></div>
 		<div class="canvas" id="mapCanvas-google" hidden></div>
+		<div class="canvas" id="mapCanvas-leaflet" hidden></div>
+		<div class="canvas" id="mapCanvas-osm" hidden></div>
+		<div class="canvas" id="mapCanvas-simple" hidden></div>
 		<div>
 			<button id="locationButton" title="Get Location">Location</button>
 			<button id="fitBoundsButton" title="Fit markers in map bounds">Fit Bounds</button>

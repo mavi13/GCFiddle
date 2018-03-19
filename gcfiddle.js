@@ -2,7 +2,7 @@
 // (c) mavi13, 2018
 // https://mavi13.github.io/GCFiddle/
 //
-/* globals window, document, google, OpenLayers */ // make JSlint happy
+/* globals window, document, google, OpenLayers, L */ // make ESlint happy
 
 "use strict";
 
@@ -21,12 +21,12 @@ var gDebug,
 			showMap: true,
 			showConsole: false, // for debugging
 			variableType: "number", // number, text, range
-			mapType: "simple", // simple, google, osm
-			key: "", // Google API key
-			zoom: 15, // zoom level for Google maps, OSM
+			mapboxKey: "", // mapbox access token (for leaflet maps)
+			mapType: "simple", // simple, google, leaflet, osm
+			googleKey: "", // Google API key
+			zoom: 15, // default zoom level
+			leafletUrl: "https://unpkg.com/leaflet@1.3.1/dist/leaflet.js",
 			openLayersUrl: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js"
-			// openLayersUrl: "http://www.openlayers.org/api/OpenLayers.js" // http only
-			// openLayersUrl: "lib/OpenLayers.js" // local version; or "lib/OpenLayers.light.js"
 		},
 		initialConfig: null,
 		map: { },
@@ -36,7 +36,8 @@ var gDebug,
 		variables: {
 			gcfOriginal: { }
 		}
-	};
+	},
+	MapProxy = {};
 
 //
 // Utilities
@@ -173,6 +174,17 @@ function loadScript(url, callback, arg) {
 	}
 	script.src = url;
 	document.getElementsByTagName("head")[0].appendChild(script);
+}
+
+function loadStyle(url, callback, arg) {
+	var link = document.createElement("link");
+
+	link.rel = "stylesheet";
+	link.onload = function () {
+		callback(arg);
+	};
+	link.href = url;
+	document.getElementsByTagName("head")[0].appendChild(link);
 }
 
 //
@@ -1352,7 +1364,7 @@ function SimpleMap(mapCanvas, settings) {
 	iWidth = mapCanvas.clientWidth;
 	iHeight = mapCanvas.clientHeight;
 	mapCanvas.hidden = bHidden;
-	window.console.log("SimpleMap: width=" + iWidth + " height=" + iHeight);
+	window.console.log("NOTE: SimpleMap: width=" + iWidth + " height=" + iHeight + " created");
 
 	this.aCanvas = [];
 	for (i = 0; i <= 1; i += 1) {
@@ -1544,183 +1556,6 @@ SimplePolyline.prototype.setMap = function (map) {
 };
 
 
-// Special OpenLayers Marker
-function OlMarker(settings) {
-	var oPosition = new OpenLayers.LonLat(settings.position.lng, settings.position.lat).transform(new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection("EPSG:900913"));
-
-	OpenLayers.Feature.Vector.call(this,
-		new OpenLayers.Geometry.Point(oPosition.lon, oPosition.lat),
-		{ // attributes
-			position: settings.position,
-			title: settings.title,
-			label: settings.label
-		}
-	);
-	this.map = settings.map;
-}
-
-OlMarker.createPrototype = function () {
-	OlMarker.prototype = Object.create(OpenLayers.Feature.Vector.prototype);
-
-	OlMarker.prototype.getTitle = function () {
-		return this.attributes.title;
-	};
-
-	OlMarker.prototype.setTitle = function (title) {
-		this.attributes.title = title;
-	};
-
-	OlMarker.prototype.getLabel = function () {
-		return this.attributes.label;
-	};
-
-	OlMarker.prototype.setLabel = function (label) {
-		this.attributes.label = label;
-	};
-
-	OlMarker.prototype.getSimplePosition = function () {
-		return this.attributes.position;
-	};
-
-	OlMarker.prototype.setSimplePosition = function (position) {
-		this.attributes.position = position;
-	};
-
-	OlMarker.prototype.getPosition = function () {
-		return new OpenLayers.LonLat(this.geometry.x, this.geometry.y); // tansformed position
-	};
-
-	OlMarker.prototype.setPosition = function (position) {
-		var oLonLat = new OpenLayers.LonLat(position.lng, position.lat).transform(new OpenLayers.Projection("EPSG:4326"), this.map.getProjectionObject()),
-			oInfoWindow;
-
-		this.move(oLonLat);
-		this.setSimplePosition(position);
-
-		oInfoWindow = this.map && this.map.popups[0];
-		if (oInfoWindow && oInfoWindow.getAnchor() === this) {
-			oInfoWindow.setPosition(oLonLat);
-		}
-	};
-
-	OlMarker.prototype.getMap = function () {
-		return this.map;
-	};
-
-	OlMarker.prototype.setMap = function (map) {
-		var oMarkers, oInfoWindow;
-
-		if (map) {
-			oMarkers = map.getLayersByName("Markers")[0];
-			oMarkers.addFeatures(this);
-		} else if (this.map) { // delete map?
-			oMarkers = this.map.getLayersByName("Markers")[0];
-			oMarkers.removeFeatures(this);
-			oInfoWindow = this.map.popups[0];
-			if (oInfoWindow && oInfoWindow.getAnchor() === this) {
-				oInfoWindow.close();
-			}
-		}
-		this.map = map;
-	};
-};
-
-
-function OlPolyline(settings) {
-	OpenLayers.Geometry.LineString.call(this);
-	this.settings1 = settings;
-	this.map = settings.map;
-}
-
-OlPolyline.createPrototype = function () {
-	OlPolyline.prototype = Object.create(OpenLayers.Geometry.LineString.prototype);
-
-	OlPolyline.prototype.setPath = function (aList) {
-		var oPosition,
-			oPoint,
-			i;
-
-		for (i = 0; i < aList.length; i += 1) {
-			oPosition = aList[i];
-			if (i >= this.components.length) {
-				this.addPoint(new OpenLayers.Geometry.Point(oPosition.lon, oPosition.lat));
-			} else {
-				oPoint = this.components[i];
-				oPoint.move(oPosition.lon - oPoint.x, oPosition.lat - oPoint.y);
-			}
-		}
-		if (this.map) {
-			this.map.getLayersByName("Lines")[0].redraw();
-		}
-	};
-
-	OlPolyline.prototype.getMap = function () {
-		return this.map;
-	};
-
-	OlPolyline.prototype.setMap = function (map) {
-		var oLines,	oFeature;
-
-		if (map) {
-			oFeature = new OpenLayers.Feature.Vector(this, {}, this.settings1);
-			oLines = map.getLayersByName("Lines")[0];
-			oLines.addFeatures(oFeature);
-		} else if (this.map) {
-			oLines = this.map.getLayersByName("Lines")[0];
-			oLines.removeAllFeatures();
-		}
-		this.map = map;
-	};
-};
-
-
-function OlInfoWindow() {
-	var that = this,
-		fncloseBoxCallback = function(event) {
-			that.close();
-			OpenLayers.Event.stop(event);
-		};
-
-	OpenLayers.Popup.FramedCloud.call(this, null, null, null, null, null, true, fncloseBoxCallback);
-	// or: this.addCloseBox(); this.closeDiv.style.zIndex = 1;
-}
-
-OlInfoWindow.createPrototype = function () {
-	OlInfoWindow.prototype = Object.create(OpenLayers.Popup.FramedCloud.prototype);
-
-	OlInfoWindow.prototype.setContent = function(content) {
-		this.setContentHTML('<div style="font-size:.8em">' + content + "</div>");
-	};
-
-	OlInfoWindow.prototype.setPosition = function (lonlat) {
-		this.lonlat = lonlat;
-		this.updatePosition();
-	};
-
-	OlInfoWindow.prototype.open = function (map, marker) {
-		this.anchor1 = marker;
-		this.lonlat = OpenLayers.LonLat.fromString(marker.geometry.toShortString());
-		map.addPopup(this);
-		this.updateSize();
-	};
-
-	OlInfoWindow.prototype.getMap = function() {
-		return this.map;
-	};
-
-	OlInfoWindow.prototype.getAnchor = function() {
-		return this.anchor1;
-	};
-
-	OlInfoWindow.prototype.close = function () {
-		this.anchor1 = null;
-		if (this.map) {
-			this.map.removePopup(this);
-		}
-	};
-};
-
-
 //
 // https://developers.google.com/maps/documentation/javascript/reference
 // MarkerFactory: settings={draggable}
@@ -1775,8 +1610,15 @@ MarkerFactory.prototype.initMap = function (map) {
 			case "google":
 				this.oInfoWindow = new google.maps.InfoWindow({});
 				break;
+			case "leaflet":
+				this.oInfoWindow = new L.Popup();
+				this.oInfoWindow.getAnchor = function () { // TODO
+					return false;
+				};
+				this.oInfoWindow.close = this.oInfoWindow.closePopup;
+				break;
 			case "osm":
-				this.oInfoWindow = new OlInfoWindow();
+				this.oInfoWindow = new MapProxy.OpenLayers.InfoWindow();
 				break;
 			case "simple":
 				break;
@@ -1860,8 +1702,55 @@ MarkerFactory.prototype.setMarker = function (options, i, map) {
 					}
 				});
 				break;
+			case "leaflet":
+				oMarkerOptions.icon = new L.DivIcon({ // TODO
+					html: oMarkerOptions.label,
+					iconSize: [16, 16] // eslint-disable-line array-element-newline
+				});
+				oMarker = new L.Marker(oMarkerOptions.position, oMarkerOptions);
+				oMarker.getPosition = oMarker.getLatLng;
+				oMarker.setPosition = oMarker.setLatLng;
+				oMarker.getSimplePosition = oMarker.getLatLng;
+				oMarker.getMap = function () {
+					return this._map; // eslint-disable-line no-underscore-dangle
+				};
+				oMarker.setMap = function (map2) {
+					if (map2) {
+						this.addTo(map2);
+					} else {
+						map2 = this.getMap();
+						if (map2) {
+							this.removeFrom(map2);
+						}
+					}
+				};
+
+				oMarker.bindTooltip(oMarkerOptions.title);
+
+				oMarker.getTitle = function () {
+					return this.options.title;
+				};
+				oMarker.setTitle = function (title) {
+					this.options.title = title;
+				};
+				oMarker.getLabel = function () {
+					return this.options.label;
+				};
+				oMarker.setLabel = function (label) {
+					this.options.label = label;
+				};
+				oMarker.bindPopup(this.oInfoWindow).on("click", function (event) {
+					var oMarker2 = event.target;
+
+					oMarker2.getPopup().setContent(that.prepareInfoWindowContent(oMarker2));
+				}).on("move", function (event) {
+					var oMarker2 = event.target;
+
+					oMarker2.getPopup().setContent(that.prepareInfoWindowContent(oMarker2));
+				});
+				break;
 			case "osm":
-				oMarker = new OlMarker(oMarkerOptions);
+				oMarker = new MapProxy.OpenLayers.Marker(oMarkerOptions);
 				break;
 			case "simple":
 				oMarker = new SimpleMarker(oMarkerOptions);
@@ -1899,7 +1788,7 @@ MarkerFactory.prototype.setMapOnAllMarkers = function (map) {
 	for (i = 0; i < this.aMarkerList.length; i += 1) {
 		oMarker = this.aMarkerList[i];
 		if (oMarker.getMap() !== map) {
-			this.aMarkerList[i].setMap(map);
+			oMarker.setMap(map);
 		}
 	}
 };
@@ -1958,8 +1847,27 @@ MarkerFactory.prototype.setPolyline = function (map) {
 			case "google":
 				this.oPolyLine = new google.maps.Polyline(oPolyLineOptions);
 				break;
+			case "leaflet":
+				this.oPolyLine = new L.Polyline(oPolyLineOptions);
+				this.oPolyLine.getMap = function () {
+					return this._map; // eslint-disable-line no-underscore-dangle
+				};
+				this.oPolyLine.setMap = function (map2) {
+					if (map2) {
+						this.addTo(map2);
+					} else {
+						map2 = this.getMap();
+						if (map2) {
+							this.removeFrom(map2);
+						}
+					}
+				};
+				this.oPolyLine.setPath = function (list) {
+					this.setLatLngs(list);
+				};
+				break;
 			case "osm":
-				this.oPolyLine = new OlPolyline(oPolyLineOptions);
+				this.oPolyLine = new MapProxy.OpenLayers.Polyline(oPolyLineOptions);
 				break;
 			case "simple":
 				this.oPolyLine = new SimplePolyline(oPolyLineOptions);
@@ -1983,6 +1891,9 @@ MarkerFactory.prototype.fitBounds = function (map) {
 			switch (mapType) {
 			case "google":
 				oBounds = new google.maps.LatLngBounds();
+				break;
+			case "leaflet":
+				oBounds = new L.LatLngBounds();
 				break;
 			case "osm":
 				oBounds = new OpenLayers.Bounds();
@@ -2679,8 +2590,6 @@ function onGoogleApiLoaded() {
 		mapCanvas = document.getElementById("mapCanvas-" + sMapType),
 		oMap;
 
-	window.console.log("NOTE: onGoogleApiLoaded");
-
 	if (!gcFiddle.map[sMapType]) {
 		oMap = new google.maps.Map(mapCanvas, oMapSettings);
 		gcFiddle.map[sMapType] = oMap;
@@ -2690,129 +2599,96 @@ function onGoogleApiLoaded() {
 	}
 }
 
-function onOpenLayersLoaded() {
-	var oMapSettings = {
-			zoom: gcFiddle.config.zoom
-		},
-		sMapType = "osm",
+function onLeafletLoaded() {
+	var sMapType = "leaflet",
 		sMapCanvasId = "mapCanvas-" + sMapType,
-		oMap, oMarkers,	oLines,	oSelect, oDrag;
+		oMap;
 
 	if (!gcFiddle.map[sMapType]) {
-		//fast hack: create prototypes for loaded OpenLayers library
-		OlMarker.createPrototype();
-		OlPolyline.createPrototype();
-		OlInfoWindow.createPrototype();
-
-		setHidden(sMapCanvasId, false); // make sure canvas is not hidden
-		oMap = new OpenLayers.Map(sMapCanvasId, oMapSettings);
-		setHidden(sMapCanvasId, !gcFiddle.config.showMap);
-
-		oMap.getDiv = function () {
-			return this.div;
-		};
-		oMap.fitBounds = function (bounds) {
-			return this.zoomToExtent(bounds);
-		};
-
+		oMap = L.map(sMapCanvasId);
 		gcFiddle.map[sMapType] = oMap;
 
-		oMarkers = new OpenLayers.Layer.Vector("Markers", {
-			// http://docs.openlayers.org/library/feature_styling.html
-			styleMap: new OpenLayers.StyleMap(
-				{
-					"default": {
-						fillColor: "#FF5500",
-						fillOpacity: 0.4,
-						fontFamily: "Courier New, monospace",
-						fontSize: "12px",
-						fontWeight: "bold",
-						label: "${label}",
-						labelOutlineColor: "white",
-						labelOutlineWidth: 3,
-						pointRadius: 12,
-						strokeColor: "#00FF00",
-						strokeOpacity: 0.9,
-						strokeWidth: 1,
-						title: "${title}"
-					},
-					select: {
-						strokeWidth: 3,
-						pointRadius: 14
-					}
-				}
-			)
-		});
-		oMarkers.events.on({
-			featureselected: function(event) {
-				var oMarker = event.feature,
-					oInfoWindow = gcFiddle.maFa.getInfoWindow(),
-					map;
+		oMap.getDiv = function () {
+			return this.getContainer();
+		};
+		oMap.setCenter = function (latLng) {
+			oMap.setView(latLng, gcFiddle.config.zoom);
+		};
 
-				if (oInfoWindow) {
-					oInfoWindow.setContent(gcFiddle.maFa.prepareInfoWindowContent(oMarker));
-					map = oMarker.getMap();
-					oInfoWindow.open(map, oMarker);
-				}
-			},
-			featureunselected: function() {
-				var oInfoWindow = gcFiddle.maFa.getInfoWindow();
+		L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+			maxZoom: 18
+		}).addTo(oMap);
 
-				if (oInfoWindow) {
-					oInfoWindow.close();
-				}
-			}
-		});
-
-		oLines = new OpenLayers.Layer.Vector("Lines");
-
-		oMap.addLayers([
-			new OpenLayers.Layer.OSM("Mapnik"),
-			oMarkers,
-			oLines
-		]);
-
-		oSelect = new OpenLayers.Control.SelectFeature(
-			oMarkers, {
-				toggle: true,
-				toggleKey: "ctrlKey",
-				autoActivate: true
-			}
-		);
-
-		oDrag = new OpenLayers.Control.DragFeature(oMarkers, {
-			autoActivate: true,
-			onDrag: function(marker /* , pixelPos */) {
-				var oPosition = marker.getPosition(), // new (transformed) position
-					oPosition2 = oPosition.clone().transform(new OpenLayers.Projection("EPSG:900913"), new OpenLayers.Projection("EPSG:4326")), // transform back
-					oInfoWindow = gcFiddle.maFa.getInfoWindow();
-
-				marker.setSimplePosition(new LatLng(oPosition2.lat, oPosition2.lon));
-				if (oInfoWindow && oInfoWindow.getMap()) {
-					oInfoWindow.setContent(gcFiddle.maFa.prepareInfoWindowContent(marker));
-					oInfoWindow.setPosition(oPosition);
-				}
-			}
-		});
-
-		oMap.addControls([
-			new OpenLayers.Control.Navigation(),
-			new OpenLayers.Control.Zoom(),
-			new OpenLayers.Control.LayerSwitcher(),
-			oDrag,
-			oSelect
-		]);
-
-		if (OpenLayers.Control.KeyboardDefaults) {
-			oMap.addControl(new OpenLayers.Control.KeyboardDefaults()); // not in OpenLayers.light version
-		}
-		if (OpenLayers.Control.OverviewMap) {
-			oMap.addControl(new OpenLayers.Control.OverviewMap()); // not in OpenLayers.light version
-		}
+		/*
+		L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+			attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>"',
+			maxZoom: 18,
+			id: "mapbox.streets",
+			accessToken: gcFiddle.config.mapboxKey
+		}).addTo(oMap);
+		*/
 	}
 	if (gcFiddle.maFa) {
 		gcFiddle.maFa.initMap(gcFiddle.map[sMapType]);
 	}
+}
+
+function onMapProxyOpenLayersLoaded() {
+	var sMapType = "osm",
+		sMapCanvasId = "mapCanvas-" + sMapType,
+		oMap,
+		oMapSettings = {
+			zoom: gcFiddle.config.zoom
+		},
+		oCallBacks = {
+			onFeatureselected: function(event) {
+				var oMarker = event.feature,
+					oInfoWindow = gcFiddle.maFa.getInfoWindow();
+
+				if (oInfoWindow) {
+					oInfoWindow.setContent(gcFiddle.maFa.prepareInfoWindowContent(oMarker));
+					oInfoWindow.open(oMarker.getMap(), oMarker);
+				}
+			},
+			onFeatureunselected: function(event) {
+				var oMarker = event.feature,
+					oInfoWindow = oMarker.getMap().popups[0];
+
+				if (oInfoWindow) {
+					oInfoWindow.close();
+				}
+			},
+			onDrag: function(marker) {
+				var oPosition = marker.getPosition(), // new (transformed) position
+					oPosition2 = oPosition.clone().transform(new OpenLayers.Projection("EPSG:900913"), new OpenLayers.Projection("EPSG:4326")), // transform back
+					oInfoWindow = marker.getMap().popups[0];
+
+				marker.setSimplePosition(new LatLng(oPosition2.lat, oPosition2.lon));
+				if (oInfoWindow && oInfoWindow.getAnchor() === marker) {
+					oInfoWindow.setContent(gcFiddle.maFa.prepareInfoWindowContent(marker));
+					oInfoWindow.setPosition(oPosition);
+				}
+			}
+		};
+
+	if (!gcFiddle.map[sMapType]) {
+		setHidden(sMapCanvasId, false); // make sure canvas is not hidden
+		oMap = new MapProxy.OpenLayers.Map(sMapCanvasId, oMapSettings, oCallBacks);
+		setHidden(sMapCanvasId, !gcFiddle.config.showMap);
+		gcFiddle.map[sMapType] = oMap;
+	}
+	if (gcFiddle.maFa) {
+		gcFiddle.maFa.initMap(gcFiddle.map[sMapType]);
+	}
+}
+
+function onOpenLayersLoaded() {
+	var sUrl = "MapProxy.OpenLayers.js";
+
+	loadScript(sUrl, function () {
+		window.console.log("NOTE: MapProxy.OpenLayers loaded (" + sUrl + ")");
+		onMapProxyOpenLayersLoaded();
+	});
 }
 
 function onMapTypeSelectChange() {
@@ -2844,17 +2720,30 @@ function onMapTypeSelectChange() {
 		switch (sMapType) {
 		case "google":
 			sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
-			sUrl = sProtocol + "//maps.googleapis.com/maps/api/js" + ((gcFiddle.config.key) ? "?key=" + gcFiddle.config.key : "");
+			sUrl = sProtocol + "//maps.googleapis.com/maps/api/js" + ((gcFiddle.config.googleKey) ? "?key=" + gcFiddle.config.googleKey : "");
 			loadScript(sUrl, function () {
-				window.console.log("NOTE: GoogleMaps API loaded");
+				window.console.log("NOTE: GoogleMaps " + google.maps.version + " loaded");
 				onGoogleApiLoaded();
 			});
+			break;
+		case "leaflet":
+			sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
+			sUrl = gcFiddle.config.leafletUrl.replace(/^http(s)?:/, sProtocol).replace(/(-src)?\.js$/, ".css");
+			loadStyle(sUrl, function(sUrl2) {
+				window.console.log("NOTE: Leaflet style loaded (" + sUrl2 + ")");
+			}, sUrl);
+
+			sUrl = gcFiddle.config.leafletUrl.replace(/^http(s)?:/, sProtocol);
+			loadScript(sUrl, function (sUrl2) {
+				window.console.log("NOTE: Leaflet " + L.version + " loaded (" + sUrl2 + ")");
+				onLeafletLoaded();
+			}, sUrl);
 			break;
 		case "osm":
 			sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
 			sUrl = gcFiddle.config.openLayersUrl.replace(/^http(s)?:/, sProtocol);
 			loadScript(sUrl, function () {
-				window.console.log("NOTE: OpenLayers loaded");
+				window.console.log("NOTE: OpenLayers " + OpenLayers.VERSION_NUMBER + " loaded (" + sUrl + ")");
 				onOpenLayersLoaded();
 			});
 			break;

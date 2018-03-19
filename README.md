@@ -220,9 +220,9 @@ $W2="N 49° 15.903 E 008° 40.777"
  - `showConsole=false`: Show console box (for debugging messages)
   - `variableType=number`: Set general type of variables in the variable box to `number`, `text` or `range`
    - If a variable is not a number, `text` is used
- - `mapType=simple`: Set type of map to `simple`, `osm` or `google`.
+ - `mapType=simple`: Set type of map to `simple`, `osm`, `leaflet` or `google`.
    - For `google`, an API key must be set
- - `key=""`: Set [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key)
+ - `googleKey=""`: Set [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key)
    - Can also be set in file `gcconfig.js` or `gcfiddle.js`
  - `zoom=15`: Set initial zoom level for Google Maps (usually automatically set)
 -  `openLayersUrl`: Set URL for the OpenLayers library
