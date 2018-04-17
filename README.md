@@ -35,10 +35,11 @@ GCFiddle Links:
    Categories are mapped to directories where the calculation scripts for geocaches reside.
  - The second selection field loads a geocache calculation script and executes it
  - The input field contains the editable script
- - The "Execute" button executes the input script and fills the other boxes with the output
+ - The "Execute" button executes the input script and fills the other boxes with the output.
+   It also puts changed input in a history which can be accessed by the "Undo" and "Redo" buttons.
  - The "Preprocess" button processes the input text (not a script but a textual geocache description) and
    tries to convert it to a script. This means it comments lines and tries to find variables and waypoints.
-   To execute the output, it must be copied into the input field.
+   The resulting script is put in the history and executed.
  - The "Reload" button reloads the page with the current settings. (Please note that changes to the script are lost!)
    See the list of URL parameters below.
  - The "Save" button saves the current input in "Saved" category and selects it.
@@ -47,7 +48,7 @@ GCFiddle Links:
 
 ### Output box
 
- - Shows the output of the script execution or text (pre-) processing
+ - Shows the output of the script execution
  - If you mark a variable or a waypoint, it will be selected in the variable box or in the waypoint box, respectively
 
 ### Variable box
@@ -253,4 +254,4 @@ $W2="N 49° 15.903 E 008° 40.777"
 
  - [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/)
 
-#### mavi13, 03/2018
+#### mavi13, 04/2018

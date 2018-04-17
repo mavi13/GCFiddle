@@ -35,7 +35,8 @@ var gDebug,
 		examples: { },
 		variables: {
 			gcfOriginal: { }
-		}
+		},
+		inputStack: null
 	},
 	MapProxy = {};
 
@@ -72,8 +73,10 @@ function parseExample(input, category) {
 		sKey = aParts[1];
 		sTitle = aParts[2];
 	} else {
-		sKey = "<unknown>";
-		sInput = '"WARNING: Example must start with #<id>: <title>"\n\n' + sInput;
+		window.console.warn("parseExample: Example must start with #<id>: <title>");
+		sKey = "GCTEMPLATE";
+		sTitle = "Template Title";
+		sInput = "#" + sKey + ": " + sTitle + "\n" + sInput;
 	}
 
 	if (!category) {
@@ -99,11 +102,11 @@ function parseExample(input, category) {
 function addExample(input, category) {
 	var oItem = parseExample(input, category);
 
-	window.console.log("INFO: addExample: category=" + oItem.category + "(" + gcFiddle.config.category + ") key=" + oItem.key);
+	window.console.log("addExample: category=" + oItem.category + "(" + gcFiddle.config.category + ") key=" + oItem.key);
 	if (gcFiddle.examples[oItem.category]) {
 		gcFiddle.examples[oItem.category][oItem.key] = oItem.input;
 	} else {
-		window.console.warn("ERROR: Unknown category: " + oItem.category);
+		window.console.error("Unknown category: " + oItem.category);
 	}
 	return oItem;
 }
@@ -492,7 +495,7 @@ function parse2position(coord) {
 
 	sPos = dmm2position() || dms2position() || dd2position();
 	if (!sPos) {
-		window.console.log("WARNING: parse2position: Do not know how to parse '" + coord + "'");
+		window.console.warn("parse2position: Do not know how to parse '" + coord + "'");
 		sPos = latLng2position(lat, lng);
 	}
 	return sPos;
@@ -1230,8 +1233,8 @@ ScriptParser.prototype.evaluate = function (parseTree, variables) {
 				}
 			} else if (node.type === "assign") {
 				sValue = parseNode(node.value);
-				if (variables.gcfOriginal[node.name] !== undefined && variables.gcfOriginal[node.name] !== variables[node.name]) {
-					window.console.log("NOTE: Variable is readonly: " + node.name + "=" + variables[node.name] + " (" + sValue + ")");
+				if (variables.gcfOriginal && variables.gcfOriginal[node.name] !== undefined && variables.gcfOriginal[node.name] !== variables[node.name]) {
+					window.console.log("Variable is set to hold: " + node.name + "=" + variables[node.name] + " (" + sValue + ")");
 					sValue = node.name + "=" + variables[node.name];
 				} else {
 					variables[node.name] = sValue;
@@ -1259,7 +1262,7 @@ ScriptParser.prototype.evaluate = function (parseTree, variables) {
 				sValue = parseNode(node.left);
 				sValue = oFunctions.nformat(sValue, node.value);
 			} else {
-				window.console.log("ERROR: parseNode node=%o unknown type=" + node.type, node);
+				window.console.error("parseNode node=%o unknown type=" + node.type, node);
 				sValue = node;
 			}
 			return sValue;
@@ -1364,7 +1367,7 @@ function SimpleMap(mapCanvas, settings) {
 	iWidth = mapCanvas.clientWidth;
 	iHeight = mapCanvas.clientHeight;
 	mapCanvas.hidden = bHidden;
-	window.console.log("NOTE: SimpleMap: width=" + iWidth + " height=" + iHeight + " created");
+	window.console.log("SimpleMap: width=" + iWidth + " height=" + iHeight + " created");
 
 	this.aCanvas = [];
 	for (i = 0; i <= 1; i += 1) {
@@ -2197,9 +2200,86 @@ function onWaypointInputChange() {
 	}
 }
 
+
+// see: https://github.com/jzaefferer/undo
+function InputStack() {
+	this.init();
+}
+
+InputStack.prototype.init = function () {
+	this.aInput = [];
+	this.iStackPosition = -1;
+};
+
+InputStack.prototype.getInput = function () {
+	return this.aInput[this.iStackPosition];
+};
+
+InputStack.prototype.clearRedo = function () {
+	this.aInput = this.aInput.slice(0, this.iStackPosition + 1);
+};
+
+InputStack.prototype.save = function (sInput) {
+	this.clearRedo();
+	this.aInput.push(sInput);
+	this.iStackPosition += 1;
+};
+
+InputStack.prototype.canUndo = function () {
+	return this.iStackPosition >= 0;
+};
+
+InputStack.prototype.canUndoKeepOne = function () {
+	return this.iStackPosition > 0;
+};
+
+InputStack.prototype.undo = function () {
+	this.iStackPosition -= 1;
+	return this.getInput();
+};
+
+InputStack.prototype.canRedo = function () {
+	return this.iStackPosition < this.aInput.length - 1;
+};
+
+InputStack.prototype.redo = function () {
+	this.iStackPosition += 1;
+	return this.getInput();
+};
+
+
+function setDisabled(id, bDisabled) {
+	var element = document.getElementById(id);
+
+	element.disabled = bDisabled;
+}
+
+function updateUndoRedoButtons() {
+	setDisabled("undoButton", !gcFiddle.inputStack.canUndoKeepOne());
+	setDisabled("redoButton", !gcFiddle.inputStack.canRedo());
+}
+
+function initUndoRedoButtons() {
+	gcFiddle.inputStack.init();
+	updateUndoRedoButtons();
+}
+
+function putChangedInputOnStack() {
+	var sInput = document.getElementById("inputArea").value,
+		sStackInput = gcFiddle.inputStack.getInput();
+
+	if (sStackInput !== sInput) {
+		gcFiddle.inputStack.save(sInput);
+		updateUndoRedoButtons();
+	}
+}
+
+
 function onExecuteButtonClick() {
 	var varSelect = document.getElementById("varSelect"),
 		waypointSelect = document.getElementById("waypointSelect");
+
+	putChangedInputOnStack();
 
 	gcFiddle.variables = {
 		gcfOriginal: { }
@@ -2222,43 +2302,158 @@ function onExecuteButtonClick() {
 	gcFiddle.maFa.setMapOnAllMarkers(gcFiddle.map[gcFiddle.config.mapType]);
 }
 
+
+function setInputAreaValue(value) {
+	/*
+	var inputArea = document.getElementById("inputArea");
+
+	if (inputArea.value !== value) {
+		inputArea.value = value;
+		updateUndoRedoButtons();
+	}
+	*/
+	document.getElementById("inputArea").value = value;
+}
+
+function setOutputAreaValue(value) {
+	document.getElementById("outputArea").value = value;
+}
+
+function onUndoButtonClick() {
+	setInputAreaValue(gcFiddle.inputStack.undo());
+	updateUndoRedoButtons();
+	setOutputAreaValue("");
+}
+
+function onRedoButtonClick() {
+	setInputAreaValue(gcFiddle.inputStack.redo());
+	updateUndoRedoButtons();
+	setOutputAreaValue("");
+}
+
 function onPreprocessButtonClick() {
-	var sInput = document.getElementById("inputArea").value,
+	var inputArea = document.getElementById("inputArea"),
+		sInput = inputArea.value,
 		aParts,
 		sSection,
 		sOutput = "",
+		sTitle = "",
 		iIndex,
-		fnFindTitle = function(str) {
-			var sOut = "",
-				aParts2 = str.match(/(GC\w+) \S\n([^\n]*)\n([^\n]*)/);
+		mVariables = {},
+		fnEndsWith = function (str, find) {
+			return str.indexOf(find, str.length - find.length) === -1;
+		},
+		fnFixScript = function (script) { // put undefined variables on top
+			var oScriptParser = new ScriptParser(),
+				oVars = {},
+				sVariables = "",
+				sVariable,
+				oError;
 
-			if (aParts2) {
-				sOut = "#" + aParts2[1] + ": " + aParts2[3] + "\n";
+			do {
+				oError = oScriptParser.calculate(sVariables + script, oVars);
+				if ((oError instanceof ErrorObject) && (oError.message === "Variable is undefined")) {
+					sVariable = oError.value;
+					if (oError.value in mVariables) {
+						sVariables += sVariable + "=" + mVariables[sVariable] + " #see below\n";
+					} else {
+						sVariables += sVariable + "=0 #not detected\n";
+					}
+				} else {
+					break;
+				}
+			} while (oError);
+			return sVariables + script;
+		},
+		fnMatchPatterns = function (str, mPat) {
+			var oOut = {},
+				sKeys, rPat, aRes, aKeys, i;
+
+			for (sKeys in mPat) {
+				if (mPat.hasOwnProperty(sKeys)) {
+					rPat = mPat[sKeys];
+					aRes = str.match(rPat);
+					if (aRes) {
+						aKeys = sKeys.split(",");
+						for (i = 0; i < aKeys.length; i += 1) {
+							oOut[aKeys[i]] = aRes[i + 1];
+						}
+					}
+				}
+			}
+			return oOut;
+		},
+		fnFindInfo = function(str) {
+			var mPat = {
+					"id,type,title": /#(GC\w+)[^\n]*\n#([^\n]*)\n#([^\n]*)/,
+					owner: /#A cache by ([^\n]*)/,
+					hidden: /#Hidden : ([^\n]*)/,
+					difficulty: /#Difficulty:\n#\s*([\d.]+)/,
+					terrain: /#Terrain:\n#\s*([\d.]+)/,
+					size: /#Size: Size: (\w+)/,
+					favorites: /#(\d+) Favorites/,
+					wp: /#(N \d{2}° \d{2}\.\d{3} E \d{3}° \d{2}\.\d{3})/
+				},
+				oOut = {},
+				sOut = "";
+
+			oOut = fnMatchPatterns(str, mPat);
+
+			if (oOut.id) {
+				sOut = "#" + oOut.id + ": " + oOut.title + "\n";
+				sOut += "#https://coord.info/" + oOut.id + "\n";
+				sOut += "#type=" + oOut.type + " hidden=" + oOut.hidden + " difficulty=" + oOut.difficulty + " terrain=" + oOut.terrain + " size=" + oOut.size
+					+ " favorites=" + oOut.favorites + " owner=" + oOut.owner + "\n";
+				sOut += "$" + oOut.id + '="' + oOut.wp + '"\n';
+				sOut += "#\n";
 			}
 			return sOut;
 		},
-		fnVariables = function(str) { // Find Variables (x=) and set them to 0
-			str = str.replace(/(\w+)[ ]*=[ ]*([0-9]*)(.*)/g, function(match, p1, p2, p3) {
-				match = match + "\n" + p1 + "=" + ((p2.length > 0) ? p2 : "0") + " #" + ((p3.length > 0) ? (p3.replace(/x/g, "*")) : ""); // some guys write x for *
-				// debugVars += p1 + "=" + ((p2.length > 0) ? p2 : "0") + " #" + ((p3.length > 0) ? (p3.replace(/x/g, "*")) : "") + "\n"; // some guys write x for *
+		fnVariables = function(str) { // Find Variables (x=) and set them to <number> or 0
+			str = str.replace(/([A-Za-z]\w*)[ ]*=[ ]*([0-9]*)([^#=\n]*)/g, function(match, p1, p2, p3) {
+				match += "\n" + p1 + "=" + ((p2.length > 0) ? p2 : "0") + " #" + ((p3.length > 0) ? (p3.replace(/x/g, "*")) : ""); // some guys write x for *
+				mVariables[p1] = ((p2.length > 0) ? p2 : "0");
 				return match;
 			});
 			return str;
 		},
+		/*
+		fnVariablesXXX = function(str) { // Find Variables (x=) and set them to <number> or 0
+			str = str.replace(/([A-Za-z]\w*)[ ]*=[ ]*([0-9]*)/g, function(match, p1, p2) {
+				var sVariable = p1,
+					sValue = (p2.length > 0) ? p2 : "0";
+
+				match += "\n" + sVariable + "=" + sValue + "\n#";
+				mVariables[sVariable] = sValue;
+				return match;
+			});
+			return str;
+		},
+		*/
 		fnWaypoints = function(str) {
 			var iWpIndex = 1;
 
-			str = str.replace(/N\s*(\S+)°\s*(\S+)\.(\S+)[\s#]+E\s*(\S+)°\s*(\S+)\.(\S+)[#\n ]/g, function(sMatch) { // varargs
+			str = str.replace(/N\s*(\S+)°\s*(\S+)[.,]\s*(\S+)[\s#]+E\s*(\S+)°\s*(\S+)[.,]\s*(\S+)[#\n ]/g, function(sMatch) { // varargs
 				var aArgs = [],
-					sArg,
-					i;
+					sArg, aRes, i;
 
 				for (i = 1; i < arguments.length; i += 1) {
 					sArg = arguments[i];
 					sArg = sArg.toString().replace(/['"]/, ""); // remove apostropthes, quotes
-					aArgs.push((/^\d+$/.test(sArg)) ? sArg : '" (' + sArg + ') "');
+					if (/^\d+$/.test(sArg)) { // number?
+						aArgs.push(sArg);
+					} else if (sArg in mVariables) { // variable?
+						aArgs.push('" ' + sArg + ' "');
+					} else { // e.g. expression
+						aRes = sArg.match(/^(\d+)(\w+)$/); // number and variable?
+						if (aRes) {
+							aArgs.push(aRes[1] + '" (' + aRes[2] + ') "');
+						} else {
+							aArgs.push('" (' + sArg + ') "');
+						}
+					}
 				}
-				if (sMatch.indexOf("\n", sMatch.length - "\n".length) === -1) { // endsWith
+				if (fnEndsWith(sMatch, "\n")) {
 					sMatch += "\n";
 				}
 				sArg = "N " + aArgs[0] + "° " + aArgs[1] + "." + aArgs[2] + " E " + aArgs[3] + "° " + aArgs[4] + "." + aArgs[5];
@@ -2268,7 +2463,6 @@ function onPreprocessButtonClick() {
 					sArg = '"' + sArg + '"';
 				}
 				sMatch += "$W" + iWpIndex + "=" + sArg + "\n#";
-				// debugWp += "$W" + iWpIndex + "=" + sArg + "\n";
 				iWpIndex += 1;
 				return sMatch;
 			});
@@ -2278,31 +2472,47 @@ function onPreprocessButtonClick() {
 			// Prefix lines with hash (if not already there)
 			str = str.replace(/\n(?!#)/g, "\n#");
 			return str;
+		},
+		fnRot13 = function (s) {
+			return s.toString().replace(/[A-Za-z]/g, function (c) {
+				return String.fromCharCode(c.charCodeAt(0) + (c.toUpperCase() <= "M" ? 13 : -13));
+			});
 		};
 
 	// multi line trim
 	sInput = sInput.replace(/\s*\n\s*/gm, "\n");
 
 	// find parts
-	aParts = sInput.split(/(Geocache Description:|Additional Hints \((?:Decrypt|Encrypt)\)|Decryption Key|Additional Waypoints|View Larger Map)/);
-	if (aParts && aParts.length > 2) {
+	aParts = sInput.split(/(Skip to Content|Geocache Description:|Additional Hints \((?:Decrypt|Encrypt)\)|Decryption Key|Additional Waypoints|View Larger Map)/);
+	if (aParts) {
+		if (aParts.length === 1) {
+			aParts.unshift("Skip to Content", "GCTEMPLATE X\nUnknown Cache\nTemplate Title", "Geocache Description:");
+		}
+
 		iIndex = 0;
-		sOutput = fnFindTitle(aParts[iIndex]);
-		iIndex += 1;
 		sSection = "";
 		while (iIndex < aParts.length) {
 			if (!sSection) {
 				sSection = aParts[iIndex];
+				if (sSection.indexOf("#") === 0 || sSection.indexOf("\n") >= 0) {
+					sSection = "";
+				}
 			} else {
 				sInput = fnPrefixHash(aParts[iIndex]);
 				switch (sSection) {
+				case "Skip to Content":
+					sTitle = fnFindInfo(sInput);
+					sInput = ""; // ignore part
+					break;
 				case "Geocache Description:":
 					sInput = fnVariables(sInput);
 					sInput = fnWaypoints(sInput);
 					break;
 				case "Additional Hints (Decrypt)":
+					sInput = "#Hints:\n" + fnRot13(sInput);
+					break;
 				case "Additional Hints (Encrypt)":
-					// sInput contains hint
+					sInput = "#Hints:\n" + sInput;
 					break;
 				case "Decryption Key":
 					sInput = ""; // ignore part
@@ -2315,7 +2525,7 @@ function onPreprocessButtonClick() {
 					sInput = ""; // ignore logs
 					break;
 				default:
-					// unknown part ??
+					window.console.warn("Unknown part: " + sSection);
 					break;
 				}
 				sOutput += sInput;
@@ -2323,14 +2533,15 @@ function onPreprocessButtonClick() {
 			}
 			iIndex += 1;
 		}
-	} else {
-		sOutput = fnFindTitle(sInput);
-		sInput = fnVariables(sInput);
-		sInput = fnWaypoints(sInput);
-		sOutput += sInput;
 	}
 
-	document.getElementById("outputArea").value = sOutput;
+	if (sOutput !== "") {
+		sOutput = fnFixScript(sOutput);
+		sOutput = sTitle + sOutput;
+	}
+	putChangedInputOnStack();
+	setInputAreaValue(sOutput);
+	onExecuteButtonClick();
 }
 
 function onExampleLoaded(sExample) {
@@ -2339,15 +2550,16 @@ function onExampleLoaded(sExample) {
 		sName = sCategory + "/" + sExample + ".js";
 
 	gcFiddle.config.example = sExample;
-	window.console.log("NOTE: Example " + sName + " loaded");
+	window.console.log("Example " + sName + " loaded");
 	if (oExamples[sExample] === undefined) { // example without id loaded?
-		window.console.log("WARNING: Example " + sName + ": Wrong format! Must start with #<id>: <title>");
+		window.console.warn("Example " + sName + ": Wrong format! Must start with #<id>: <title>");
 		if (oExamples["<unknown>"]) {
 			oExamples[sExample] = oExamples["<unknown>"];
 			delete oExamples["<unknown>"];
 		}
 	}
 	document.getElementById("inputArea").value = oExamples[sExample];
+	initUndoRedoButtons();
 	onExecuteButtonClick();
 }
 
@@ -2362,6 +2574,7 @@ function onExampleSelectChange() {
 	if (oExamples[sExample] !== undefined) {
 		gcFiddle.config.example = sExample;
 		document.getElementById("inputArea").value = oExamples[sExample];
+		initUndoRedoButtons();
 		onExecuteButtonClick();
 	} else if (sExample) {
 		document.getElementById("inputArea").value = "#loading " + sExample + "...";
@@ -2369,9 +2582,10 @@ function onExampleSelectChange() {
 		sName = sCategory + "/" + sExample + ".js";
 		loadScript(sName, onExampleLoaded, sExample);
 	} else {
-		document.getElementById("inputArea").value = "#GCTMPL1: Template1\n";
+		document.getElementById("inputArea").value = "";
 		document.getElementById("outputArea").value = "";
 		gcFiddle.config.example = "";
+		initUndoRedoButtons();
 		onExecuteButtonClick();
 	}
 }
@@ -2381,16 +2595,10 @@ function onCategoryLoaded(sCategory) {
 		sName = sCategory + "/0index.js";
 
 	gcFiddle.config.category = sCategory;
-	window.console.log("NOTE: category " + sName + " loaded");
+	window.console.log("category " + sName + " loaded");
 	removeSelectOptions(exampleSelect);
 	setExampleList();
 	onExampleSelectChange();
-}
-
-function setDisabled(id, bDisabled) {
-	var element = document.getElementById(id);
-
-	element.disabled = bDisabled;
 }
 
 function loadCategoryLocalStorage(sCategory) {
@@ -2503,19 +2711,19 @@ function onLocationButtonClick() {
 	function showError(error) {
 		switch (error.code) {
 		case error.PERMISSION_DENIED:
-			window.console.log("User denied the request for Geolocation.");
+			window.console.warn("User denied the request for Geolocation.");
 			break;
 		case error.POSITION_UNAVAILABLE:
-			window.console.log("Location information is unavailable.");
+			window.console.warn("Location information is unavailable.");
 			break;
 		case error.TIMEOUT:
-			window.console.log("The request to get user location timed out.");
+			window.console.warn("The request to get user location timed out.");
 			break;
 		case error.UNKNOWN_ERROR:
-			window.console.log("An unknown error occurred.");
+			window.console.warn("An unknown error occurred.");
 			break;
 		default:
-			window.console.log("An error occurred.");
+			window.console.warn("An error occurred.");
 			break;
 		}
 	}
@@ -2523,7 +2731,7 @@ function onLocationButtonClick() {
 	if (navigator.geolocation) {
 		navigator.geolocation.getCurrentPosition(showPosition, showError);
 	} else {
-		window.console.log("Geolocation is not supported by this browser.");
+		window.console.warn("Geolocation is not supported by this browser.");
 	}
 }
 
@@ -2686,7 +2894,7 @@ function onOpenLayersLoaded() {
 	var sUrl = "MapProxy.OpenLayers.js";
 
 	loadScript(sUrl, function () {
-		window.console.log("NOTE: MapProxy.OpenLayers loaded (" + sUrl + ")");
+		window.console.log("MapProxy.OpenLayers loaded (" + sUrl + ")");
 		onMapProxyOpenLayersLoaded();
 	});
 }
@@ -2722,7 +2930,7 @@ function onMapTypeSelectChange() {
 			sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
 			sUrl = sProtocol + "//maps.googleapis.com/maps/api/js" + ((gcFiddle.config.googleKey) ? "?key=" + gcFiddle.config.googleKey : "");
 			loadScript(sUrl, function () {
-				window.console.log("NOTE: GoogleMaps " + google.maps.version + " loaded");
+				window.console.log("GoogleMaps " + google.maps.version + " loaded");
 				onGoogleApiLoaded();
 			});
 			break;
@@ -2730,12 +2938,12 @@ function onMapTypeSelectChange() {
 			sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
 			sUrl = gcFiddle.config.leafletUrl.replace(/^http(s)?:/, sProtocol).replace(/(-src)?\.js$/, ".css");
 			loadStyle(sUrl, function(sUrl2) {
-				window.console.log("NOTE: Leaflet style loaded (" + sUrl2 + ")");
+				window.console.log("Leaflet style loaded (" + sUrl2 + ")");
 			}, sUrl);
 
 			sUrl = gcFiddle.config.leafletUrl.replace(/^http(s)?:/, sProtocol);
 			loadScript(sUrl, function (sUrl2) {
-				window.console.log("NOTE: Leaflet " + L.version + " loaded (" + sUrl2 + ")");
+				window.console.log("Leaflet " + L.version + " loaded (" + sUrl2 + ")");
 				onLeafletLoaded();
 			}, sUrl);
 			break;
@@ -2743,7 +2951,7 @@ function onMapTypeSelectChange() {
 			sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
 			sUrl = gcFiddle.config.openLayersUrl.replace(/^http(s)?:/, sProtocol);
 			loadScript(sUrl, function () {
-				window.console.log("NOTE: OpenLayers " + OpenLayers.VERSION_NUMBER + " loaded (" + sUrl + ")");
+				window.console.log("OpenLayers " + OpenLayers.VERSION_NUMBER + " loaded (" + sUrl + ")");
 				onOpenLayersLoaded();
 			});
 			break;
@@ -2939,10 +3147,15 @@ function onLoad() {
 			level: Number(oConfig.debug)
 		};
 	}
+
+	gcFiddle.inputStack = new InputStack();
+
 	gcFiddle.maFa = new MarkerFactory({
 		draggable: true
 	});
 	document.getElementById("executeButton").onclick = onExecuteButtonClick;
+	document.getElementById("undoButton").onclick = onUndoButtonClick;
+	document.getElementById("redoButton").onclick = onRedoButtonClick;
 	document.getElementById("preprocessButton").onclick = onPreprocessButtonClick;
 	document.getElementById("reloadButton").onclick = onReloadButtonClick;
 	document.getElementById("saveButton").onclick = onSaveButtonClick;

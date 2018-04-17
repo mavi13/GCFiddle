@@ -3,7 +3,7 @@
 "use strict";
 
 addExample(function() { /*
-#GCPREP1: Test 1 for Preprocess (based on GCJVT3)
+#GCPREP1: Preprocess1 (based on GCJVT3)
 #https://coord.info/GCJVT3
 #
 #Example provided with friendly permission by rosszwerg.

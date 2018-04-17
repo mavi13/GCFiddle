@@ -9,5 +9,6 @@ setExampleIndex(function() { /*
 #GCJVT3: Irren ist menschlich - To err is human (solution)
 #GCTEST1: Test Page
 #GCTEST6: Test Page ES6 Template, Multiline String
-#GCPREP1: Test 1 for Preprocess (based on GCJVT3)
+#GCPREP1: Preprocess1 (based on GCJVT3)
+#GCPREP2: Preprocess2
 */ });
