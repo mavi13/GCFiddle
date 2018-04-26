@@ -9,7 +9,7 @@ GCFiddle Links:
 [Source code](https://github.com/mavi13/GCFiddle/),
 [HTML Readme](https://mavi13.github.io/GCFiddle/),
 [GCNEW1](https://mavi13.github.io/GCFiddle/gcfiddle.html),
-[GCJVT3](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCJVT3&mapType=osm)
+[GCJVT3](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCJVT3&mapType=openlayers)
 
 ## Features
 
@@ -221,7 +221,7 @@ $W2="N 49° 15.903 E 008° 40.777"
  - `showConsole=false`: Show console box (for debugging messages)
   - `variableType=number`: Set general type of variables in the variable box to `number`, `text` or `range`
    - If a variable is not a number, `text` is used
- - `mapType=simple`: Set type of map to `simple`, `osm`, `leaflet` or `google`.
+ - `mapType=simple`: Set type of map to `simple`, `openlayers`, `leaflet` or `google`.
    - For `google`, an API key must be set
  - `googleKey=""`: Set [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key)
    - Can also be set in file `gcconfig.js` or `gcfiddle.js`
@@ -250,8 +250,8 @@ $W2="N 49° 15.903 E 008° 40.777"
    
  - Peter_Olson for an article on [How to write a simple interpreter in JavaScript](https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript). It was a good starting point for the calculator in GCFiddle.
 
- - [OpenLayers 2](https://openlayers.org/two/) to display the [Open Street Map](https://www.openstreetmap.org/)
-
  - [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/)
 
-#### mavi13, 04/2018
+ - [Leaflet](http://leafletjs.com/) and [OpenLayers 2](https://openlayers.org/two/) to display the [Open Street Map](https://www.openstreetmap.org/)
+
+#### mavi13, 05/2018
