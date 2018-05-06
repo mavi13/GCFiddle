@@ -1,10 +1,18 @@
 // MapProxy.Google.js - MapProxy.Google for GCFiddle
+// https://developers.google.com/maps/documentation/javascript/reference
 //
-/* globals MapProxy, Utils, google */ // make ESlint happy
+/* globals MapProxy, Utils, LatLng, google */ // make ESlint happy
 
 "use strict";
 
-MapProxy.Google = { };
+MapProxy.Google = {
+	position2google: function (position) {
+		return new google.maps.LatLng(position.lat, position.lng);
+	},
+	google2position: function (position) {
+		return new LatLng(position.lat(), position.lng());
+	}
+};
 
 MapProxy.Google.Map = function (options) {
 	this.init(options);
@@ -24,6 +32,16 @@ MapProxy.Google.Map.prototype = {
 			that.map = new google.maps.Map(that.div, {
 				zoom: that.options.zoom
 			});
+
+			google.maps.event.addListener(that.map, "zoom_changed", function () {
+				var iFitBoundsZoom = that.fitBoundsZoom;
+
+				if (iFitBoundsZoom && that.map.getZoom() !== iFitBoundsZoom) {
+					that.fitBoundsZoom = 0; // avoid recursive call!
+					that.map.setZoom(iFitBoundsZoom);
+				}
+			});
+
 			if (that.options.onload) {
 				that.options.onload(that);
 			}
@@ -36,10 +54,16 @@ MapProxy.Google.Map.prototype = {
 		this.map.setZoom(zoom);
 	},
 	setCenter: function (position) {
-		this.map.setCenter(position);
+		this.map.setCenter(MapProxy.Google.position2google(position));
 	},
 	fitBounds: function (bounds) {
-		this.map.fitBounds(bounds.getBounds());
+		var oBounds = bounds.getBounds(),
+			that = this;
+
+		if (oBounds.getSouthWest().toString() === oBounds.getNorthEast().toString()) { // only one waypoint
+			this.fitBoundsZoom = that.options.zoom; // limit zoom level
+		}
+		this.map.fitBounds(oBounds);
 	},
 	resize: function () {
 		var oMap = this.map;
@@ -65,7 +89,7 @@ MapProxy.Google.LatLngBounds.prototype = {
 		return this.bounds;
 	},
 	extend: function (position) {
-		this.bounds.extend(position);
+		this.bounds.extend(MapProxy.Google.position2google(position));
 	}
 };
 
@@ -82,8 +106,12 @@ MapProxy.Google.Marker.prototype = {
 		this.options = Utils.objectAssign({	}, options);
 		oMarkerOptions = this.options;
 
-		oMarkerOptions.position = new google.maps.LatLng(oMarkerOptions.position.lat, oMarkerOptions.position.lng); // make Google happy: LatLng or LatLngLiteral
-		this.marker = new google.maps.Marker(oMarkerOptions);
+		this.marker = new google.maps.Marker({
+			position: MapProxy.Google.position2google(oMarkerOptions.position),
+			label: oMarkerOptions.label,
+			title: oMarkerOptions.title,
+			draggable: oMarkerOptions.draggable
+		});
 		oMarker = this.marker;
 		google.maps.event.addListener(oMarker, "click", function () {
 			var oInfoWindow = that.options.infoWindow;
@@ -105,19 +133,13 @@ MapProxy.Google.Marker.prototype = {
 			}
 		});
 	},
-	getSimplePosition: function () {
-		var oPosition = this.getPosition();
-
-		return {
-			lat: oPosition.lat(),
-			lng: oPosition.lng()
-		};
-	},
 	getPosition: function () {
-		return this.marker.getPosition();
+		var oPos = this.marker.getPosition();
+
+		return MapProxy.Google.google2position(oPos);
 	},
 	setPosition: function (position) {
-		this.marker.setPosition(position);
+		this.marker.setPosition(MapProxy.Google.position2google(position));
 	},
 	getTitle: function () {
 		return this.marker.getTitle();

@@ -1,10 +1,22 @@
 // MapProxy.OpenLayers.js - MapProxy for OpenLayers
+// http://dev.openlayers.org/releases/OpenLayers-2.13.1/doc/apidocs/files/OpenLayers-js.html
 //
-/* globals MapProxy, Utils, OpenLayers */ // make ESlint happy
+/* globals MapProxy, Utils, LatLng, OpenLayers */ // make ESlint happy
 
 "use strict";
 
-MapProxy.OpenLayers = { };
+MapProxy.OpenLayers = {
+	position2openlayers: function (position) {
+		var oPos = new OpenLayers.LonLat(position.lng, position.lat).transform(new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection("EPSG:900913"));
+
+		return oPos;
+	},
+	openlayers2position: function (position) {
+		var oPos = position.clone().transform(new OpenLayers.Projection("EPSG:900913"), new OpenLayers.Projection("EPSG:4326")); // transform back
+
+		return new LatLng(oPos.lat, oPos.lon);
+	}
+};
 
 MapProxy.OpenLayers.Map = function (options) {
 	this.init(options);
@@ -119,17 +131,12 @@ MapProxy.OpenLayers.Map.prototype = {
 				autoActivate: true,
 				onDrag: function(internalMarker) {
 					var oMarker = that.getRegisteredMarker(internalMarker.id),
-						oTransformedPosition = oMarker.getPosition(), // new (transformed) position
-						oPosition2 = oTransformedPosition.clone().transform(new OpenLayers.Projection("EPSG:900913"), new OpenLayers.Projection("EPSG:4326")), // transform back
+						oPosition = oMarker.getPosition(),
 						oInfoWindow = oMarker.options.infoWindow;
 
-					oMarker.setSimplePosition({ // or: new LatLng(oPosition2.lat, oPosition2.lon)
-						lat: oPosition2.lat,
-						lng: oPosition2.lon
-					});
 					if (oInfoWindow && oInfoWindow.getAnchor() === oMarker) {
 						oInfoWindow.setContent(oMarker);
-						oInfoWindow.setPosition(oTransformedPosition);
+						oInfoWindow.setPosition(oPosition);
 					}
 				}
 			}));
@@ -154,7 +161,7 @@ MapProxy.OpenLayers.Map.prototype = {
 		return this.div;
 	},
 	setCenter: function (position) {
-		this.map.setCenter(position);
+		this.map.setCenter(MapProxy.OpenLayers.position2openlayers(position));
 	},
 	fitBounds: function (bounds) {
 		return this.map.zoomToExtent(bounds.getBounds());
@@ -190,7 +197,7 @@ MapProxy.OpenLayers.LatLngBounds.prototype = {
 		return this.bounds;
 	},
 	extend: function (position) {
-		this.bounds.extend(position);
+		this.bounds.extend(MapProxy.OpenLayers.position2openlayers(position));
 	}
 };
 
@@ -232,24 +239,17 @@ MapProxy.OpenLayers.Marker.prototype = {
 	setLabel: function (label) {
 		this.marker.attributes.label = label;
 	},
-	getSimplePosition: function () {
-		return this.marker.attributes.position;
-	},
-	setSimplePosition: function (position) {
-		this.marker.attributes.position = position;
-	},
 	getPosition: function () {
-		var oPosition = this.marker.geometry;
+		var oPos = this.marker.geometry;
 
-		return new OpenLayers.LonLat(oPosition.x, oPosition.y); // transformed position
+		oPos = new OpenLayers.LonLat(oPos.x, oPos.y); // transformed position
+		return MapProxy.OpenLayers.openlayers2position(oPos);
 	},
 	setPosition: function (position) {
-		var oLonLat = new OpenLayers.LonLat(position.lng, position.lat).transform(new OpenLayers.Projection("EPSG:4326"), this.map.getMap().getProjectionObject()),
+		var oLonLat = MapProxy.OpenLayers.position2openlayers(position),
 			oInfoWindow;
 
 		this.marker.move(oLonLat);
-		this.setSimplePosition(position);
-
 		oInfoWindow = this.options.infoWindow;
 		if (oInfoWindow && oInfoWindow.getAnchor() === this) {
 			oInfoWindow.setPosition(oLonLat);
@@ -293,7 +293,7 @@ MapProxy.OpenLayers.Polyline.prototype = {
 		var oPosition, oPoint, i;
 
 		for (i = 0; i < aList.length; i += 1) {
-			oPosition = aList[i];
+			oPosition = MapProxy.OpenLayers.position2openlayers(aList[i]);
 			if (i >= this.polyline.components.length) {
 				this.polyline.addPoint(new OpenLayers.Geometry.Point(oPosition.lon, oPosition.lat));
 			} else {
@@ -345,7 +345,7 @@ MapProxy.OpenLayers.InfoWindow.prototype = {
 		this.infoWindow.setContentHTML('<div style="font-size:.8em">' + sContent + "</div>");
 	},
 	setPosition: function (lonlat) {
-		this.infoWindow.lonlat = lonlat;
+		this.infoWindow.lonlat = MapProxy.OpenLayers.position2openlayers(lonlat);
 		this.infoWindow.updatePosition();
 	},
 	open: function (map, marker) {

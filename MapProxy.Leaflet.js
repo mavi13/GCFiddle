@@ -1,10 +1,18 @@
 // MapProxy.Leaflet.js - MapProxy.Leaflet for GCFiddle
+// https://leafletjs.com/reference-1.3.0.html
 //
-/* globals MapProxy, Utils, L */ // make ESlint happy
+/* globals MapProxy, Utils, LatLng, L */ // make ESlint happy
 
 "use strict";
 
-MapProxy.Leaflet = { };
+MapProxy.Leaflet = {
+	position2leaflet: function (position) {
+		return position; // not needed
+	},
+	leaflet2position: function (position) {
+		return new LatLng(position.lat, position.lng);
+	}
+};
 
 MapProxy.Leaflet.Map = function (options) {
 	this.init(options);
@@ -17,7 +25,6 @@ MapProxy.Leaflet.Map.prototype = {
 
 		this.options = Utils.objectAssign({ }, options);
 		sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
-		// sUrl = sProtocol + "//maps.Leafletapis.com/maps/api/js" + ((this.options.LeafletKey) ? "?key=" + this.options.LeafletKey : "");
 		sUrl = this.options.leafletUrl.replace(/^http(s)?:/, sProtocol).replace(/(-src)?\.js$/, ".css");
 		Utils.loadStyle(sUrl, function() {
 			window.console.log("Leaflet style loaded (" + sUrl + ")");
@@ -25,8 +32,6 @@ MapProxy.Leaflet.Map.prototype = {
 
 		sUrl2 = this.options.leafletUrl.replace(/^http(s)?:/, sProtocol);
 		Utils.loadScript(sUrl2, function () {
-			// var bHidden;
-
 			window.console.log("Leaflet " + L.version + " loaded (" + sUrl2 + ")");
 			that.map = L.map(that.options.mapDivId);
 			L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -53,10 +58,12 @@ MapProxy.Leaflet.Map.prototype = {
 		this.map.setZoom(zoom);
 	},
 	setCenter: function (position) {
-		this.map.setView(position, this.options.zoom);
+		this.map.setView(MapProxy.Leaflet.position2leaflet(position), this.options.zoom);
 	},
 	fitBounds: function (bounds) {
-		this.map.fitBounds(bounds.getBounds());
+		this.map.fitBounds(bounds.getBounds(), {
+			padding: [10, 10] // eslint-disable-line array-element-newline
+		});
 	},
 	resize: function () {
 		var oMap = this.map;
@@ -82,7 +89,7 @@ MapProxy.Leaflet.LatLngBounds.prototype = {
 		return this.bounds;
 	},
 	extend: function (position) {
-		this.bounds.extend(position);
+		this.bounds.extend(MapProxy.Leaflet.position2leaflet(position));
 	}
 };
 
@@ -98,7 +105,7 @@ MapProxy.Leaflet.Marker.prototype = {
 
 		this.options = Utils.objectAssign({	}, options);
 
-		this.marker = new L.Marker(this.options.position, {
+		this.marker = new L.Marker(MapProxy.Leaflet.position2leaflet(this.options.position), {
 			draggable: this.options.draggable,
 			icon: new L.DivIcon({
 				html: this.options.label,
@@ -115,14 +122,13 @@ MapProxy.Leaflet.Marker.prototype = {
 			});
 		}
 	},
-	getSimplePosition: function () {
-		return this.getPosition();
-	},
 	getPosition: function () {
-		return this.marker.getLatLng();
+		var oPos = this.marker.getLatLng();
+
+		return MapProxy.Leaflet.leaflet2position(oPos);
 	},
 	setPosition: function (position) {
-		this.marker.setLatLng(position);
+		this.marker.setLatLng(MapProxy.Leaflet.position2leaflet(position));
 	},
 	getTitle: function () {
 		return this.options.title;
@@ -140,15 +146,12 @@ MapProxy.Leaflet.Marker.prototype = {
 		return this.map;
 	},
 	setMap: function (map) {
-		this.map = map;
 		if (map) {
 			this.marker.addTo(map.getMap());
-		} else {
-			map = this.getMap();
-			if (map) {
-				this.marker.removeFrom(map.getMap());
-			}
+		} else if (this.map) {
+			this.marker.removeFrom(this.map.getMap());
 		}
+		this.map = map;
 	}
 };
 
@@ -169,15 +172,12 @@ MapProxy.Leaflet.Polyline.prototype = {
 		return this.map;
 	},
 	setMap: function (map) {
-		this.map = map;
 		if (map) {
 			this.polyline.addTo(map.getMap());
-		} else {
-			map = this.getMap();
-			if (map) {
-				this.polyline.removeFrom(map.getMap());
-			}
+		} else if (this.map) {
+			this.polyline.removeFrom(this.map.getMap());
 		}
+		this.map = map;
 	}
 };
 

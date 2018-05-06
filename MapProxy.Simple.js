@@ -195,9 +195,6 @@ MapProxy.Simple.Marker.prototype = {
 	init: function (options) {
 		Utils.objectAssign(this, options); // position, title, label, map
 	},
-	getSimplePosition: function () {
-		return this.position;
-	},
 	getPosition: function () {
 		return this.position;
 	},
