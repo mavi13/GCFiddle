@@ -27,9 +27,10 @@ MapProxy.Google.Map.prototype = {
 		sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
 		sUrl = sProtocol + "//maps.googleapis.com/maps/api/js" + ((this.options.googleKey) ? "?key=" + this.options.googleKey : "");
 		Utils.loadScript(sUrl, function () {
+			var mapDiv = document.getElementById(that.options.mapDivId);
+
 			window.console.log("GoogleMaps " + google.maps.version + " loaded");
-			that.div = document.getElementById(that.options.mapDivId);
-			that.map = new google.maps.Map(that.div, {
+			that.map = new google.maps.Map(mapDiv, {
 				zoom: that.options.zoom
 			});
 
@@ -47,9 +48,6 @@ MapProxy.Google.Map.prototype = {
 			}
 		});
 	},
-	getDiv: function () {
-		return this.div;
-	},
 	setZoom: function (zoom) {
 		this.map.setZoom(zoom);
 	},
@@ -60,8 +58,10 @@ MapProxy.Google.Map.prototype = {
 		var oBounds = bounds.getBounds(),
 			that = this;
 
-		if (oBounds.getSouthWest().toString() === oBounds.getNorthEast().toString()) { // only one waypoint
-			this.fitBoundsZoom = that.options.zoom; // limit zoom level
+		if (oBounds.getSouthWest()) { // Google maps available? (with API key)
+			if (oBounds.getSouthWest().toString() === oBounds.getNorthEast().toString()) { // only one waypoint
+				this.fitBoundsZoom = that.options.zoom; // limit zoom level
+			}
 		}
 		this.map.fitBounds(oBounds);
 	},
@@ -70,7 +70,7 @@ MapProxy.Google.Map.prototype = {
 
 		google.maps.event.trigger(oMap, "resize");
 	},
-	getMap: function () {
+	privGetMap: function () {
 		return this.map;
 	}
 };
@@ -101,7 +101,7 @@ MapProxy.Google.Marker = function (options) {
 MapProxy.Google.Marker.prototype = {
 	init: function (options) {
 		var that = this,
-			oMarkerOptions, oMarker;
+			oMarkerOptions;
 
 		this.options = Utils.objectAssign({	}, options);
 		oMarkerOptions = this.options;
@@ -112,12 +112,11 @@ MapProxy.Google.Marker.prototype = {
 			title: oMarkerOptions.title,
 			draggable: oMarkerOptions.draggable
 		});
-		oMarker = this.marker;
-		google.maps.event.addListener(oMarker, "click", function () {
+		google.maps.event.addListener(this.marker, "click", function () {
 			var oInfoWindow = that.options.infoWindow;
 
 			if (oInfoWindow) {
-				if (oInfoWindow.getAnchor() !== oMarker) {
+				if (oInfoWindow.getAnchor() !== that) {
 					oInfoWindow.setContent(that);
 					oInfoWindow.open(that.map, that);
 				} else {
@@ -125,10 +124,10 @@ MapProxy.Google.Marker.prototype = {
 				}
 			}
 		});
-		google.maps.event.addListener(oMarker, "drag", function () {
+		google.maps.event.addListener(this.marker, "drag", function () {
 			var oInfoWindow = that.options.infoWindow;
 
-			if (oInfoWindow && oInfoWindow.getAnchor() === oMarker) {
+			if (oInfoWindow && oInfoWindow.getAnchor() === that) {
 				oInfoWindow.setContent(that);
 			}
 		});
@@ -136,7 +135,7 @@ MapProxy.Google.Marker.prototype = {
 	getPosition: function () {
 		var oPos = this.marker.getPosition();
 
-		return MapProxy.Google.google2position(oPos);
+		return oPos ? MapProxy.Google.google2position(oPos) : this.options.position; // if no API key, retrun initial position
 	},
 	setPosition: function (position) {
 		this.marker.setPosition(MapProxy.Google.position2google(position));
@@ -158,7 +157,10 @@ MapProxy.Google.Marker.prototype = {
 	},
 	setMap: function (map) {
 		this.map = map;
-		this.marker.setMap(map ? map.getMap() : null);
+		this.marker.setMap(map ? map.privGetMap() : null);
+	},
+	privGetMarker: function () {
+		return this.marker;
 	}
 };
 
@@ -180,7 +182,7 @@ MapProxy.Google.Polyline.prototype = {
 	},
 	setMap: function (map) {
 		this.map = map;
-		this.polyline.setMap(map ? map.getMap() : null);
+		this.polyline.setMap(map ? map.privGetMap() : null);
 	}
 };
 
@@ -199,23 +201,15 @@ MapProxy.Google.InfoWindow.prototype = {
 
 		this.infoWindow.setContent(sContent);
 	},
-	setPosition: function (position) {
-		this.infoWindow.setPosition(position);
-	},
-	getMap: function () {
-		return this.map;
-	},
-	setMap: function (map) {
-		this.map = map;
-		this.infoWindow.setMap(map ? map.getMap() : null);
-	},
 	getAnchor: function () {
-		return this.infoWindow.getAnchor();
+		return this.anchor;
 	},
 	open: function (map, marker) {
-		this.infoWindow.open(map.getMap(), marker.marker);
+		this.anchor = marker;
+		this.infoWindow.open(map.privGetMap(), marker.privGetMarker());
 	},
 	close: function () {
+		this.anchor = null;
 		this.infoWindow.close();
 	}
 };

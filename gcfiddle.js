@@ -1380,7 +1380,7 @@ MarkerFactory.prototype = {
 		this.clearMarkers();
 		for (i = 0; i < this.aMarkerList.length; i += 1) {
 			oMarker = this.aMarkerList[i];
-			if (oMarker && oMarker.destroy) { // osm needed?
+			if (oMarker && oMarker.destroy) { // needed for OpenLayers?
 				oMarker.destroy();
 			}
 			this.aMarkerList[i] = null;
@@ -1423,6 +1423,9 @@ MarkerFactory.prototype = {
 	},
 	deletePolyline: function () {
 		this.clearPolyline();
+		if (this.polyLine && this.polyLine.destroy) { // needed for OpenLayers?
+			this.polyLine.destroy();
+		}
 		this.polyLine = null;
 	},
 	setPolyline: function () {
@@ -2204,7 +2207,7 @@ function onLocationButtonClick() {
 		var oPos = new LatLng(position.coords.latitude, position.coords.longitude),
 			iMarkersLength = gcFiddle.maFa.getMarkers().length;
 
-		window.console.log(oPos.toString());
+		window.console.log("Location: " + oPos.toString());
 		gcFiddle.maFa.setMarker({
 			position: oPos
 		}, iMarkersLength);

@@ -22,7 +22,6 @@ MapProxy.Simple.Map.prototype = {
 			zoom: 0 // not used
 		}, options);
 		mapDiv = document.getElementById(this.options.mapDivId);
-		this.div = mapDiv;
 
 		bHidden = Utils.setHidden(this.options.mapDivId, false); // make sure canvas is not hidden (allows to get width, height)
 		iWidth = mapDiv.clientWidth;
@@ -49,9 +48,6 @@ MapProxy.Simple.Map.prototype = {
 		if (this.options.onload) {
 			this.options.onload(this);
 		}
-	},
-	getDiv: function () {
-		return this.div;
 	},
 	setZoom: function (zoom) {
 		this.zoom = zoom;
@@ -88,7 +84,7 @@ MapProxy.Simple.Map.prototype = {
 			y: y
 		};
 	},
-	myDrawPath: function (path, lineStyle) {
+	privDrawPath: function (path, lineStyle) {
 		var context, i, oPos,
 			strokeStyle = lineStyle || this.options.lineStyle,
 			iLineWidth = 1,
@@ -117,7 +113,7 @@ MapProxy.Simple.Map.prototype = {
 			}
 		}
 	},
-	myDrawMarker: function (marker, markerStyle, textStyle) {
+	privDrawMarker: function (marker, markerStyle, textStyle) {
 		var context, oPos,
 			strokeStyle = markerStyle || this.options.markerStyle,
 			fillStyle = textStyle || this.options.textStyle,
@@ -201,11 +197,11 @@ MapProxy.Simple.Marker.prototype = {
 	setPosition: function (position) {
 		if (this.position.lat !== position.lat || this.position.lng !== position.lng) {
 			if (this.map) {
-				this.map.myDrawMarker(this, this.map.options.backgroundStyle, this.map.options.backgroundStyle); // old marker
+				this.map.privDrawMarker(this, this.map.options.backgroundStyle, this.map.options.backgroundStyle); // old marker
 			}
 			this.position = position;
 			if (this.map) {
-				this.map.myDrawMarker(this); // new marker
+				this.map.privDrawMarker(this); // new marker
 			}
 		}
 	},
@@ -226,11 +222,11 @@ MapProxy.Simple.Marker.prototype = {
 	},
 	setMap: function (map) {
 		if (this.map) {
-			this.map.myDrawMarker(this, this.map.options.backgroundStyle, this.map.options.backgroundStyle); // old marker
+			this.map.privDrawMarker(this, this.map.options.backgroundStyle, this.map.options.backgroundStyle); // old marker
 		}
 		this.map = map;
 		if (this.map) {
-			this.map.myDrawMarker(this); // new marker
+			this.map.privDrawMarker(this); // new marker
 		}
 	}
 };
@@ -249,9 +245,9 @@ MapProxy.Simple.Polyline.prototype = {
 	setPath: function (path) {
 		if (this.map) {
 			if (this.path) {
-				this.map.myDrawPath(this.path, this.map.options.backgroundStyle); // old path: background (draw over old path)
+				this.map.privDrawPath(this.path, this.map.options.backgroundStyle); // old path: background (draw over old path)
 			}
-			this.map.myDrawPath(path, this.strokeColor); // new path
+			this.map.privDrawPath(path, this.strokeColor); // new path
 		}
 		this.path = path;
 	},
@@ -260,11 +256,11 @@ MapProxy.Simple.Polyline.prototype = {
 	},
 	setMap: function (map) {
 		if (this.map && this.path) {
-			this.map.myDrawPath(this.path, this.map.options.backgroundStyle); // old path: background (draw over old path)
+			this.map.privDrawPath(this.path, this.map.options.backgroundStyle); // old path: background (draw over old path)
 		}
 		this.map = map;
 		if (this.map && this.path) {
-			this.map.myDrawPath(this.path, this.strokeColor); // new path
+			this.map.privDrawPath(this.path, this.strokeColor); // new path
 		}
 	}
 };
@@ -281,24 +277,14 @@ MapProxy.Simple.InfoWindow.prototype = {
 	setContent: function (path) {
 		this.path = path;
 	},
-	setPosition: function (position) {
-		this.position = position;
-	},
-	getMap: function () {
-		return this.map;
-	},
-	setMap: function (map) {
-		this.map = map;
-	},
 	getAnchor: function () {
-		return this.marker;
+		return this.anchor;
 	},
 	open: function (map, marker) {
-		this.map = map;
-		this.marker = marker;
+		this.anchor = marker;
 	},
 	close: function () {
-		// empty
+		this.anchor = null;
 	}
 };
 // end

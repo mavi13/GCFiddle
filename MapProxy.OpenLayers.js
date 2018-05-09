@@ -32,14 +32,13 @@ MapProxy.OpenLayers.Map.prototype = {
 		sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
 		sUrl = this.options.openLayersUrl.replace(/^http(s)?:/, sProtocol);
 		Utils.loadScript(sUrl, function () {
-			var bHidden;
+			var mapDivId = that.options.mapDivId,
+				bHidden;
 
 			window.console.log("OpenLayers " + OpenLayers.VERSION_NUMBER + " loaded (" + sUrl + ")");
-			that.div = document.getElementById(that.options.mapDivId);
-
-			bHidden = Utils.setHidden(that.options.mapDivId, false); // make sure canvas is not hidden
-			that.map = new OpenLayers.Map(that.options.mapDivId, { });
-			Utils.setHidden(that.options.mapDivId, bHidden); // restore
+			bHidden = Utils.setHidden(mapDivId, false); // make sure canvas is not hidden
+			that.map = new OpenLayers.Map(mapDivId, { });
+			Utils.setHidden(mapDivId, bHidden); // restore
 			that.doInit2();
 			if (that.options.onload) {
 				that.options.onload(that);
@@ -82,7 +81,7 @@ MapProxy.OpenLayers.Map.prototype = {
 				var oInternalMarker = event.feature,
 					oMarker, oInfoWindow;
 
-				oMarker = that.getRegisteredMarker(oInternalMarker.id);
+				oMarker = that.privGetRegisteredMarker(oInternalMarker.id);
 				oInfoWindow = oMarker.options.infoWindow;
 
 				if (oInfoWindow) {
@@ -94,7 +93,7 @@ MapProxy.OpenLayers.Map.prototype = {
 				var oInternalMarker = event.feature,
 					oMarker, oInfoWindow;
 
-				oMarker = that.getRegisteredMarker(oInternalMarker.id);
+				oMarker = that.privGetRegisteredMarker(oInternalMarker.id);
 				oInfoWindow = oMarker.options.infoWindow;
 				if (oInfoWindow) {
 					oInfoWindow.close();
@@ -130,13 +129,13 @@ MapProxy.OpenLayers.Map.prototype = {
 			this.map.addControl(new OpenLayers.Control.DragFeature(oMarkers, {
 				autoActivate: true,
 				onDrag: function(internalMarker) {
-					var oMarker = that.getRegisteredMarker(internalMarker.id),
+					var oMarker = that.privGetRegisteredMarker(internalMarker.id),
 						oPosition = oMarker.getPosition(),
 						oInfoWindow = oMarker.options.infoWindow;
 
 					if (oInfoWindow && oInfoWindow.getAnchor() === oMarker) {
 						oInfoWindow.setContent(oMarker);
-						oInfoWindow.setPosition(oPosition);
+						oInfoWindow.privSetPosition(oPosition);
 					}
 				}
 			}));
@@ -157,9 +156,6 @@ MapProxy.OpenLayers.Map.prototype = {
 			this.map.addControl(new OpenLayers.Control.OverviewMap()); // not in OpenLayers.light version
 		}
 	},
-	getDiv: function () {
-		return this.div;
-	},
 	setCenter: function (position) {
 		this.map.setCenter(MapProxy.OpenLayers.position2openlayers(position));
 	},
@@ -169,16 +165,16 @@ MapProxy.OpenLayers.Map.prototype = {
 	resize: function () {
 		// maybe not needed
 	},
-	getMap: function () {
+	privGetMap: function () {
 		return this.map;
 	},
-	registerMarker: function (marker) {
-		this.registeredMarkers[marker.marker.id] = marker;
+	privRegisterMarker: function (marker) {
+		this.registeredMarkers[marker.privGetMarker().id] = marker;
 	},
-	deRegisterMarker: function (marker) {
-		delete this.registeredMarkers[marker.marker.id];
+	privUnregisterMarker: function (marker) {
+		delete this.registeredMarkers[marker.privGetMarker().id];
 	},
-	getRegisteredMarker: function (id) {
+	privGetRegisteredMarker: function (id) {
 		return this.registeredMarkers[id];
 	}
 };
@@ -247,12 +243,11 @@ MapProxy.OpenLayers.Marker.prototype = {
 	},
 	setPosition: function (position) {
 		var oLonLat = MapProxy.OpenLayers.position2openlayers(position),
-			oInfoWindow;
+			oInfoWindow = this.options.infoWindow;
 
 		this.marker.move(oLonLat);
-		oInfoWindow = this.options.infoWindow;
 		if (oInfoWindow && oInfoWindow.getAnchor() === this) {
-			oInfoWindow.setPosition(oLonLat);
+			oInfoWindow.privSetPosition(position);
 		}
 	},
 	getMap: function () {
@@ -262,19 +257,25 @@ MapProxy.OpenLayers.Marker.prototype = {
 		var oMarkers, oInfoWindow;
 
 		if (map) {
-			oMarkers = map.getMap().getLayersByName("Markers")[0];
+			oMarkers = map.privGetMap().getLayersByName("Markers")[0];
 			oMarkers.addFeatures(this.marker);
-			map.registerMarker(this);
+			map.privRegisterMarker(this);
 		} else if (this.map) { // delete map?
-			oMarkers = this.map.getMap().getLayersByName("Markers")[0];
+			oMarkers = this.map.privGetMap().getLayersByName("Markers")[0];
 			oMarkers.removeFeatures(this.marker);
-			this.map.deRegisterMarker(this);
+			this.map.privUnregisterMarker(this);
 			oInfoWindow = this.options.infoWindow;
 			if (oInfoWindow && oInfoWindow.getAnchor() === this) {
 				oInfoWindow.close();
 			}
 		}
 		this.map = map;
+	},
+	privGetMarker: function () {
+		return this.marker;
+	},
+	destroy: function () {
+		this.marker.destroy();
 	}
 };
 
@@ -302,7 +303,7 @@ MapProxy.OpenLayers.Polyline.prototype = {
 			}
 		}
 		if (this.map) {
-			this.map.getMap().getLayersByName("Lines")[0].redraw();
+			this.map.privGetMap().getLayersByName("Lines")[0].redraw();
 		}
 	},
 	getMap: function () {
@@ -313,13 +314,16 @@ MapProxy.OpenLayers.Polyline.prototype = {
 
 		if (map) {
 			oFeature = new OpenLayers.Feature.Vector(this.polyline, {}, this.options);
-			oLines = map.getMap().getLayersByName("Lines")[0];
+			oLines = map.privGetMap().getLayersByName("Lines")[0];
 			oLines.addFeatures(oFeature);
 		} else if (this.map) {
-			oLines = this.map.getMap().getLayersByName("Lines")[0];
+			oLines = this.map.privGetMap().getLayersByName("Lines")[0];
 			oLines.removeAllFeatures();
 		}
 		this.map = map;
+	},
+	destroy: function () {
+		this.polyline.destroy();
 	}
 };
 
@@ -344,29 +348,26 @@ MapProxy.OpenLayers.InfoWindow.prototype = {
 
 		this.infoWindow.setContentHTML('<div style="font-size:.8em">' + sContent + "</div>");
 	},
-	setPosition: function (lonlat) {
+	privSetPosition: function (lonlat) {
 		this.infoWindow.lonlat = MapProxy.OpenLayers.position2openlayers(lonlat);
 		this.infoWindow.updatePosition();
 	},
 	open: function (map, marker) {
-		this.anchor1 = marker;
-		this.infoWindow.lonlat = OpenLayers.LonLat.fromString(marker.marker.geometry.toShortString());
-		map.getMap().addPopup(this.infoWindow);
+		this.anchor = marker;
+		this.infoWindow.lonlat = OpenLayers.LonLat.fromString(marker.privGetMarker().geometry.toShortString());
+		map.privGetMap().addPopup(this.infoWindow);
 		this.infoWindow.updateSize();
 		this.map = map;
 	},
-	getMap: function() {
-		return this.map;
-	},
 	getAnchor: function() {
-		return this.anchor1;
+		return this.anchor;
 	},
 	close: function () {
-		this.anchor1 = null;
+		this.anchor = null;
 		if (this.map) {
-			this.map.getMap().removePopup(this.infoWindow);
+			this.map.privGetMap().removePopup(this.infoWindow);
 		}
-		// this.infoWindow.dispose() ?
 	}
+	// destroy not needed for infoWindow because requires blocks to remove
 };
 // end

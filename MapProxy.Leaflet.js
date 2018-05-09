@@ -51,9 +51,6 @@ MapProxy.Leaflet.Map.prototype = {
 			}
 		});
 	},
-	getDiv: function () {
-		return this.map.getContainer();
-	},
 	setZoom: function (zoom) {
 		this.map.setZoom(zoom);
 	},
@@ -70,7 +67,7 @@ MapProxy.Leaflet.Map.prototype = {
 
 		oMap.invalidateSize();
 	},
-	getMap: function () {
+	privGetMap: function () {
 		return this.map;
 	}
 };
@@ -115,10 +112,34 @@ MapProxy.Leaflet.Marker.prototype = {
 		this.marker.bindTooltip(this.options.title);
 		oInfoWindow = this.options.infoWindow;
 		if (oInfoWindow) {
-			this.marker.bindPopup(oInfoWindow.infoWindow).on("click", function (/* event */) {
-				oInfoWindow.setContent(that);
-			}).on("move", function (/* event */) {
-				oInfoWindow.setContent(that);
+			this.marker.bindPopup(oInfoWindow.privGetinfoWindow()).on("click", function () {
+				// window.console.log("click: " + that.getLabel() + " " + that.getPosition() + " isOpen=" + oInfoWindow.privGetinfoWindow().isOpen());
+				if (oInfoWindow.privGetinfoWindow().isOpen()) {
+					oInfoWindow.privSetAnchor(that);
+					oInfoWindow.setContent(that);
+				} else {
+					oInfoWindow.privSetAnchor(null);
+				}
+			/*
+			}).on("popupopen", function () {
+				window.console.log("popupopen: " + that.getLabel() + " " + that.getPosition());
+			}).on("popupclose", function () {
+				window.console.log("popupclose: " + that.getLabel() + " " + that.getPosition());
+			}).on("dragend", function () {
+				window.console.log("dragend: " + that.getLabel() + " " + that.getPosition());
+			*/
+			}).on("dragstart", function (/* event */) {
+				// window.console.log("dragstart: " + that.getLabel() + " " + that.getPosition());
+				if (oInfoWindow.getAnchor() === that) {
+					oInfoWindow.privGetinfoWindow().openOn(that.marker); // reopen during drag
+				}
+			}).on("drag", function (/* event */) {
+				// window.console.log("drag: " + that.getLabel() + " " + that.getPosition());
+				if (oInfoWindow.privGetinfoWindow().isOpen()) {
+					if (oInfoWindow.getAnchor() === that) {
+						oInfoWindow.setContent(that);
+					}
+				}
 			});
 		}
 	},
@@ -128,7 +149,15 @@ MapProxy.Leaflet.Marker.prototype = {
 		return MapProxy.Leaflet.leaflet2position(oPos);
 	},
 	setPosition: function (position) {
+		var oInfoWindow = this.options.infoWindow,
+			oInfoWindowMarker;
+
 		this.marker.setLatLng(MapProxy.Leaflet.position2leaflet(position));
+
+		if (oInfoWindow && oInfoWindow.privGetinfoWindow().isOpen() && oInfoWindow.getAnchor() !== this) {
+			oInfoWindowMarker = oInfoWindow.getAnchor();
+			oInfoWindowMarker.privGetMarker().setLatLng(oInfoWindowMarker.privGetMarker().getLatLng()); //fast hack: after each move reset position of marker with open popup
+		}
 	},
 	getTitle: function () {
 		return this.options.title;
@@ -147,11 +176,14 @@ MapProxy.Leaflet.Marker.prototype = {
 	},
 	setMap: function (map) {
 		if (map) {
-			this.marker.addTo(map.getMap());
+			this.marker.addTo(map.privGetMap());
 		} else if (this.map) {
-			this.marker.removeFrom(this.map.getMap());
+			this.marker.removeFrom(this.map.privGetMap());
 		}
 		this.map = map;
+	},
+	privGetMarker: function () {
+		return this.marker;
 	}
 };
 
@@ -173,9 +205,9 @@ MapProxy.Leaflet.Polyline.prototype = {
 	},
 	setMap: function (map) {
 		if (map) {
-			this.polyline.addTo(map.getMap());
+			this.polyline.addTo(map.privGetMap());
 		} else if (this.map) {
-			this.polyline.removeFrom(this.map.getMap());
+			this.polyline.removeFrom(this.map.privGetMap());
 		}
 		this.map = map;
 	}
@@ -196,23 +228,20 @@ MapProxy.Leaflet.InfoWindow.prototype = {
 
 		this.infoWindow.setContent(sContent);
 	},
-	setPosition: function (position) {
-		this.infoWindow.setPosition(position);
-	},
-	getMap: function () {
-		return this.map;
-	},
-	setMap: function (map) {
-		this.map = map;
-	},
 	getAnchor: function () {
-		return false; // not needed
+		return this.anchor;
+	},
+	privSetAnchor: function (marker) {
+		this.anchor = marker;
 	},
 	open: function (map, marker) {
-		this.infoWindow.open(map.getMap(), marker.marker);
+		this.infoWindow.open(map.privGetMap(), marker.privGetMarker());
 	},
 	close: function () {
 		this.infoWindow.closePopup();
+	},
+	privGetinfoWindow: function () {
+		return this.infoWindow;
 	}
 };
 // end
