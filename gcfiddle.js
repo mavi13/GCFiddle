@@ -19,6 +19,7 @@ var gDebug,
 			showNotes: true,
 			showWaypoint: true,
 			showMap: true,
+			showLogs: false,
 			showConsole: false, // for debugging
 			variableType: "number", // number, text, range
 			positionFormat: "dmm", // position output format: dmm, dms, dd
@@ -27,7 +28,8 @@ var gDebug,
 			googleKey: "", // Google API key
 			zoom: 15, // default zoom level
 			leafletUrl: "https://unpkg.com/leaflet@1.3.1/dist/leaflet.js",
-			openLayersUrl: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js"
+			openLayersUrl: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js",
+			testIndexedDb: false
 		},
 		initialConfig: null,
 		mapProxy: { },
@@ -37,7 +39,8 @@ var gDebug,
 		variables: {
 			gcfOriginal: { }
 		},
-		inputStack: null
+		inputStack: null,
+		sJsonMarker: "#GC_INFO:"
 	},
 	Utils;
 
@@ -94,7 +97,7 @@ function parseExample(input, category) {
 		category: category,
 		key: sKey,
 		title: sTitle,
-		input: sInput
+		script: sInput
 	};
 }
 
@@ -105,7 +108,7 @@ function addExample(input, category) {
 
 	window.console.log("addExample: category=" + oItem.category + "(" + gcFiddle.config.category + ") key=" + oItem.key);
 	if (gcFiddle.examples[oItem.category]) {
-		gcFiddle.examples[oItem.category][oItem.key] = oItem.input;
+		gcFiddle.examples[oItem.category][oItem.key] = oItem;
 	} else {
 		window.console.error("Unknown category: " + oItem.category);
 	}
@@ -413,7 +416,7 @@ LatLng.prototype = {
 		}
 		return this;
 	},
-	toString: function (format) {
+	toString: function (format, bSuppressWarnings) {
 		var sValue;
 
 		function position2dmm(position) {
@@ -466,7 +469,9 @@ LatLng.prototype = {
 			sValue = position2dd(this);
 			break;
 		default:
-			window.console.warn("position2string: Unknown format", format);
+			if (!bSuppressWarnings) {
+				window.console.warn("position2string: Unknown format", format);
+			}
 		}
 		return sValue;
 	}
@@ -834,7 +839,7 @@ ScriptParser.prototype = {
 	//
 	evaluate: function (parseTree, variables) {
 		var sOutput = "",
-			oOperators = {
+			mOperators = {
 				"+": function (a, b) {
 					return Number(a) + Number(b);
 				},
@@ -858,7 +863,8 @@ ScriptParser.prototype = {
 				}
 			},
 
-			oFunctions = {
+			mFunctions = {
+				// concat(s1, s2, ...) concatenate strings (called by operator [..] )
 				concat: function () { // varargs
 					var	s = "",
 						i;
@@ -868,27 +874,45 @@ ScriptParser.prototype = {
 					}
 					return s;
 				},
+
+				// sin(d) sine of d (d in degrees)
 				sin: function (degrees) {
 					return Math.sin(Utils.toRadians(degrees));
 				},
+
+				// cos(d) cosine of d (d in degrees)
 				cos: function (degrees) {
 					return Math.cos(Utils.toRadians(degrees));
 				},
+
+				// tan(d) tangent of d (d in degrees)
 				tan: function (degrees) {
 					return Math.tan(Utils.toRadians(degrees));
 				},
+
+				// asin(x) arcsine of x (returns degrees)
 				asin: function (x) {
 					return Utils.toDegrees(Math.asin(x));
 				},
+
+				// acos(x) arccosine of x (returns degrees)
 				acos: function (x) {
 					return Utils.toDegrees(Math.acos(x));
 				},
+
+				// atan(x) arctangent of x (returns degrees)
 				atan: function (x) {
 					return Utils.toDegrees(Math.atan(x));
 				},
 				abs: Math.abs,
+
+				// round(x) round to the nearest integer
 				round: Math.round,
+
+				// ceil(x) round upwards to the nearest integer
 				ceil: Math.ceil,
+
+				// floor(x) round downwards to the nearest integer
 				floor: Math.floor,
 				"int": function (x) { return (x > 0) ? Math.floor(x) : Math.ceil(x); }, // ES6: Math.trunc
 				// mod: or should it be... https://stackoverflow.com/questions/4467539/javascript-modulo-not-behaving
@@ -896,11 +920,17 @@ ScriptParser.prototype = {
 				log: Math.log,
 				exp: Math.exp,
 				sqrt: Math.sqrt,
+
+				// max(x, y, ...)
 				max: Math.max,
+
+				// min(x, y, ...)
 				min: Math.min,
+
+				// random() random number between [0,1)
 				random: Math.random,
 
-				// gcd (Euclid)
+				// gcd(a, b) greatest common divisor of a and b (Euclid)
 				gcd: function (a, b) {
 					var h;
 
@@ -912,7 +942,7 @@ ScriptParser.prototype = {
 					return a;
 				},
 
-				// fib (Fibonacci)
+				// fib(x) xth Fibonacci number
 				fib: function (x) {
 					var fib = [
 							0,
@@ -926,22 +956,36 @@ ScriptParser.prototype = {
 					return fib[x];
 				},
 
-				// r2d (rad2deg)
+				// deg() switch do degrees mode (default, ignored, we always use degrees)
+				deg: function () {
+					window.console.log("deg() ignored.");
+				},
+
+				// rad() switch do radians mode (not supported, we always use degrees)
+				/*
+				rad: function () {
+					window.console.warn("rad() not supported.");
+				},
+				*/
+
+				// r2d(x) (rad2deg)
 				r2d: function (radians) {
 					return Utils.toDegrees(radians);
 				},
-				// d2r (deg2rad)
+				// d2r(d) (deg2rad)
 				d2r: function (degrees) {
 					return Utils.toRadians(degrees);
 				},
 
+				// bearing(w1, w2) bearing between w1 and w2 in degrees
 				bearing: function (w1, w2) {
 					var oPosition1 = new LatLng().parse(w1),
 						oPosition2 = new LatLng().parse(w2);
 
 					return oPosition1.bearingTo(oPosition2);
 				},
-				// cb (crossbearing)
+
+				// cb(w1, angle1, w2, angle2) crossbearing
 				cb: function (w1, angle1, w2, angle2) {
 					var oPosition1 = new LatLng().parse(w1),
 						oPosition2 = new LatLng().parse(w2),
@@ -951,6 +995,8 @@ ScriptParser.prototype = {
 					sValue = oPosition3.toString();
 					return sValue;
 				},
+
+				// distance(w1, w2) distance between w1 and w2 in meters
 				distance: function (w1, w2) {
 					var oPosition1 = new LatLng().parse(w1),
 						oPosition2 = new LatLng().parse(w2),
@@ -959,6 +1005,8 @@ ScriptParser.prototype = {
 					nValue = oPosition1.distanceTo(oPosition2);
 					return nValue;
 				},
+
+				// project(w1, bearing, distance) project from w1 bearing degrees and distance meters
 				project: function (w1, bearing, distance) {
 					var oPosition1 = new LatLng().parse(w1),
 						oPosition2,	sValue;
@@ -979,12 +1027,13 @@ ScriptParser.prototype = {
 					return sValue;
 				},
 
+				// format(w1, fmt): format waypoint w1 with format "dmm", "dms", or "dd"
 				format: function (w1, format) {
 					var oPosition = new LatLng().parse(w1),
 						sValue;
 
-					sValue = oPosition.toString(format);
-					if (sValue === undefined) { // format not dmm, dms, dd
+					sValue = oPosition.toString(format, true);
+					if (sValue === undefined) { // format not "dmm", "dms", "dd"
 						throw new ScriptParser.ErrorObject("Unknown format", format, this.pos);
 					}
 					return sValue;
@@ -1002,7 +1051,7 @@ ScriptParser.prototype = {
 				// cti (crosstotal iterated)
 				cti: function (x) {
 					do {
-						x = oFunctions.ct(x);
+						x = mFunctions.ct(x);
 					} while (x > 9);
 					return x;
 				},
@@ -1024,7 +1073,7 @@ ScriptParser.prototype = {
 					);
 				},
 
-				// sval (s value) for A-Z, a-z: 01 02 03 ...
+				// sval (separate value) for A-Z, a-z: 01 02 03 ...
 				sval: function (s) {
 					var iCodeBeforeA = "a".charCodeAt(0) - 1,
 						sOut = "",
@@ -1032,11 +1081,35 @@ ScriptParser.prototype = {
 
 					s = s.toString().toLowerCase().replace(/[^a-z]/g, "");
 					for (i = 0; i < s.length; i += 1) {
-						sOut += ((i > 0) ? " " : "") + oFunctions.zformat(s.charCodeAt(i) - iCodeBeforeA, 2);
+						sOut += ((i > 0) ? " " : "") + mFunctions.zformat(s.charCodeAt(i) - iCodeBeforeA, 2);
 					}
 					return sOut;
 				},
 
+				// vstr (value(s) to string, optiomnal iShift) (new)
+				vstr: function (s, iShift) {
+					var iCodeBeforeA = "a".charCodeAt(0) - 1,
+						sOut = "",
+						aNum, iCode;
+
+					iShift = iShift || 0;
+					iShift = Number(iShift);
+					s = s.toString().toLowerCase().replace(/[^0-9]/g, " ");
+					aNum = s.split(" ");
+					if (aNum) {
+						sOut = aNum.reduce(function(sList, iNum) {
+							iCode = ((Number(iNum) - 1) + iShift) % 26;
+							if (iCode < 0) {
+								iCode += 26;
+							}
+							iCode += 1;
+							return sList + String.fromCharCode(iCode + iCodeBeforeA);
+						}, sOut);
+					}
+					return sOut;
+				},
+
+				// encode(s, m1, m2) encode s with character mapping m1 to m2
 				// example rot13: sourceMap="NOPQRSTUVWXYZABCDEFGHIJKLMnopqrstuvwxyzabcdefghijklm" destinatonMap="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 				// https://stackoverflow.com/questions/617647/where-is-my-one-line-implementation-of-rot13-in-javascript-going-wrong
 				encode: function (s, sourceMap, destinatonMap) {
@@ -1048,36 +1121,66 @@ ScriptParser.prototype = {
 						);
 					});
 				},
-				// ic(n) Ignore variable case (not implemented, we are case sensitive)
-				ic: function () {
-					return false;
+
+				// ic(n) Ignore variable case (not implemented, we are always case sensitive)
+				ic: function (mode) {
+					if (typeof mode === "undefined") { // no parameter, return status
+						return false;
+					}
+					window.console.warn("ic(mode) not implemented.");
+					return "";
 				},
+
 				// instr (indexOf with positions starting with 1), 'start' is optional
 				instr: function (s, search, start) {
 					return s.toString().indexOf(search, (start) ? (start - 1) : 0) + 1;
 				},
-				// count(s, c) Count number of characters/strings c in s
+
+				// countstr(s, c) Count number of occurrences of substring s2 in s
 				// https://stackoverflow.com/questions/881085/count-the-number-of-occurrences-of-a-character-in-a-string-in-javascript
-				count: function (s, c) {
-					return (s.toString().match(new RegExp(c, "g")) || []).length;
+				countstr: function (s, s2) {
+					return (s.toString().match(new RegExp(s2, "g")) || []).length;
 				},
-				// len (length)
+
+				// count(s, s2) count individual characters from s2 in string s
+				count: function (s, s2) {
+					var sOut = "",
+						aSearch;
+
+					s = s.toString();
+					s2 = s2.toString();
+					if (s2.length === 1) {
+						return mFunctions.countstr(s, s2);
+					}
+					aSearch = s2.toString().split("");
+					sOut = aSearch.reduce(function(sSum, sStr) {
+						return sSum + " " + sStr + "=" + mFunctions.countstr(s, sStr);
+					}, sOut);
+					return sOut.trim();
+					// CacheWolf appends a space, we don't do that.
+				},
+
+				// len(s) length of string
 				len: function (s) {
 					return s.toString().length;
 				},
-				// mid (substr with positions starting with 1)
+
+				// mid(s, index, len) substr with positions starting with 1
 				mid: function (s, start, length) {
 					return s.toString().substr(start - 1, length);
 				},
+
 				// uc (toUpperCase)  beware: toUpperCase converts 'ß' to 'SS'!
 				uc: function (s) {
 					return s.toString().toUpperCase();
 				},
+
 				// lc (toLowerCase)
 				lc: function (s) {
 					return s.toString().toLowerCase();
 				},
-				// replace all occurences
+
+				// replace(s, s1, r1): replace all occurrences of s1 in s by r1
 				replace: function (s, search, replace) {
 					var oPattern = new RegExp(search, "g");
 
@@ -1105,11 +1208,11 @@ ScriptParser.prototype = {
 
 					if (format.indexOf(".") < 0) {
 						s = Number(s).toFixed(0);
-						s = oFunctions.zformat(s, format.length);
+						s = mFunctions.zformat(s, format.length);
 					} else { // assume 000.00
 						aFormat = format.split(".", 2);
 						s = Number(s).toFixed(aFormat[1].length);
-						s = oFunctions.zformat(s, format.length);
+						s = mFunctions.zformat(s, format.length);
 					}
 					return s;
 				},
@@ -1130,14 +1233,15 @@ ScriptParser.prototype = {
 				},
 				parse: function (input) {
 					var oVars = {},
-						sOut = new ScriptParser().calculate(input, oVars),
-						iEndPos;
+						oOut, oErr, iEndPos;
 
-					if (sOut instanceof ScriptParser.ErrorObject) {
-						iEndPos = sOut.pos + sOut.value.toString().length;
-						sOut = sOut.message + ": '" + sOut.value + "' (pos " + sOut.pos + "-" + iEndPos + ")";
+					oOut = new ScriptParser().calculate(input, oVars);
+					if (oOut.error) {
+						oErr = oOut.error;
+						iEndPos = oErr.pos + oErr.value.toString().length;
+						oOut.text = oErr.message + ": '" + oErr.value + "' (pos " + oErr.pos + "-" + iEndPos + ")";
 					}
-					return sOut;
+					return oOut.text;
 				},
 				// assert(c1, c2) (assertEqual: c1 === c2)
 				assert: function (a, b) {
@@ -1153,21 +1257,29 @@ ScriptParser.prototype = {
 
 			oArgs = { },
 
+			checkArgs = function(name, aArgs) {
+				var oFunction = mFunctions[name];
+
+				if (oFunction.length !== aArgs.length) {
+					if (gDebug && gDebug.level >= 1) {
+						gDebug.log("DEBUG: function " + name + " expects " + oFunction.length + " parameters but called with " + aArgs.length);
+					}
+				}
+			},
+
 			parseNode = function (node) {
-				var i,
-					sValue,
-					aNodeArgs;
+				var i, sValue, aNodeArgs;
 
 				if (gDebug && gDebug.level > 2) {
 					gDebug.log("DEBUG: parseNode node=%o type=" + node.type + " name=" + node.name + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
 				}
 				if (node.type === "number" || node.type === "string") {
 					sValue = node.value;
-				} else if (oOperators[node.type]) {
+				} else if (mOperators[node.type]) {
 					if (node.left) {
-						sValue = oOperators[node.type](parseNode(node.left), parseNode(node.right));
+						sValue = mOperators[node.type](parseNode(node.left), parseNode(node.right));
 					} else {
-						sValue = oOperators[node.type](parseNode(node.right));
+						sValue = mOperators[node.type](parseNode(node.right));
 					}
 				} else if (node.type === "identifier") {
 					sValue = oArgs.hasOwnProperty(node.value) ? oArgs[node.value] : variables[node.value];
@@ -1184,26 +1296,27 @@ ScriptParser.prototype = {
 						sValue = node.name + "=" + sValue;
 					}
 				} else if (node.type === "call") {
-					aNodeArgs = []; // no not modify node.args here (could be parameter of defined function)
+					aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
 					for (i = 0; i < node.args.length; i += 1) {
 						aNodeArgs[i] = parseNode(node.args[i]);
 					}
-					if (oFunctions[node.name] === undefined) {
+					if (mFunctions[node.name] === undefined) {
 						throw new ScriptParser.ErrorObject("Function is undefined", node.name, node.pos);
 					}
-					sValue = oFunctions[node.name].apply(node, aNodeArgs);
+					checkArgs(node.name, aNodeArgs);
+					sValue = mFunctions[node.name].apply(node, aNodeArgs);
 				} else if (node.type === "function") {
-					oFunctions[node.name] = function () {
+					mFunctions[node.name] = function () {
 						for (i = 0; i < node.args.length; i += 1) {
 							oArgs[node.args[i].value] = arguments[i];
 						}
 						sValue = parseNode(node.value);
-						oArgs = {};
+						// oArgs = {}; //do not reset here!
 						return sValue;
 					};
 				} else if (node.type === "formatter") {
 					sValue = parseNode(node.left);
-					sValue = oFunctions.nformat(sValue, node.value);
+					sValue = mFunctions.nformat(sValue, node.value);
 				} else {
 					window.console.error("parseNode node=%o unknown type=" + node.type, node);
 					sValue = node;
@@ -1226,18 +1339,20 @@ ScriptParser.prototype = {
 		return sOutput;
 	},
 	calculate: function (input, variables) {
-		var aTokens,
-			aParseTree,
-			sOutput;
+		var oOut = {
+				text: ""
+			},
+			aTokens, aParseTree, sOutput;
 
 		try {
 			aTokens = this.lex(input);
 			aParseTree = this.parse(aTokens);
 			sOutput = this.evaluate(aParseTree, variables);
-			return sOutput;
+			oOut.text = sOutput;
 		} catch (e) {
-			return e;
+			oOut.error = e;
 		}
+		return oOut;
 	}
 };
 
@@ -1466,7 +1581,7 @@ MarkerFactory.prototype = {
 					var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
 						sContent, oPreviousMarker, iIndex, oPosition1, oPosition2, iAngle, iDistance, sDirection;
 
-					sContent = marker.getTitle() + ": " + marker.getPosition().toString();
+					sContent = marker.getTitle() + "=" + marker.getPosition().toString();
 					iIndex = that.aMarkerList.indexOf(marker);
 					if (iIndex >= 1) {
 						oPreviousMarker = that.aMarkerList[iIndex - 1];
@@ -1624,12 +1739,13 @@ function onVarSelectChange() {
 	}
 	varLabel.innerText = sPar;
 	varLabel.title = sPar;
-	varInput.value = sValue;
 	if (!(/^[\d]+$/).test(sValue)) { // currently only digits (without -,.) are numbers
 		sType = "text";
 	}
-	varInput.type = sType;
+	varInput.type = sType; // set type before value
+	varInput.value = sValue;
 	varSelect.title = (varSelect.selectedIndex >= 0) ? varSelect.options[varSelect.selectedIndex].title : "";
+	document.getElementById("varLegend").textContent = "Variables (" + varSelect.length + ")";
 }
 
 function onVarViewSelectChange() {
@@ -1664,6 +1780,34 @@ function onWaypointSelectChange() {
 	waypointLabel.title = sPar;
 	waypointInput.value = sValue;
 	waypointSelect.title = (waypointSelect.selectedIndex >= 0) ? waypointSelect.options[waypointSelect.selectedIndex].title : "";
+	document.getElementById("waypointLegend").textContent = "Waypoints (" + waypointSelect.length + ")";
+}
+
+function setInputAreaValue(value) {
+	var sLog = "",
+		iPos, sJson, oInfo;
+
+	document.getElementById("inputArea").value = value;
+	iPos = value.indexOf(gcFiddle.sJsonMarker);
+	if (iPos >= 0) {
+		sJson = value.substring(iPos + gcFiddle.sJsonMarker.length);
+		try {
+			oInfo = window.JSON.parse(sJson);
+		} catch (e) {
+			window.console.error(e);
+		}
+		if (oInfo && oInfo.logs) {
+			oInfo.logs.forEach(function(oLog) {
+				sLog += oLog.date + " (" + oLog.type + ") " + oLog.name + " (" + oLog.finds + ")\n" + oLog.text + "\n";
+			});
+		}
+	}
+	document.getElementById("logsArea").value = sLog;
+	document.getElementById("logsLegend").textContent = "Logs (" + ((oInfo && oInfo.logs) ? oInfo.logs.length : 0) + ")";
+}
+
+function setOutputAreaValue(value) {
+	document.getElementById("outputArea").value = value;
 }
 
 // scrolling needed for Chrome (https://stackoverflow.com/questions/7464282/javascript-scroll-to-selection-after-using-textarea-setselectionrange-in-chrome)
@@ -1678,23 +1822,22 @@ function scrollToSelection(textArea) {
 function calculate2() {
 	var variables = gcFiddle.variables,
 		inputArea = document.getElementById("inputArea"),
-		outputArea = document.getElementById("outputArea"),
 		input = inputArea.value,
-		output,
-		iEndPos;
+		oOutput, oError, iEndPos;
 
-	output = new ScriptParser().calculate(input, variables);
-	if (output instanceof ScriptParser.ErrorObject) {
-		iEndPos = output.pos + ((output.value !== undefined) ? output.value.toString().length : 0);
+	oOutput = new ScriptParser().calculate(input, variables);
+	if (oOutput.error) {
+		oError = oOutput.error;
+		iEndPos = oError.pos + ((oError.value !== undefined) ? oError.value.toString().length : 0);
 		if (inputArea.selectionStart !== undefined) {
 			inputArea.focus();
-			inputArea.selectionStart = output.pos;
+			inputArea.selectionStart = oError.pos;
 			inputArea.selectionEnd = iEndPos;
 			scrollToSelection(inputArea);
 		}
-		output = output.message + ": '" + output.value + "' (pos " + output.pos + "-" + iEndPos + ")";
+		oOutput.text = oError.message + ": '" + oError.value + "' (pos " + oError.pos + "-" + iEndPos + ")";
 	}
-	outputArea.value = output;
+	setOutputAreaValue(oOutput.text);
 }
 
 function onVarInputChange() {
@@ -1845,14 +1988,6 @@ function onExecuteButtonClick() {
 }
 
 
-function setInputAreaValue(value) {
-	document.getElementById("inputArea").value = value;
-}
-
-function setOutputAreaValue(value) {
-	document.getElementById("outputArea").value = value;
-}
-
 function onUndoButtonClick() {
 	setInputAreaValue(gcFiddle.inputStack.undo());
 	updateUndoRedoButtons();
@@ -1869,7 +2004,7 @@ function onPreprocessButtonClick() {
 	var inputArea = document.getElementById("inputArea"),
 		sInput = inputArea.value,
 		sOutput = "",
-		sTitle = "",
+		oInfo = {},
 		mVariables = {},
 		aParts,	sSection, iIndex,
 		fnEndsWith = function (str, find) {
@@ -1880,11 +2015,12 @@ function onPreprocessButtonClick() {
 				oVars = {},
 				sVariables = "",
 				sVariable,
-				oError;
+				oOutput, oError;
 
 			do {
-				oError = oScriptParser.calculate(sVariables + script, oVars);
-				if ((oError instanceof ScriptParser.ErrorObject) && (oError.message === "Variable is undefined")) {
+				oOutput = oScriptParser.calculate(sVariables + script, oVars);
+				oError = oOutput.error;
+				if (oError && (oError.message === "Variable is undefined")) {
 					sVariable = oError.value;
 					if (oError.value in mVariables) {
 						sVariables += sVariable + "=" + mVariables[sVariable] + " #see below\n";
@@ -1897,6 +2033,7 @@ function onPreprocessButtonClick() {
 			} while (oError);
 			return sVariables + script;
 		},
+		// mPat = hash of patterns; every pattern with at least one parenthesis to retrun match
 		fnMatchPatterns = function (str, mPat) {
 			var oOut = {},
 				sKeys, rPat, aRes, aKeys, i;
@@ -1905,6 +2042,9 @@ function onPreprocessButtonClick() {
 				if (mPat.hasOwnProperty(sKeys)) {
 					rPat = mPat[sKeys];
 					aRes = str.match(rPat);
+					if (aRes === null) {
+						aRes = "";
+					}
 					if (aRes) {
 						aKeys = sKeys.split(",");
 						for (i = 0; i < aKeys.length; i += 1) {
@@ -1917,29 +2057,69 @@ function onPreprocessButtonClick() {
 		},
 		fnFindInfo = function(str) {
 			var mPat = {
-					"id,type,title": /#(GC\w+)[^\n]*\n#([^\n]*)\n#([^\n]*)/,
-					owner: /#A cache by ([^\n]*)/,
-					hidden: /#Hidden : ([^\n]*)/,
-					difficulty: /#Difficulty:\n#\s*([\d.]+)/,
-					terrain: /#Terrain:\n#\s*([\d.]+)/,
-					size: /#Size: Size: (\w+)/,
-					favorites: /#(\d+) Favorites/,
-					wp: /#(N \d{2}° \d{2}\.\d{3} E \d{3}° \d{2}\.\d{3})/
+					"id,type,title": /#(GC\w+)[^\n]*\n#([^\n ]*)[^\n]*\n#([^\n]*)/, // GCxxx ▼\nTraditional Geocache\nTitle
+					// Traditional Geocache, Mystery Cache,...
+					owner: /#A cache by ([^\n]*)/, // A cache by xxx
+					hidden: /#Hidden : ([^\n]*)/, // Hidden : mm/dd/yyyy
+					difficulty: /#Difficulty:\n#\s*([\d.]+)/, // Difficulty:\n  2 out of 5
+					terrain: /#Terrain:\n#\s*([\d.]+)/, // Terrain:\n  1.5 out of 5
+					size: /#Size: Size: (\w+)/, // Size: Size: small (small)
+					favorites: /#(\d+) Favorites/, // 0 Favorites
+					archived: /#This cache has been (archived)/, // This cache has been archived.
+					available: /#This cache is temporarily (unavailable)/, // This cache is temporarily unavailable.
+					premium: /#This is a (Premium) Member Only cache/, // This is a Premium Member Only cache.
+					waypoint: /#(N \d{2}° \d{2}\.\d{3} E \d{3}° \d{2}\.\d{3})/, // N xx° xx.xxx E xxx° xx.xxx
+					"state,country": /#In ([^ ,]+), ([^\n ]*)/ // In Baden-Württemberg, Germany
 				},
-				oOut = {},
-				sOut = "";
+				oOut = fnMatchPatterns(str, mPat);
 
-			oOut = fnMatchPatterns(str, mPat);
-
-			if (oOut.id) {
-				sOut = "#" + oOut.id + ": " + oOut.title + "\n";
-				sOut += "#https://coord.info/" + oOut.id + "\n";
-				sOut += "#type=" + oOut.type + " hidden=" + oOut.hidden + " difficulty=" + oOut.difficulty + " terrain=" + oOut.terrain + " size=" + oOut.size
-					+ " favorites=" + oOut.favorites + " owner=" + oOut.owner + "\n";
-				sOut += "$" + oOut.id + '="' + oOut.wp + '"\n';
-				sOut += "#\n";
+			if (oOut.type) {
+				oOut.type = (oOut.type || "").toLowerCase();
 			}
-			return sOut;
+			oOut.archived = Boolean(oOut.archived);
+			oOut.premium = Boolean(oOut.premium);
+			oOut.available = !oOut.available;
+			if (oOut.hidden) {
+				oOut.hidden = oOut.hidden.replace(/(\d{2})\/(\d{2})\/(\d{4})/, "$3-$1-$2");
+			}
+			return oOut;
+		},
+		fnFindLoggedInfo = function(str) {
+			var mPat = {
+					"log,loggedOn": /#(Did Not Find|Found It!)\n#Logged on: (\S+)/, // Did Not Find\n#Logged on: 06/06/2018  (if no log, simply: "Log geocache")
+					"galleryCount,watching,watchCount": /#View Gallery \((\d*)\)\n#(Watch|Stop Watching) \((\d*)\)/ // View Gallery (3)\n  Watch (5)
+				},
+				oOut = fnMatchPatterns(str, mPat);
+
+			if (oOut.log) {
+				if (oOut.log === "Found It!") {
+					oOut.log = "found";
+				} else if (oOut.log === "Did Not Find") {
+					oOut.log = "not found";
+				}
+			}
+			if (oOut.loggedOn) {
+				oOut.loggedOn = oOut.loggedOn.replace(/(\d{2})\/(\d{2})\/(\d{4})/, "$3-$1-$2");
+			}
+			oOut.watching = (oOut.watching === "Stop Watching") ? "1" : "0";
+			return oOut;
+		},
+		fnFindFooterInfo = function(str) {
+			var mPat = {
+					"currentTime,currentGMTTime": /#Current Time: (\S+ \S+) Pacific Daylight Time \((\S+)/, // Current Time: 06/30/2018 00:00:07 Pacific Daylight Time (07:00 GMT)
+					lastUpdated: /#Last Updated: (\S+) on (\S+ \S+)/ // Last Updated: 2018-06-29T05:53:07Z on 06/28/2018 22:53:07 Pacific Daylight Time (05:53 GMT)
+					// or: "#Last Updated: 2017-02-04T18:39:52Z on 02/04/2017 10:39:52 (UTC-08:00) Pacific Time (US & Canada) (18:39 GMT)"
+				},
+				oOut = fnMatchPatterns(str, mPat),
+				aDate, oDate, iOffsetMs;
+
+			if (oOut.currentTime) {
+				aDate = oOut.currentTime.split(/[/ :]/);
+				iOffsetMs = Number("+7") * 3600 * 1000; // hr to ms
+				oDate = new Date(Date.UTC(aDate[2], aDate[0] - 1, aDate[1], aDate[3], aDate[4], aDate[5]) + iOffsetMs);
+				oOut.currentTime = oDate.toISOString().replace(".000Z", "Z");
+			}
+			return oOut;
 		},
 		fnVariables = function(str) { // Find Variables (x=) and set them to <number> or 0
 			str = str.replace(/([A-Za-z]\w*)[ ]*=[ ]*([0-9]*)([^#=\n]*)/g, function(match, p1, p2, p3) {
@@ -1989,20 +2169,132 @@ function onPreprocessButtonClick() {
 		},
 		fnPrefixHash = function(str) {
 			// Prefix lines with hash (if not already there)
-			str = str.replace(/\n(?!#)/g, "\n#");
+			str = "#" + str.replace(/\n(?!#)/g, "\n#");
 			return str;
 		},
 		fnRot13 = function (s) {
 			return s.toString().replace(/[A-Za-z]/g, function (c) {
 				return String.fromCharCode(c.charCodeAt(0) + (c.toUpperCase() <= "M" ? 13 : -13));
 			});
+		},
+		fnRot13WithBrackets = function (s) { // keep text in brackets []
+			var aStr = s.toString().split(/(\[|\])/),
+				iNestingLevel = 0;
+
+			aStr = aStr.map(function(s1) {
+				if (s1 === "[") {
+					iNestingLevel += 1;
+				} else if (s1 === "]") {
+					iNestingLevel -= 1;
+				} else if (!iNestingLevel) {
+					s1 = fnRot13(s1);
+				}
+				return s1;
+			});
+
+			return aStr.join("");
+		},
+		fnHints = function(str) {
+			var aHints = str.match(/#\((Decrypt|Encrypt|No hints available.)\)\n/);
+
+			if (aHints) {
+				str = str.substr(aHints[0].length); // remove matched part
+				if (aHints[1] === "Decrypt") {
+					str = fnRot13WithBrackets(str);
+				} else if (aHints[1] === "No hints available.") {
+					// no "deryption key" section
+					Utils.objectAssign(oInfo, fnFindLoggedInfo(str));
+					str = "#" + aHints[1];
+				}
+			} else {
+				window.console.warn("Unknown hint section: " + str);
+			}
+			return str;
+		},
+		fnLogs = function(str) {
+			var oPat1 = /#View Log|#View \/ Edit Log/,
+				// "View Log", "View / Edit Log / Images   Upload Image": end marker for log entry / own log entry
+				oPat2 = /#([^\n]+)\n#\[(Member|Premium Member)\][^\n]*\n#\[Caches Found\] (\d*)\n#([^\n]*)\n#([^\n]*)\n/,
+				// "<cacher name can contain spaces, parenthesis>\n[Premium Member] Premium Member\n[Caches Found] 4509\nFound it Found it\n06/23/2018"
+				// oPat2a = /#(\S+)\n#.(Member|Premium Member)\n.[^\n]*\n#.(\d*)\n#. ([^\n]*)\n#([^\n]*)\n/,
+				// Chrome on Android: <cacher>\n?Premium Member\n?\n?903\n? Found it\n07/01/2018
+				oPat2a = /#([^\n]+)\n#(Member|Premium Member)[^\n]*\n#Caches Found(\d*)\n#([^\n]*)(\d{2}\/\d{2}\/\d{4})\n/,
+				// Chrome on Android:
+				mTypeMap = {
+					"Found it": "found",
+					"Didn't find it": "not found",
+					"Needs Maintenance": "maintenance",
+					"Write note": "note"
+				},
+				aOut = [],
+				aLogs, mFind, sType;
+
+			aLogs = str.split(oPat1);
+			if (aLogs) {
+				aLogs.forEach(function(sLog, iLogEntry) {
+					mFind = oPat2.exec(sLog);
+					if (!mFind) {
+						mFind = oPat2a.exec(sLog); // try Chrome for Android pattern
+					}
+					if (mFind) {
+						sType = mFind[4];
+						sType = sType.substr(0, sType.length / 2).trim(); // keep first part of repeated string, e.g. "Found it Found it"
+						sType = (mTypeMap[sType]) ? mTypeMap[sType] : sType;
+						aOut.push({
+							name: mFind[1],
+							premium: (mFind[2] === "Premium Member"),
+							finds: mFind[3],
+							type: sType,
+							date: (mFind[5] || "").replace(/(\d{2})\/(\d{2})\/(\d{4})/, "$3-$1-$2"),
+							text: sLog.substring(mFind.index + mFind[0].length)
+						});
+					} else {
+						window.console.log("fnLogs: Cannot parse entry " + iLogEntry + ": " + sLog);
+					}
+				});
+			}
+			return {
+				logs: aOut
+			};
 		};
+
+		/*
+		fnLogs = function(str) {
+			var oRe1 = /#(\S+)\n#\[(Member|Premium Member)\][^\n]*\n#\[Caches Found\] (\d*)\n#([^\n]*)\n#([^\n]*)\n/g,
+				sPat1 = "#View Log", // "View Log", "View / Edit Log / Images   Upload Image": end marker for log entry / own log entry
+				aOut = [],
+				mFind, iPos, sType;
+
+			while ((mFind = oRe1.exec(str)) !== null) {
+				iPos = str.indexOf(sPat1, oRe1.lastIndex);
+				if (iPos >= oRe1.lastIndex) {
+					sType = mFind[4];
+					sType = sType.substr(0, sType.length / 2); // keep first part of repeated string, e.g. "Found it Found it"
+					aOut.push({
+						name: mFind[1],
+						premium: (mFind[2] === "Premium Member"),
+						finds: mFind[3],
+						type: sType,
+						date: (mFind[5] || "").replace(/(\d{2})\/(\d{2})\/(\d{4})/, "$3-$1-$2"),
+						text: str.substring(oRe1.lastIndex, iPos)
+					});
+					oRe1.lastIndex = iPos + sPat1.length; // next match position
+				}
+			}
+			return {
+				logs: aOut
+			};
+		};
+		*/
+
+	// replace all kinds of spaces by an ordinary space but keep ""\n"
+	sInput = sInput.replace(/[^\S\n]/g, " "); // use double negtive to keep \n
 
 	// multi line trim
 	sInput = sInput.replace(/\s*\n\s*/gm, "\n");
 
 	// find parts
-	aParts = sInput.split(/(Skip to Content|Geocache Description:|Additional Hints \((?:Decrypt|Encrypt)\)|Decryption Key|Additional Waypoints|View Larger Map)/);
+	aParts = sInput.split(/(Skip to Content|Geocache Description:|Additional Hints|Decryption Key|Additional Waypoints|View Larger Map|Logged Visits|Current Time:)/);
 	if (aParts) {
 		if (aParts.length === 1) {
 			aParts.unshift("Skip to Content", "GCTEMPLATE X\nUnknown Cache\nTemplate Title", "Geocache Description:");
@@ -2017,37 +2309,50 @@ function onPreprocessButtonClick() {
 					sSection = "";
 				}
 			} else {
-				sInput = fnPrefixHash(aParts[iIndex]);
+				sInput = fnPrefixHash(aParts[iIndex].trim());
 				switch (sSection) {
 				case "Skip to Content":
-					sTitle = fnFindInfo(sInput);
-					sInput = ""; // ignore part
+					oInfo = fnFindInfo(sInput);
+					sInput = ""; // do not output
 					break;
 				case "Geocache Description:":
 					sInput = fnVariables(sInput);
 					sInput = fnWaypoints(sInput);
+					sInput = "\n#" + sSection + "\n" + sInput;
 					break;
-				case "Additional Hints (Decrypt)":
-					sInput = "#Hints:\n" + fnRot13(sInput);
+				case "Additional Hints":
+					sInput = "\n#" + sSection + "\n" + fnHints(sInput);
 					break;
-				case "Additional Hints (Encrypt)":
-					sInput = "#Hints:\n" + sInput;
-					break;
-				case "Decryption Key":
-					sInput = ""; // ignore part
+				case "Decryption Key": // section present only if hints available
+					Utils.objectAssign(oInfo, fnFindLoggedInfo(sInput));
+					sInput = ""; // do not output
 					break;
 				case "Additional Waypoints":
 					sInput = fnVariables(sInput);
 					sInput = fnWaypoints(sInput);
+					sInput = "\n#" + sSection + "\n" + sInput;
 					break;
 				case "View Larger Map":
-					sInput = ""; // ignore logs
+					sInput = ""; // do not output
+					break;
+				case "Logged Visits": // 83 Logged Visits
+					Utils.objectAssign(oInfo, fnLogs(sInput));
+					sInput = ""; // do not output
+					break;
+				case "Current Time:": // section name is also used for key, so put it in front...
+					if (sInput.indexOf("#") === 0) {
+						sInput = sInput.substr(1); // remove first "#"
+					}
+					Utils.objectAssign(oInfo, fnFindFooterInfo("#" + sSection + " " + sInput)); // add space which was removed
+					sInput = ""; // do not output
 					break;
 				default:
 					window.console.warn("Unknown part: " + sSection);
 					break;
 				}
-				sOutput += sInput;
+				if (sInput) {
+					sOutput += ((sOutput !== "") ? "\n" : "") + sInput;
+				}
 				sSection = "";
 			}
 			iIndex += 1;
@@ -2056,20 +2361,29 @@ function onPreprocessButtonClick() {
 
 	if (sOutput !== "") {
 		sOutput = fnFixScript(sOutput);
-		sOutput = sTitle + sOutput;
+		if (oInfo.id) {
+			sOutput = "#" + oInfo.id + ": " + oInfo.title + "\n"
+				+ "#https://coord.info/" + oInfo.id + "\n"
+				+ "$" + oInfo.id + '="' + oInfo.waypoint + '"\n'
+				+ sOutput + "\n"
+				+ "\n"
+				+ gcFiddle.sJsonMarker + window.JSON.stringify(oInfo) + "\n";
+		}
 	}
 	putChangedInputOnStack();
 	setInputAreaValue(sOutput);
 	onExecuteButtonClick();
 }
 
-function onExampleLoaded(sExample) {
+function onExampleLoaded(sExample, bSuppressLog) {
 	var sCategory = gcFiddle.config.category,
 		oExamples = gcFiddle.examples[sCategory],
 		sName = sCategory + "/" + sExample + ".js";
 
 	gcFiddle.config.example = sExample;
-	window.console.log("Example " + sName + " loaded");
+	if (!bSuppressLog) {
+		window.console.log("Example " + sName + " loaded");
+	}
 	if (oExamples[sExample] === undefined) { // example without id loaded?
 		window.console.warn("Example " + sName + ": Wrong format! Must start with #<id>: <title>");
 		if (oExamples["<unknown>"]) {
@@ -2077,7 +2391,7 @@ function onExampleLoaded(sExample) {
 			delete oExamples["<unknown>"];
 		}
 	}
-	document.getElementById("inputArea").value = oExamples[sExample];
+	setInputAreaValue(oExamples[sExample].script);
 	initUndoRedoButtons();
 	onExecuteButtonClick();
 }
@@ -2091,18 +2405,20 @@ function onExampleSelectChange() {
 
 	exampleSelect.title = (exampleSelect.selectedIndex >= 0) ? exampleSelect.options[exampleSelect.selectedIndex].title : "";
 	if (oExamples[sExample] !== undefined) {
+		onExampleLoaded(sExample, true);
+		/*
 		gcFiddle.config.example = sExample;
-		document.getElementById("inputArea").value = oExamples[sExample];
+		setInputAreaValue(oExamples[sExample].script);
 		initUndoRedoButtons();
 		onExecuteButtonClick();
+		*/
 	} else if (sExample) {
-		document.getElementById("inputArea").value = "#loading " + sExample + "...";
-		document.getElementById("outputArea").value = "waiting...";
+		setInputAreaValue("#loading " + sExample + "...");
+		setOutputAreaValue("waiting...");
 		sName = sCategory + "/" + sExample + ".js";
 		Utils.loadScript(sName, onExampleLoaded, sExample);
 	} else {
-		document.getElementById("inputArea").value = "";
-		document.getElementById("outputArea").value = "";
+		setInputAreaValue("");
 		gcFiddle.config.example = "";
 		initUndoRedoButtons();
 		onExecuteButtonClick();
@@ -2186,6 +2502,10 @@ function onMapLegendClick() {
 		gcFiddle.maFa.resize();
 		gcFiddle.maFa.fitBounds();
 	}
+}
+
+function onLogsLegendClick() {
+	gcFiddle.config.showLogs = Utils.toogleHidden("logsArea");
 }
 
 function onConsoleLogLegendClick() {
@@ -2414,13 +2734,67 @@ function onReloadButtonClick() {
 	window.location.search = "?" + encodeUriParam(oChanged); // jQuery.param(oChanged, true)
 }
 
+function testIndexedDb(oExample) {
+	var sDataBaseName = "GCFiddle",
+		sStoreName = "geocaches",
+		oRequest = window.indexedDB.open(sDataBaseName, 1);
+
+	oRequest.onupgradeneeded = function (event) {
+		var oDb = event.target.result,
+			oStore, oTitleIndex;
+
+		oStore = oDb.createObjectStore(sStoreName,
+			{
+				keyPath: "id"
+			});
+
+		oTitleIndex = oStore.createIndex("byTitle", "title",
+			{
+				unique: false
+			});
+		return oTitleIndex;
+	};
+	oRequest.onsuccess = function (event) {
+		var oDb = event.target.result,
+			oTransaction, sInput, iPos, oStore, oReq;
+
+		oTransaction = oDb.transaction(sStoreName, "readwrite");
+		oStore = oTransaction.objectStore(sStoreName);
+
+		sInput = oExample.script;
+		if (sInput) {
+			iPos = sInput.indexOf(gcFiddle.sJsonMarker);
+			if (iPos >= 0) {
+				oExample = Utils.objectAssign({}, window.JSON.parse(sInput.substring(iPos + gcFiddle.sJsonMarker.length)), oExample);
+			}
+			/*
+			aInfo = sInput.match(/\n#GC_INFO:([^\n]*)/);
+			if (aInfo && aInfo.length === 2) {
+				oExample = Utils.objectAssign({}, window.JSON.parse(aInfo[1]), oExample);
+			}
+			*/
+		}
+
+		// oReq = oStore.add(oExample);
+		oReq = oStore.put(oExample); // or: oReq = oStore.put(oExample); to modify if exist
+		oReq.onsuccess = function (ev) {
+			window.console.log("indexedDB: Insertion successful: " + ev.target.result);
+		};
+		oReq.onerror = function (ev) {
+			window.console.error("indexedDB: Insert error: " + ev.target.error); // or use his.error
+		};
+	};
+	oRequest.onerror = function (event) {
+		window.console.error("indexedDB: Database error:" + event.target.errorCode);
+	};
+}
+
 function onSaveButtonClick() {
 	var categorySelect = document.getElementById("categorySelect"),
 		sCategory = categorySelect.value,
 		exampleSelect = document.getElementById("exampleSelect"),
 		sInput = document.getElementById("inputArea").value,
-		oExample,
-		oSavedList;
+		oExample, oSavedList;
 
 	if (sCategory !== "saved") {
 		sCategory = "saved";
@@ -2430,6 +2804,11 @@ function onSaveButtonClick() {
 
 	oExample = addExample(sInput, sCategory);
 	window.localStorage.setItem(oExample.key, sInput);
+
+	if (gcFiddle.config.testIndexedDb) {
+		testIndexedDb(oExample);
+	}
+
 	oSavedList = gcFiddle.categories.saved;
 
 	if (oSavedList[oExample.key]) {
@@ -2540,6 +2919,7 @@ function onLoad() {
 	document.getElementById("mapTypeSelect").onchange = onMapTypeSelectChange;
 	document.getElementById("locationButton").onclick = onLocationButtonClick;
 	document.getElementById("fitBoundsButton").onclick = onFitBoundsButtonClick;
+	document.getElementById("logsLegend").onclick = onLogsLegendClick;
 	document.getElementById("consoleLogLegend").onclick = onConsoleLogLegendClick;
 
 	document.getElementById("outputArea").onclick = onOutputAreaClick;
@@ -2567,6 +2947,10 @@ function onLoad() {
 	}
 	if (oConfig.showMap) {
 		onMapLegendClick();
+	}
+
+	if (!oConfig.showLogs) {
+		onLogsLegendClick();
 	}
 
 	if (oConfig.example) {

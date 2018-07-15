@@ -37,12 +37,14 @@ f()=3.14 #function definition
 assert(f(), 3.14)
 f(x)=3.14*x #function with parameter
 assert(f(2), 6.28)
-f(x)=floor(x) #function calling function
+f(x)=floor(x) #function calling pre-defined function
 assert(f(3.14), 3)
 assert(f(3.14), f(3.99)) #two function calls
 #f(radians) = radians * 180 / pi #f(2 * pi)
 f(x,y)=x*y #two parameters
 assert(f(2,3), 6)
+f2(i)=f(i,i*i)*i #function calling newly defined function
+assert(f2(2), 16)
 #
 #
 #Pre-defined functions
@@ -206,7 +208,7 @@ assert(cti("R9z876gh5432%.*^/+-10"), 9)
 assert(val("a"), 1)
 assert(val("Z"), 26)
 assert(val("abcdefghijklmnopqrstuvw xyz"), 351)
-assert(val("äöüß"), 0) #565
+assert(val("äöüß"), 0)
 assert(val(1234567), 0)
 assert(val("1234567"), 0)
 
@@ -214,9 +216,21 @@ assert(val("1234567"), 0)
 assert(sval("ABCDEFGZz"), "01 02 03 04 05 06 07 26 26")
 assert(sval("ABCabcxyzxyZäöü"), "01 02 03 01 02 03 24 25 26 24 25 26")
 
+#vstr(s [,shift]): numbers to characters (new) (specification of shift may change)
+assert(vstr("01"), "a")
+assert(vstr("26"), "z")
+assert(vstr(1), "a")
+assert(vstr(27), "a")
+assert(vstr("01 02"), "ab")
+assert(vstr("01,02"), "ab")
+assert(vstr("01 02 03 24 25 26"), "abcxyz")
+assert(vstr("01 02 03 24 25 26", 1), "bcdyza")
+assert(vstr("00 01 02 03 24 25 26 27", 1), "abcdyzab")
+assert(vstr(sval("chiffre")), "chiffre")
+
 #encode(s, m1, m2): Encode s with character mapping m1 to m2
 assert(encode("ABBA17abba", "AB7", "OS2"), "OSSO12abba")
-assert(val(encode(lc("ÄÖüß"), "äöüß", "{|}~")), 0) #114?
+assert(val(encode(lc("ÄÖüß"), "äöüß", "{|}~")), 0)
 
 #instr(s, s2): Index of s2 in s, starting at 1 (0=not found)
 assert(instr("abc", "a"), 1)
@@ -228,9 +242,13 @@ assert(instr("abcABCabc", "BC"), 5)
 assert(len(""), 0)
 assert(len("abcABCabc"), 9)
 
-#count(s, c): Count characters in string
+#countstr(s, c): Count substring in string
+assert(countstr("str1,str2,str3,str4", ","), 3)
+assert(countstr("str1,str2,str3,str4", "str"), 4)
+
+#count(s, s2): count individual characters from s2 in string s
 assert(count("str1,str2,str3,str4", ","), 3)
-assert(count("str1,str2,str3,str4", "str"), 4)
+assert(count("str1,str2,str3,st", "str"), "s=4 t=4 r=3")
 
 #mid(s, index, length): (substring with index starting at 1 and length)
 assert(mid("abcABCabc", 3, 5), "cABCa")
