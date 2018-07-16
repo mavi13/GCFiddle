@@ -57,7 +57,7 @@ module.exports = {
         "func-call-spacing": "error",
         "func-name-matching": "error",
         "func-names": [
-            "error",
+            "warn",
             "never"
         ],
         "func-style": "off",
@@ -270,7 +270,7 @@ module.exports = {
         "sort-keys": "off",
         "sort-vars": "off",
         "space-before-blocks": "error",
-        "space-before-function-paren": "off",
+        "space-before-function-paren": ["warn", {"anonymous": "always", "named": "never", "asyncArrow": "always"}],
         "space-in-parens": [
             "error",
             "never"

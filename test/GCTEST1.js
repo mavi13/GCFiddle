@@ -2,7 +2,7 @@
 
 "use strict";
 
-addExample(function() { /*
+addExample(function () { /*
 #GCTEST1: Test Page
 #
 #

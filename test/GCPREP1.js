@@ -2,7 +2,7 @@
 
 "use strict";
 
-addExample(function() { /*
+addExample(function () { /*
 #GCPREP1: Preprocess1 (based on GCJVT3)
 #https://coord.info/GCJVT3
 #

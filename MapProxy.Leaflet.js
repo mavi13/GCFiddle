@@ -26,7 +26,7 @@ MapProxy.Leaflet.Map.prototype = {
 		this.options = Utils.objectAssign({ }, options);
 		sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
 		sUrl = this.options.leafletUrl.replace(/^http(s)?:/, sProtocol).replace(/(-src)?\.js$/, ".css");
-		Utils.loadStyle(sUrl, function() {
+		Utils.loadStyle(sUrl, function () {
 			window.console.log("Leaflet style loaded (" + sUrl + ")");
 		});
 

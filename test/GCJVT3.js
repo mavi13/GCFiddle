@@ -2,7 +2,7 @@
 
 "use strict";
 
-addExample(function() { /*
+addExample(function () { /*
 #GCJVT3: Irren ist menschlich - To err is human (solution)
 #https://coord.info/GCJVT3
 #

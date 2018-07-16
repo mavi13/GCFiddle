@@ -2,7 +2,7 @@
 
 "use strict";
 
-addExample(function() { /*
+addExample(function () { /*
 #GC5TER7: Das gute alte Schmetterlingsbuch als Mystery
 #https://coord.info/GC5TER7
 #

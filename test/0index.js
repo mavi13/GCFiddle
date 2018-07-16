@@ -3,7 +3,7 @@
 
 "use strict";
 
-setExampleIndex(function() { /*
+setExampleIndex(function () { /*
 #GCNEW1: New Page 1
 #GC5TER7: Das gute alte Schmetterlingsbuch als Mystery (Template)
 #GCJVT3: Irren ist menschlich - To err is human (solution)

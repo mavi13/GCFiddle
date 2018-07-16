@@ -65,7 +65,7 @@ MapProxy.Simple.Map.prototype = {
 			north = Utils.toRadians(map.latTop),
 			west = Utils.toRadians(map.lngLeft),
 			east = Utils.toRadians(map.lngRight),
-			mercY = function(lat1) {
+			mercY = function (lat1) {
 				return Math.log(Math.tan(lat1 / 2 + Math.PI / 4));
 			},
 			ymin = mercY(south),

@@ -2,7 +2,7 @@
 
 "use strict";
 
-addExample(function() { /*
+addExample(function () { /*
 #GCPREP2: Preprocess2
 #
 . NOTE: This example cannot be executed. Press the "Preprocess" button...
@@ -49,8 +49,7 @@ Additional Hints (Encrypt)
 [This is plain text.]
 This is plain text.
 
-Additional Hints
-No hints available.
+Additional Hints (No hints available.)
 
 Decryption Key
 

@@ -77,7 +77,7 @@ MapProxy.OpenLayers.Map.prototype = {
 		});
 
 		oMarkers.events.on({
-			featureselected: function(event) {
+			featureselected: function (event) {
 				var oInternalMarker = event.feature,
 					oMarker, oInfoWindow;
 
@@ -89,7 +89,7 @@ MapProxy.OpenLayers.Map.prototype = {
 					oInfoWindow.open(oMarker.getMap(), oMarker);
 				}
 			},
-			featureunselected: function(event) {
+			featureunselected: function (event) {
 				var oInternalMarker = event.feature,
 					oMarker, oInfoWindow;
 
@@ -128,7 +128,7 @@ MapProxy.OpenLayers.Map.prototype = {
 		if (OpenLayers.Control.DragFeature) { // add DragFeature before SelectFeature!
 			this.map.addControl(new OpenLayers.Control.DragFeature(oMarkers, {
 				autoActivate: true,
-				onDrag: function(internalMarker) {
+				onDrag: function (internalMarker) {
 					var oMarker = that.privGetRegisteredMarker(internalMarker.id),
 						oPosition = oMarker.getPosition(),
 						oInfoWindow = oMarker.options.infoWindow;
@@ -335,7 +335,7 @@ MapProxy.OpenLayers.InfoWindow = function (options) {
 MapProxy.OpenLayers.InfoWindow.prototype = {
 	init: function (options) {
 		var that = this,
-			fncloseBoxCallback = function(event) {
+			fncloseBoxCallback = function (event) {
 				that.close();
 				OpenLayers.Event.stop(event);
 			};
@@ -359,7 +359,7 @@ MapProxy.OpenLayers.InfoWindow.prototype = {
 		this.infoWindow.updateSize();
 		this.map = map;
 	},
-	getAnchor: function() {
+	getAnchor: function () {
 		return this.anchor;
 	},
 	close: function () {
