@@ -526,10 +526,24 @@ function doPreprocess() {
 	var inputArea = document.getElementById("inputArea"),
 		sInput = inputArea.value,
 		sOutput = "",
-		oProcessor;
+		oProcessor, mInfo;
 
-	oProcessor = new Preprocessor();
-	sOutput = oProcessor.processText(sInput);
+	oProcessor = new Preprocessor({
+		scriptParser: new ScriptParser()
+	});
+	mInfo = oProcessor.processText(sInput);
+	sOutput = mInfo.script;
+	mInfo.script = "";
+	if (sOutput !== "") {
+		if (mInfo.id) {
+			sOutput = "#" + mInfo.id + ": " + mInfo.title + "\n"
+				+ "#https://coord.info/" + mInfo.id + "\n"
+				+ "$" + mInfo.id + '="' + (mInfo.waypoint || "") + '"\n'
+				+ sOutput
+				+ "#\n"
+				+ gcFiddle.sJsonMarker + window.JSON.stringify(mInfo) + "\n";
+		}
+	}
 
 	putChangedInputOnStack();
 	setInputAreaValue(sOutput);

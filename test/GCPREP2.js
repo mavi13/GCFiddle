@@ -10,6 +10,7 @@ addExample(function () { /*
 Skip to Content
 This cache has been archived.
 This cache is temporarily unavailable.
+Your profile photo myname 1,234 Finds
 GCPREP2
 Multi-cache
 Preprocessed Test 2

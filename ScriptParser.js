@@ -9,7 +9,6 @@
 // How to write a simple interpreter in JavaScript
 // Peter_Olson, 30 Oct 2014
 function ScriptParser() {
-	return this;
 }
 
 ScriptParser.prototype = {

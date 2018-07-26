@@ -1,6 +1,6 @@
 // MapProxy.js - MapProxy for GCFiddle
 //
-/* globals Utils */ // make ESlint happy
+/* globals Utils */
 
 "use strict";
 

@@ -17,7 +17,8 @@ Skip to Content
     Community
     Shop
 
-    Upgrade
+	Upgrade
+	Your profile photo
     mavi13 1,770 Finds
 
 GCJVT3 ▼
@@ -46,7 +47,7 @@ Cache Issues:
 N 49° 18.071 E 008° 42.167
 UTM: 32U E 478392 N 5460980
 In Baden-Württemberg, Germany
-NE NE 1 km from your home location
+NE NE 123 km from your home location
 
 Print:
     No Logs 5 Logs 10 Logs Driving Directions
