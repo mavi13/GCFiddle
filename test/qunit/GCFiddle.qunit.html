@@ -3,12 +3,18 @@
 <head>
   <meta charset="utf-8">
   <title>QUnit tests for GCFiddle</title>
-  <link rel="stylesheet" href="https://code.jquery.com/qunit/qunit-2.6.1.css">
+  <link rel="stylesheet" href="https://unpkg.com/qunitjs/qunit/qunit.css">
+  <link rel="stylesheet" href="https://unpkg.com/qunit-composite/qunit-composite.css">
 </head>
 <body>
   <div id="qunit"></div>
   <div id="qunit-fixture"></div>
-  <script src="https://code.jquery.com/qunit/qunit-2.6.1.js"></script>
-  <script src="Preprocessor.qunit.js"></script>
+  <script src="https://unpkg.com/qunitjs/qunit/qunit.js"></script>
+  <script src="https://unpkg.com/qunit-composite/qunit-composite.js"></script>
+  <script>
+    QUnit.testSuites("GCfiddle tests", [
+        "Preprocessor.qunit.html"
+    ]);
+  </script>
 </body>
 </html>

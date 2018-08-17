@@ -77,7 +77,7 @@ function getLoadedFile() {
 
 // if category is not specified it is extracted from the filename in the call stack
 function parseExample(input, category, emptyExample) {
-	var sInput = (typeof input === "string") ? input : hereDoc(input).trim(),
+	var sInput = (typeof input === "string") ? input.trimLeft() : hereDoc(input).trim(),
 		oExample = {
 			category: category,
 			key: "",

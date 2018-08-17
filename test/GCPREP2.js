@@ -28,10 +28,11 @@ N 49° 18.071 E 008° 42.167
 Geocache Description:
 
 Test Variables:
-variable equals number a=0 test
-variable equals number with spaces b  =  15 test
-multiple variables in one line c=a+b d=a*b test (currently not ok)
-x = a + b + c + d + 26325
+variable equals number a=1
+variable equals number a=5 text
+variable equals number with spaces  b  =  15 more  text
+multiple variables in one line c=a+b d=a*b more text
+expression x = a + b + c + d + 26325 more text
 
 Test Waypoints:
 N 49° 18.071 E 008° 42.171
