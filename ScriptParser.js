@@ -8,7 +8,8 @@
 // (and: http://crockford.com/javascript/tdop/tdop.html ; test online: http://jsfiddle.net/h3xwj/embedded/result/)
 // How to write a simple interpreter in JavaScript
 // Peter_Olson, 30 Oct 2014
-function ScriptParser() {
+function ScriptParser(/* options */) {
+	// empty
 }
 
 ScriptParser.prototype = {
@@ -29,25 +30,25 @@ ScriptParser.prototype = {
 				return (/["]/).test(c);
 			},
 			isNotQuotes = function (c) {
-				return typeof c === "string" && !isQuotes(c);
+				return c !== "" && !isQuotes(c);
 			},
 			isApostrophe = function (c) {
 				return (/[']/).test(c);
 			},
 			isNotApostrophe = function (c) {
-				return typeof c === "string" && !isApostrophe(c);
+				return c !== "" && !isApostrophe(c);
 			},
 			isIdentifier = function (c) {
-				return typeof c === "string" && (/[$\w]/).test(c);
+				return c !== "" && (/[$\w]/).test(c);
 			},
 			isFormatter = function (c) {
 				return (/[:]/).test(c);
 			},
 			isNotFormatter = function (c) {
-				return typeof c === "string" && (/[0#.]/).test(c);
+				return c !== "" && (/[0#.]/).test(c);
 			},
 			isNotNewLine = function (c) {
-				return typeof c === "string" && c !== "\n";
+				return c !== "" && c !== "\n";
 			},
 			aTokens = [],
 			sToken,
@@ -57,7 +58,7 @@ ScriptParser.prototype = {
 
 			advance = function () {
 				iIndex += 1;
-				return input[iIndex];
+				return input.charAt(iIndex);
 			},
 			advanceWhile = function (fn) {
 				var sToken2 = "";
@@ -93,7 +94,7 @@ ScriptParser.prototype = {
 
 		while (iIndex < input.length) {
 			iStartPos = iIndex;
-			sChar = input[iIndex];
+			sChar = input.charAt(iIndex);
 			if (isWhiteSpace(sChar)) {
 				sChar = advance();
 			} else if (isComment(sChar)) {

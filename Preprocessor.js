@@ -16,9 +16,11 @@ Preprocessor.prototype = {
 		this.mVariables = {};
 		this.mInfo = {};
 	},
+	/*
 	fnEndsWith: function (str, find) {
 		return str.indexOf(find, str.length - find.length) !== -1;
 	},
+	*/
 	// Find undefined variables and put them on top of the script
 	fnFixScript: function (script, scriptParser) {
 		var oVars = {},
@@ -283,18 +285,17 @@ Preprocessor.prototype = {
 				sRight = aParts[i + 1];
 				aMatchLeft = sLeft.match(/([A-Za-z]\w*)[ ]*$/);
 				if (aMatchLeft) {
-					//aMatchRight = sRight.match(/^[ ]*([0-9A-Za-z]+(?:[ ]*[+\-*/][ ]*[0-9A-Za-z]+)*)/);
 					aMatchRight = sRight.match(/^[ ]*([0-9A-Za-z()]+(?:[ ]*[+\-*/][ ]*[0-9A-Za-z()]+)+)/); // expression with operand(s)?
 					if (!aMatchRight) {
 						aMatchRight = sRight.match(/^[ ]*([0-9]+)/); // just a number?
 					}
 					aMatchRight2 = sRight.match(/([A-Za-z]\w*)[ ]*$/);
 					if (((i + 1) < iLengthMinus1) && aMatchRight2) {
-						sLeft += "=" + sRight.substring(0, aMatchRight2.index).trimRight() + "\n" + aMatchLeft[1];
-						sRight = ((aMatchRight) ? aMatchRight[1].trimRight() : "0") + "\n#" + sRight.substring(aMatchRight2.index);
+						sLeft += "=" + Utils.stringTrimRight(sRight.substring(0, aMatchRight2.index)) + "\n" + aMatchLeft[1];
+						sRight = ((aMatchRight) ? Utils.stringTrimRight(aMatchRight[1]) : "0") + "\n#" + sRight.substring(aMatchRight2.index);
 					} else {
 						sLeft += "=" + sRight + "\n" + aMatchLeft[1];
-						sRight = ((aMatchRight) ? aMatchRight[1].trimRight() : "0");
+						sRight = ((aMatchRight) ? Utils.stringTrimRight(aMatchRight[1]) : "0");
 					}
 					sOut += sLeft + "=";
 				} else {
@@ -308,13 +309,12 @@ Preprocessor.prototype = {
 	},
 	fnWaypoints: function (str) {
 		var that = this,
-			//sExpression = "[ ]*([0-9A-Za-z()]+(?:[ ]*[+\\-*x/][ ]*[0-9A-Za-z()]+)*)[ ]*"
 			sExpression = "[ ]*([0-9A-Za-z()\\[\\]+\\-*/]+)[ ]*",
 			//rWaypoint = new RegExp("N\\s*(\\S+)°\\s*(\\S+)\\s*[.,]\\s*(\\S+)\\s*(?:\\n#)?E\\s*(\\S+)°\\s*(\\S+)\\s*[.,]\\s*(\\S+)([#\\n ])", "g"),
 			rWaypoint = new RegExp("N" + sExpression + "°" + sExpression + "[.,]" + sExpression + "(?:\\n#)?E" + sExpression + "°" + sExpression + "[.,]" + sExpression + "([#\\n ])", "g"),
 			iWpIndex = 1;
 
-		if (!that.fnEndsWith(str, "\n")) {
+		if (!Utils.stringEndsWith(str, "\n")) {
 			str += "\n";
 		}
 
@@ -327,7 +327,7 @@ Preprocessor.prototype = {
 				sArg = arguments[i];
 				sArg = sArg.toString().replace(/['"]/, ""); // remove apostropthes, quotes
 				if (i === iLength - 1) { // last argument?
-					if (that.fnEndsWith(sArg, ")") && sArg.indexOf("(") < 0) { // sometimes a waypoint is surrounded by parenthesis, remove closing parenthesis
+					if (Utils.stringEndsWith(sArg, ")") && sArg.indexOf("(") < 0) { // sometimes a waypoint is surrounded by parenthesis, remove closing parenthesis
 						sArg = sArg.substring(0, sArg.length - 1);
 					}
 				}
@@ -355,7 +355,7 @@ Preprocessor.prototype = {
 			}
 			sArg = sArg.replace(/\s*""\s*/, ""); // remove double quotes
 			sMatch = sMatch.trim();
-			if (!that.fnEndsWith(sMatch, "\n")) {
+			if (!Utils.stringEndsWith(sMatch, "\n")) {
 				sMatch += "\n";
 			}
 			sRemain = arguments[7];
@@ -438,7 +438,7 @@ Preprocessor.prototype = {
 					}
 				},
 				{
-					pattern: /\n\[?Caches Found\]? ?(\d*)\n([^\n]*)\n(\d{2}\/\d{2}\/\d{4})\n([\s\S]*)/, // continued
+					pattern: /\n\[?Caches Found\]? ?(\d*)\n([^\n]*)\n?(\d{2}\/\d{2}\/\d{4})\n([\s\S]*)/, // continued
 					groups: "finds,type,date,text",
 					formatter: {
 						finds: function (sVal) {
@@ -458,7 +458,7 @@ Preprocessor.prototype = {
 			aOut = [],
 			aLogs, i, sLog, mOut;
 
-		if (!this.fnEndsWith(str, "\n")) {
+		if (!Utils.stringEndsWith(str, "\n")) {
 			str += "\n";
 		}
 		aLogs = str.split(oPat1);
@@ -516,7 +516,7 @@ Preprocessor.prototype = {
 			sOutput = this.fnWaypoints(sOutput);
 			break;
 		default:
-			if (this.fnEndsWith(sSectionName, "Logged Visits")) { // 83 Logged Visits
+			if (Utils.stringEndsWith(sSectionName, "Logged Visits")) { // 83 Logged Visits
 				Utils.objectAssign(this.mInfo, this.fnLogs("\n" + sInput));
 			} else {
 				window.console.warn("Unknown part: " + sSectionName);
@@ -525,7 +525,7 @@ Preprocessor.prototype = {
 			break;
 		}
 		if (sOutput !== "") {
-			if (!this.fnEndsWith(sOutput, "\n")) {
+			if (!Utils.stringEndsWith(sOutput, "\n")) {
 				sOutput += "\n";
 			}
 		}
@@ -536,7 +536,7 @@ Preprocessor.prototype = {
 			aPart, iIndex, sStr;
 
 		sInput = sInput.trim();
-		if (this.fnEndsWith(sSectionName, "Logged Visits")) { // not for section xx Logged Visits
+		if (Utils.stringEndsWith(sSectionName, "Logged Visits")) { // not for section xx Logged Visits
 			aPart = ["\n" + sInput];
 		} else {
 			aPart = ("\n" + sInput).split(/((?:\n#[^\n]*)+)/); // split into commented and uncommented parts

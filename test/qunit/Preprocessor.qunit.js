@@ -244,7 +244,6 @@ QUnit.test("Parameters from section: Decryption Key", function (assert) {
 		sOut;
 
 	sOut = oPre.processText(sText1);
-	//delete sOut.script;
 	assert.deepEqual(sOut, mResult1, "parameters extracted from text1");
 
 	oPre.init(oPre.options); // init
@@ -276,7 +275,8 @@ QUnit.test("Parameters from section: n Logged Visits", function (assert) {
 			+ "p member 1\n[Premium Member] Premium Member\n[Caches Found] 1584\nWrite note Write note\n03/14/2016\nLog message text 1.\nView Log\n"
 			+ "just :P (4)\n[Member] Member\n[Caches Found] 423\nFound it Found it\n09/06/2014\nFound it.\nView Log\n"
 			+ "member3\nMember\nCaches Found 82\nDidn't find it Didn't find it\n04/21/2014\nNot found text\nView Log\n"
-			+ "reviewer 1\n[Reviewer] Reviewer\nProfile photo for reviewer 1\n[Caches Found] 25\nPublish ListingPublish Listing\n01/31/2014\nPublished\nView Log\n",
+			+ "reviewer 1\n[Reviewer] Reviewer\nProfile photo for reviewer 1\n[Caches Found] 25\nPublish ListingPublish Listing\n01/31/2014\nPublished\nView Log\n"
+			+ "special 1\nMember Member\nCaches Found17\nFound it Found it 05/22/2014\nFound it.\nView Log\n",
 		mResult1 = {
 			logs: [
 				{
@@ -310,6 +310,14 @@ QUnit.test("Parameters from section: n Logged Visits", function (assert) {
 					premium: false,
 					text: "Published",
 					type: "published"
+				},
+				{
+					date: "2014-05-22",
+					finds: 17,
+					name: "special 1",
+					premium: false,
+					text: "Found it.",
+					type: "found"
 				}
 			],
 			script: "#Geocache Description:\n#my description\n"

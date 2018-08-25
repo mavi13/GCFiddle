@@ -50,7 +50,9 @@ var gDebug,
 				key: "GC_UNKNOWN",
 				title: "Unknown"
 			}
-		}
+		},
+		eventHandlers: null,
+		pendingScripts: []
 	};
 
 //
@@ -63,39 +65,63 @@ function hereDoc(fn) {
 		replace(/\*\/[^/]+$/, "");
 }
 
+/*
 function getLoadedFile() {
-	var sFile = "";
+	var sFile = "",
+		sFileDebug = gcFiddle.pendingScripts.pop(); //TTT
 
 	try {
 		throw new Error("getStackTrace");
 	} catch (e) {
-		sFile = e.stack.trim().split("\n").pop();
-		// e.g. Google Chrome: "file:///E:/work/develop/2018/GCFiddle/test/GCNEW1.js:5:1"; Firefox: "@file:///E:/work/develop/2018/GCFiddle/test/GCNEW1.js:5:1"
+		if (e.stack) {
+			sFile = e.stack.trim().split("\n").pop();
+			// e.g. Google Chrome: "file:///E:/work/develop/2018/GCFiddle/test/GCNEW1.js:5:1"; Firefox: "@file:///E:/work/develop/2018/GCFiddle/test/GCNEW1.js:5:1"
+		} else {
+			sFile = sFileDebug;
+		}
 	}
-	return sFile;
+	return sFileDebug; // sFile; //TTT
+}
+*/
+
+function getPendingCategory() {
+	var sCategory = "",
+		oFile;
+
+	if (gcFiddle.pendingScripts.length) {
+		oFile = gcFiddle.pendingScripts.pop();
+		sCategory = oFile.category;
+		if (gDebug) {
+			gDebug.log("DEBUG: getPendingCategory: category=" + sCategory + " taken from file " + oFile.url);
+		}
+	} else {
+		window.console.warn("getPendingCategory: No pending file, cannot get category");
+	}
+	return sCategory;
 }
 
 // if category is not specified it is extracted from the filename in the call stack
 function parseExample(input, category, emptyExample) {
-	var sInput = (typeof input === "string") ? input.trimLeft() : hereDoc(input).trim(),
+	var sInput = (typeof input === "string") ? Utils.stringTrimLeft(input) : hereDoc(input).trim(),
 		oExample = {
 			category: category,
 			key: "",
 			title: "",
 			script: sInput
 		},
-		sLine, aParts, oCategory;
+		sLine, aParts;
 
+	/*
 	if (!category) {
 		sLine = getLoadedFile();
 		aParts = sLine.match(/(\w+)\/(\w+)\.js/);
 		if (aParts) {
 			oExample.category = aParts[1];
-			/*
+			/ *
 			if ((oExample.key !== aParts[2]) && aParts[2] !== "0index") {
 				window.console.warn("parseExample: different example keys found: " + oExample.key + " <> " + aParts[2]);
 			}
-			*/
+			* /
 			oExample.key = aParts[2]; // filename as key
 			oCategory = gcFiddle.categories[oExample.category]; // try to get title from category index
 			if (oCategory) {
@@ -103,6 +129,7 @@ function parseExample(input, category, emptyExample) {
 			}
 		}
 	}
+	*/
 
 	sLine = sInput.split("\n", 1)[0];
 	aParts = sLine.match(/^#([\w\d]+)\s*:\s*(.+)/);
@@ -125,7 +152,12 @@ function parseExample(input, category, emptyExample) {
 // called also from files GCxxxxx.js
 // if category is not specified it is extracted from the filename in the call stack
 function addExample(input, category, emptyExample) {
-	var oItem = parseExample(input, category, emptyExample);
+	var oItem;
+
+	if (!category) {
+		category = getPendingCategory();
+	}
+	oItem = parseExample(input, category, emptyExample);
 
 	window.console.log("addExample: category=" + oItem.category + "(" + gcFiddle.config.category + ") key=" + oItem.key);
 	if (gcFiddle.examples[oItem.category]) {
@@ -140,9 +172,12 @@ function addExample(input, category, emptyExample) {
 // if category is not specified it is extracted from the filename in the call stack
 function setExampleIndex(input, category) {
 	var sInput = (typeof input === "string") ? input.trim() : hereDoc(input).trim(),
-		aLines,
-		mItems = {};
+		mItems = {},
+		aLines;
 
+	if (!category) {
+		category = getPendingCategory();
+	}
 	if (sInput) {
 		aLines = sInput.split("\n");
 		aLines.forEach(function (sLine) {
@@ -285,66 +320,6 @@ function setExampleList() {
 	}
 }
 
-function onVarSelectChange() {
-	var variables = gcFiddle.variables,
-		varSelect = document.getElementById("varSelect"),
-		varLabel = document.getElementById("varLabel"),
-		varInput = document.getElementById("varInput"),
-		sPar = varSelect.value,
-		sValue,
-		sType = document.getElementById("varViewSelect").value;
-
-	if (!sPar) {
-		sPar = "";
-		sValue = sPar;
-	} else {
-		sValue = variables[sPar];
-	}
-	varLabel.innerText = sPar;
-	varLabel.title = sPar;
-	if (!(/^[\d]+$/).test(sValue)) { // currently only digits (without -,.) are numbers
-		sType = "text";
-	}
-	varInput.type = sType; // set type before value
-	varInput.value = sValue;
-	varSelect.title = (varSelect.selectedIndex >= 0) ? varSelect.options[varSelect.selectedIndex].title : "";
-	document.getElementById("varLegend").textContent = "Variables (" + varSelect.length + ")";
-}
-
-function onVarViewSelectChange() {
-	gcFiddle.config.variableType = document.getElementById("varViewSelect").value;
-	onVarSelectChange();
-}
-
-function onWaypointSelectChange() {
-	var variables = gcFiddle.variables,
-		waypointSelect = document.getElementById("waypointSelect"),
-		waypointLabel = document.getElementById("waypointLabel"),
-		waypointInput = document.getElementById("waypointInput"),
-		sPar = waypointSelect.value,
-		aMarkers = gcFiddle.maFa.getMarkers(),
-		sValue,	oMarker, i;
-
-	// center to selected waypoint
-	for (i = 0; i < aMarkers.length; i += 1) {
-		oMarker = aMarkers[i];
-		if (oMarker && sPar === oMarker.getTitle()) {
-			gcFiddle.maFa.setCenter(oMarker);
-			break;
-		}
-	}
-	if (!sPar) {
-		sPar = "";
-		sValue = sPar;
-	} else {
-		sValue = variables[sPar];
-	}
-	waypointLabel.innerText = sPar;
-	waypointLabel.title = sPar;
-	waypointInput.value = sValue;
-	waypointSelect.title = (waypointSelect.selectedIndex >= 0) ? waypointSelect.options[waypointSelect.selectedIndex].title : "";
-	document.getElementById("waypointLegend").textContent = "Waypoints (" + waypointSelect.length + ")";
-}
 
 function setInputAreaValue(value) {
 	var sLog = "",
@@ -403,57 +378,6 @@ function calculate2() {
 	setOutputAreaValue(oOutput.text);
 }
 
-function onVarInputChange() {
-	var variables = gcFiddle.variables,
-		varLabel = document.getElementById("varLabel"),
-		varInput = document.getElementById("varInput"),
-		sPar = varLabel.innerText,
-		sValue,
-		nValueAsNumber;
-
-	if (sPar) {
-		sValue = varInput.value;
-		nValueAsNumber = parseFloat(sValue);
-		if (variables.gcfOriginal[sPar] === undefined) {
-			variables.gcfOriginal[sPar] = variables[sPar];
-		}
-		variables[sPar] = isNaN(nValueAsNumber) ? sValue : nValueAsNumber;
-		calculate2();
-		setVarSelectOptions();
-		onVarSelectChange(); // title change?
-		setWaypointSelectOptions();
-		setMarkers(variables);
-		gcFiddle.maFa.setPolyline();
-		gcFiddle.maFa.showMarkers();
-		onWaypointSelectChange();
-	}
-}
-
-function onWaypointInputChange() {
-	var variables = gcFiddle.variables,
-		waypointLabel = document.getElementById("waypointLabel"),
-		waypointInput = document.getElementById("waypointInput"),
-		sPar = waypointLabel.innerText,
-		sValue,
-		nValueAsNumber;
-
-	if (sPar) {
-		sValue = waypointInput.value;
-		nValueAsNumber = parseFloat(sValue);
-		if (variables.gcfOriginal[sPar] === undefined) {
-			variables.gcfOriginal[sPar] = variables[sPar];
-		}
-		variables[sPar] = isNaN(nValueAsNumber) ? sValue : nValueAsNumber;
-		calculate2();
-		setVarSelectOptions();
-		setWaypointSelectOptions();
-		setMarkers(variables);
-		gcFiddle.maFa.setPolyline();
-		gcFiddle.maFa.showMarkers();
-		onWaypointSelectChange();
-	}
-}
-
 
 function setDisabled(id, bDisabled) {
 	var element = document.getElementById(id);
@@ -482,46 +406,6 @@ function putChangedInputOnStack() {
 }
 
 
-function onExecuteButtonClick() {
-	var varSelect = document.getElementById("varSelect"),
-		waypointSelect = document.getElementById("waypointSelect");
-
-	putChangedInputOnStack();
-
-	gcFiddle.variables = {
-		gcfOriginal: { }
-	};
-	calculate2();
-	gcFiddle.maFa.deleteMarkers();
-	gcFiddle.maFa.deletePolyline();
-	setMarkers(gcFiddle.variables);
-	removeSelectOptions(varSelect);
-	setVarSelectOptions();
-	onVarSelectChange();
-	removeSelectOptions(waypointSelect);
-	setWaypointSelectOptions();
-	if (waypointSelect.options.length) {
-		waypointSelect.selectedIndex = waypointSelect.options.length - 1; // select last waypoint
-	}
-	onWaypointSelectChange();
-	gcFiddle.maFa.fitBounds();
-	gcFiddle.maFa.setPolyline();
-	gcFiddle.maFa.showMarkers();
-}
-
-
-function onUndoButtonClick() {
-	setInputAreaValue(gcFiddle.inputStack.undo());
-	updateUndoRedoButtons();
-	setOutputAreaValue("");
-}
-
-function onRedoButtonClick() {
-	setInputAreaValue(gcFiddle.inputStack.redo());
-	updateUndoRedoButtons();
-	setOutputAreaValue("");
-}
-
 function doPreprocess() {
 	var inputArea = document.getElementById("inputArea"),
 		sInput = inputArea.value,
@@ -547,309 +431,9 @@ function doPreprocess() {
 
 	putChangedInputOnStack();
 	setInputAreaValue(sOutput);
-	onExecuteButtonClick();
+	gcFiddle.eventHandlers.onExecuteButtonClick();
 }
 
-function onPreprocessButtonClick() {
-	var sUrl = "Preprocessor.js";
-
-	if (typeof Preprocessor === "undefined") { // load module on demand
-		Utils.loadScript(sUrl, function () {
-			window.console.log(sUrl + " loaded");
-			doPreprocess();
-		});
-	} else {
-		doPreprocess();
-	}
-}
-
-function onExampleLoaded(sExample, bSuppressLog) {
-	var sCategory = gcFiddle.config.category,
-		oExamples = gcFiddle.examples[sCategory],
-		sName = sCategory + "/" + sExample + ".js",
-		sUnknownExample;
-
-	gcFiddle.config.example = sExample;
-	if (!bSuppressLog) {
-		window.console.log("Example " + sName + " loaded");
-	}
-	if (oExamples[sExample] === undefined) { // TODO: example without id loaded (Do we still need this?)
-		window.console.warn("Example " + sName + ": Wrong format! Must start with #<id>: <title>");
-		sUnknownExample = gcFiddle.emptyExample.unknown.key;
-		if (oExamples[sUnknownExample]) {
-			oExamples[sExample] = oExamples[sUnknownExample];
-			delete oExamples[sUnknownExample];
-		} else {
-			window.console.error("No example 'unknown' found");
-			oExamples[sExample] = parseExample("", "", sExample);
-		}
-	}
-	setInputAreaValue(oExamples[sExample].script);
-	initUndoRedoButtons();
-	onExecuteButtonClick();
-}
-
-function onExampleSelectChange() {
-	var sCategory = gcFiddle.config.category,
-		exampleSelect = document.getElementById("exampleSelect"),
-		sExample = exampleSelect.value,
-		oExamples = gcFiddle.examples[sCategory],
-		sName;
-
-	exampleSelect.title = (exampleSelect.selectedIndex >= 0) ? exampleSelect.options[exampleSelect.selectedIndex].title : "";
-	if (oExamples[sExample] !== undefined) {
-		onExampleLoaded(sExample, true);
-	} else if (sExample) {
-		setInputAreaValue("#loading " + sExample + "...");
-		setOutputAreaValue("waiting...");
-		sName = sCategory + "/" + sExample + ".js";
-		Utils.loadScript(sName, onExampleLoaded, sExample);
-	} else {
-		setInputAreaValue("");
-		gcFiddle.config.example = "";
-		initUndoRedoButtons();
-		onExecuteButtonClick();
-	}
-}
-
-function onCategoryLoaded(sCategory) {
-	var exampleSelect = document.getElementById("exampleSelect"),
-		sName = sCategory + "/0index.js";
-
-	gcFiddle.config.category = sCategory;
-	window.console.log("category " + sName + " loaded");
-	removeSelectOptions(exampleSelect);
-	setExampleList();
-	onExampleSelectChange();
-}
-
-function loadCategoryLocalStorage(sCategory) {
-	var	oStorage = window.localStorage,
-		oExamples,
-		i, sKey, sItem;
-
-	oExamples = setExampleIndex("", sCategory); // create category, set example object
-	for (i = 0; i < oStorage.length; i += 1) {
-		sKey = oStorage.key(i);
-		sItem = oStorage.getItem(sKey);
-		oExamples[sKey] = addExample(sItem, sCategory, {
-			key: sKey,
-			title: "" // currently title not stored in saved data if not in input
-		});
-	}
-	onCategoryLoaded(sCategory);
-}
-
-function onCategorySelectChange() {
-	var categorySelect = document.getElementById("categorySelect"),
-		sCategory = categorySelect.value,
-		exampleSelect = document.getElementById("exampleSelect"),
-		oCategories = gcFiddle.categories,
-		sName;
-
-	if (oCategories[sCategory] !== undefined) {
-		gcFiddle.config.category = sCategory;
-		removeSelectOptions(exampleSelect);
-		setExampleList();
-		onExampleSelectChange();
-	} else {
-		document.getElementById("inputArea").value = "#loading index " + sCategory + "...";
-		if (sCategory === "saved") {
-			loadCategoryLocalStorage(sCategory);
-		} else {
-			sName = sCategory + "/0index.js";
-			Utils.loadScript(sName, onCategoryLoaded, sCategory);
-		}
-	}
-	setDisabled("deleteButton", (sCategory !== "saved") || !Object.keys(gcFiddle.categories.saved).length);
-}
-
-function onInputLegendClick() {
-	gcFiddle.config.showInput = Utils.toogleHidden("inputArea");
-}
-
-function onOutputLegendClick() {
-	gcFiddle.config.showOutput = Utils.toogleHidden("outputArea");
-}
-
-function onVarLegendClick() {
-	gcFiddle.config.showVariable = Utils.toogleHidden("varArea");
-}
-
-function onNotesLegendClick() {
-	gcFiddle.config.showNotes = Utils.toogleHidden("notesArea");
-}
-
-function onWaypointLegendClick() {
-	gcFiddle.config.showWaypoint = Utils.toogleHidden("waypointArea");
-}
-
-function onMapLegendClick() {
-	var sMapType = gcFiddle.config.mapType;
-
-	gcFiddle.config.showMap = Utils.toogleHidden("mapCanvas-" + sMapType);
-	if (gcFiddle.config.showMap) {
-		gcFiddle.maFa.resize();
-		gcFiddle.maFa.fitBounds();
-	}
-}
-
-function onLogsLegendClick() {
-	gcFiddle.config.showLogs = Utils.toogleHidden("logsArea");
-}
-
-function onConsoleLogLegendClick() {
-	gcFiddle.config.showConsole = Utils.toogleHidden("consoleLogArea");
-}
-
-function onFitBoundsButtonClick() {
-	var oMaFa = gcFiddle.maFa;
-
-	oMaFa.clearMarkers(); // clear needed for SimpleMarker
-	oMaFa.clearPolyline();
-	oMaFa.fitBounds();
-	oMaFa.setPolyline();
-	oMaFa.showMarkers();
-}
-
-function onLocationButtonClick() {
-	function showPosition(position) {
-		var oPos = new LatLng(position.coords.latitude, position.coords.longitude),
-			iMarkersLength = gcFiddle.maFa.getMarkers().length;
-
-		window.console.log("Location: " + oPos.toString());
-		gcFiddle.maFa.setMarker({
-			position: oPos
-		}, iMarkersLength);
-		onFitBoundsButtonClick();
-	}
-
-	function showError(error) {
-		switch (error.code) {
-		case error.PERMISSION_DENIED:
-			window.console.warn("User denied the request for Geolocation.");
-			break;
-		case error.POSITION_UNAVAILABLE:
-			window.console.warn("Location information is unavailable.");
-			break;
-		case error.TIMEOUT:
-			window.console.warn("The request to get user location timed out.");
-			break;
-		case error.UNKNOWN_ERROR:
-			window.console.warn("An unknown error occurred.");
-			break;
-		default:
-			window.console.warn("An error occurred.");
-			break;
-		}
-	}
-
-	if (navigator.geolocation) {
-		navigator.geolocation.getCurrentPosition(showPosition, showError);
-	} else {
-		window.console.warn("Geolocation is not supported by this browser.");
-	}
-}
-
-function onOutputAreaClick(event) {
-	var variables = gcFiddle.variables,
-		oTarget = event.target,
-		iSelStart = oTarget.selectionStart,
-		sOutput = oTarget.value,
-		iLineStart,
-		iLineEnd,
-		iEqual,
-		sPar = "",
-		varSelect = document.getElementById("varSelect"),
-		waypointSelect = document.getElementById("waypointSelect");
-
-	if (gDebug) {
-		gDebug.log("onOutputAreaClick: selStart=" + event.target.selectionStart + " selEnd=" + event.target.selectionEnd);
-	}
-	if (sOutput) {
-		iLineEnd = sOutput.indexOf("\n", iSelStart);
-		if (iLineEnd >= 0) {
-			sOutput = sOutput.substring(0, iLineEnd);
-		}
-		iLineStart = sOutput.lastIndexOf("\n");
-		if (iLineStart >= 0) {
-			sOutput = sOutput.substring(iLineStart + 1, iLineEnd);
-		}
-		iEqual = sOutput.indexOf("=");
-		if (iEqual >= 0) {
-			sPar = sOutput.substring(0, iEqual);
-		}
-		if (gDebug) {
-			gDebug.log("onOutputAreaClick: line='" + sOutput + "' var=" + sPar);
-		}
-		if (sPar && variables[sPar] !== null) {
-			if (isWaypoint(sPar)) {
-				if (sPar !== waypointSelect.value) {
-					waypointSelect.value = sPar;
-					onWaypointSelectChange();
-				}
-			} else if (sPar !== varSelect.value) {
-				varSelect.value = sPar;
-				onVarSelectChange();
-			}
-		}
-	}
-}
-
-
-function onMapLoaded(map) {
-	var sMapType = map.options.mapType,
-		oMapProxy = gcFiddle.mapProxy[sMapType];
-
-	oMapProxy.setMap(map);
-	if (gcFiddle.maFa) {
-		gcFiddle.maFa.initMap(oMapProxy);
-	}
-}
-
-function onMapProxyLoaded(mapProxy) {
-	var sMapType = mapProxy.options.mapType,
-		sMapTypeId = "mapCanvas-" + sMapType;
-
-	gcFiddle.mapProxy[sMapType] = mapProxy;
-	mapProxy.createMap({
-		googleKey: gcFiddle.config.googleKey,
-		leafletUrl: gcFiddle.config.leafletUrl,
-		mapboxKey: gcFiddle.config.mapboxKey,
-		openLayersUrl: gcFiddle.config.openLayersUrl,
-		zoom: gcFiddle.config.zoom,
-		mapType: sMapType,
-		mapDivId: sMapTypeId,
-		onload: onMapLoaded
-	});
-}
-
-function onMapTypeSelectChange() {
-	var	aMapCanvas = document.getElementsByClassName("canvas"),
-		mapTypeSelect = document.getElementById("mapTypeSelect"),
-		sMapType = mapTypeSelect.value,
-		sMapTypeId = "mapCanvas-" + sMapType,
-		oItem, i;
-
-	gcFiddle.config.mapType = sMapType;
-	for (i = 0; i < aMapCanvas.length; i += 1) {
-		oItem = aMapCanvas[i];
-		if (oItem.id === sMapTypeId) {
-			Utils.setHidden(oItem.id, !gcFiddle.config.showMap);
-		} else {
-			Utils.setHidden(oItem.id, true);
-		}
-	}
-
-	if (!gcFiddle.mapProxy[sMapType]) {
-		MapProxy.create({
-			mapType: sMapType,
-			onload: onMapProxyLoaded
-		});
-	} else if (gcFiddle.maFa) {
-		gcFiddle.maFa.initMap(gcFiddle.mapProxy[sMapType]);
-	}
-}
 
 function getChangedParameters(current, initial) {
 	var oChanged = {},
@@ -918,11 +502,6 @@ function myConfirm(message) {
 	return confirm(message);
 }
 
-function onReloadButtonClick() {
-	var oChanged = getChangedParameters(gcFiddle.config, gcFiddle.initialConfig);
-
-	window.location.search = "?" + encodeUriParam(oChanged); // jQuery.param(oChanged, true)
-}
 
 function testIndexedDb(oExample) {
 	var sDataBaseName = "GCFiddle",
@@ -972,69 +551,584 @@ function testIndexedDb(oExample) {
 	};
 }
 
-function onSaveButtonClick() {
-	var categorySelect = document.getElementById("categorySelect"),
-		sCategory = categorySelect.value,
-		exampleSelect = document.getElementById("exampleSelect"),
-		oselectedExample = gcFiddle.examples[sCategory][exampleSelect.value],
-		sInput = document.getElementById("inputArea").value,
-		oExample, oSavedList;
 
-	if (sCategory !== "saved") {
-		sCategory = "saved";
-		categorySelect.value = sCategory;
-		onCategorySelectChange(); // may change example value as well
-	}
-
-	oExample = addExample(sInput, sCategory, oselectedExample || gcFiddle.emptyExample.draft);
-	window.localStorage.setItem(oExample.key, sInput);
-
-	if (gcFiddle.config.testIndexedDb) {
-		testIndexedDb(oExample);
-	}
-
-	oSavedList = gcFiddle.categories.saved;
-
-	if (oSavedList[oExample.key]) {
-		oSavedList[oExample.key] = oExample;
-		if (exampleSelect.value !== oExample.key) {
-			exampleSelect.value = oExample.key;
-		}
-		onExampleSelectChange(); // make sure correct input is shown
-	} else {
-		oSavedList[oExample.key] = oExample;
-		gcFiddle.config.example = oExample.key;
-		setExampleList();
-		onExampleSelectChange();
-	}
-	setDisabled("deleteButton", !Object.keys(oSavedList).length);
+function capitalize(str) {
+	return str.charAt(0).toUpperCase() + str.substring(1);
 }
 
-function onDeleteButtonClick() {
-	var sCategory = document.getElementById("categorySelect").value,
-		exampleSelect = document.getElementById("exampleSelect"),
-		sExample = exampleSelect.value,
-		oSavedList = gcFiddle.categories.saved;
 
-	if (sCategory !== "saved") {
-		return;
-	}
-	if (!myConfirm("Delete " + sCategory + "/" + sExample)) {
-		return;
-	}
-	window.console.log("Deleting " + sExample);
-	window.localStorage.removeItem(sExample);
+function CommonEventHandlers(options) {
+	this.init(options);
+}
 
-	if (oSavedList) {
-		if (oSavedList[sExample]) {
-			delete oSavedList[sExample];
+CommonEventHandlers.prototype = {
+	init: function (/* options */) {
+		this.attach();
+	},
+
+	attach: function () {
+		var that = this,
+			fnCommonEventHandler = function (event) {
+				var oTarget = event.target,
+					sId = oTarget.getAttribute("id"),
+					sType, sHandler;
+
+				if (sId) {
+					sType = event.type; // click or change
+					sHandler = "on" + capitalize(sId) + capitalize(sType);
+					if (gDebug) {
+						gDebug.log("DEBUG: fnCommonEventHandler: sHandler=" + sHandler);
+					}
+					if (sHandler in that) {
+						that[sHandler](event);
+					} else if (!Utils.stringEndsWith(sHandler, "SelectClick") && !Utils.stringEndsWith(sHandler, "InputClick")) { // do not print all messages
+						window.console.log("Event handler not found: " + sHandler);
+					}
+				}
+			};
+
+		document.addEventListener("click", fnCommonEventHandler, false);
+		document.addEventListener("change", fnCommonEventHandler, false);
+	},
+
+	onVarSelectChange: function () {
+		var variables = gcFiddle.variables,
+			varSelect = document.getElementById("varSelect"),
+			varLabel = document.getElementById("varLabel"),
+			varInput = document.getElementById("varInput"),
+			sPar = varSelect.value,
+			sValue,
+			sType = document.getElementById("varViewSelect").value;
+
+		if (!sPar) {
+			sPar = "";
+			sValue = sPar;
+		} else {
+			sValue = variables[sPar];
+		}
+		varLabel.innerText = sPar;
+		varLabel.title = sPar;
+		if (!(/^[\d]+$/).test(sValue)) { // currently only digits (without -,.) are numbers
+			sType = "text";
+		}
+		// old IE throws error when changing input type
+		try {
+			varInput.type = sType; // set type before value
+		} catch (e) {
+			window.console.warn("Browser does not allow to set input.type=" + sType + ": " + e.message);
+		}
+		varInput.value = sValue;
+		varSelect.title = (varSelect.selectedIndex >= 0) ? varSelect.options[varSelect.selectedIndex].title : "";
+		document.getElementById("varLegend").textContent = "Variables (" + varSelect.length + ")";
+	},
+
+	onVarViewSelectChange: function () {
+		gcFiddle.config.variableType = document.getElementById("varViewSelect").value;
+		this.onVarSelectChange();
+	},
+
+	onWaypointSelectChange: function () {
+		var variables = gcFiddle.variables,
+			waypointSelect = document.getElementById("waypointSelect"),
+			waypointLabel = document.getElementById("waypointLabel"),
+			waypointInput = document.getElementById("waypointInput"),
+			sPar = waypointSelect.value,
+			aMarkers = gcFiddle.maFa.getMarkers(),
+			sValue,	oMarker, i;
+
+		// center to selected waypoint
+		for (i = 0; i < aMarkers.length; i += 1) {
+			oMarker = aMarkers[i];
+			if (oMarker && sPar === oMarker.getTitle()) {
+				gcFiddle.maFa.setCenter(oMarker);
+				break;
+			}
+		}
+		if (!sPar) {
+			sPar = "";
+			sValue = sPar;
+		} else {
+			sValue = variables[sPar];
+		}
+		waypointLabel.innerText = sPar;
+		waypointLabel.title = sPar;
+		waypointInput.value = sValue;
+		waypointSelect.title = (waypointSelect.selectedIndex >= 0) ? waypointSelect.options[waypointSelect.selectedIndex].title : "";
+		document.getElementById("waypointLegend").textContent = "Waypoints (" + waypointSelect.length + ")";
+	},
+
+	onVarInputChange: function () {
+		var variables = gcFiddle.variables,
+			varLabel = document.getElementById("varLabel"),
+			varInput = document.getElementById("varInput"),
+			sPar = varLabel.innerText,
+			sValue,
+			nValueAsNumber;
+
+		if (sPar) {
+			sValue = varInput.value;
+			nValueAsNumber = parseFloat(sValue);
+			if (variables.gcfOriginal[sPar] === undefined) {
+				variables.gcfOriginal[sPar] = variables[sPar];
+			}
+			variables[sPar] = isNaN(nValueAsNumber) ? sValue : nValueAsNumber;
+			calculate2();
+			setVarSelectOptions();
+			this.onVarSelectChange(); // title change?
+			setWaypointSelectOptions();
+			setMarkers(variables);
+			gcFiddle.maFa.setPolyline();
+			gcFiddle.maFa.showMarkers();
+			this.onWaypointSelectChange();
+		}
+	},
+
+	onWaypointInputChange: function () {
+		var variables = gcFiddle.variables,
+			waypointLabel = document.getElementById("waypointLabel"),
+			waypointInput = document.getElementById("waypointInput"),
+			sPar = waypointLabel.innerText,
+			sValue,
+			nValueAsNumber;
+
+		if (sPar) {
+			sValue = waypointInput.value;
+			nValueAsNumber = parseFloat(sValue);
+			if (variables.gcfOriginal[sPar] === undefined) {
+				variables.gcfOriginal[sPar] = variables[sPar];
+			}
+			variables[sPar] = isNaN(nValueAsNumber) ? sValue : nValueAsNumber;
+			calculate2();
+			setVarSelectOptions();
+			setWaypointSelectOptions();
+			setMarkers(variables);
+			gcFiddle.maFa.setPolyline();
+			gcFiddle.maFa.showMarkers();
+			this.onWaypointSelectChange();
+		}
+	},
+
+	onExecuteButtonClick: function () {
+		var varSelect = document.getElementById("varSelect"),
+			waypointSelect = document.getElementById("waypointSelect");
+
+		putChangedInputOnStack();
+
+		gcFiddle.variables = {
+			gcfOriginal: { }
+		};
+		calculate2();
+		gcFiddle.maFa.deleteMarkers();
+		gcFiddle.maFa.deletePolyline();
+		setMarkers(gcFiddle.variables);
+		removeSelectOptions(varSelect);
+		setVarSelectOptions();
+		this.onVarSelectChange();
+		removeSelectOptions(waypointSelect);
+		setWaypointSelectOptions();
+		if (waypointSelect.options.length) {
+			waypointSelect.selectedIndex = waypointSelect.options.length - 1; // select last waypoint
+		}
+		this.onWaypointSelectChange();
+		gcFiddle.maFa.fitBounds();
+		gcFiddle.maFa.setPolyline();
+		gcFiddle.maFa.showMarkers();
+	},
+
+	onUndoButtonClick: function () {
+		setInputAreaValue(gcFiddle.inputStack.undo());
+		updateUndoRedoButtons();
+		setOutputAreaValue("");
+	},
+
+	onRedoButtonClick: function () {
+		setInputAreaValue(gcFiddle.inputStack.redo());
+		updateUndoRedoButtons();
+		setOutputAreaValue("");
+	},
+
+	onPreprocessButtonClick: function () {
+		var sUrl = "Preprocessor.js";
+
+		if (typeof Preprocessor === "undefined") { // load module on demand
+			Utils.loadScript(sUrl, function () {
+				window.console.log(sUrl + " loaded");
+				doPreprocess();
+			});
+		} else {
+			doPreprocess();
+		}
+	},
+
+	onExampleSelectChange: function () {
+		var that = this,
+			sCategory = gcFiddle.config.category,
+			exampleSelect = document.getElementById("exampleSelect"),
+			sExample = exampleSelect.value,
+			oExamples = gcFiddle.examples[sCategory],
+			sName,
+
+			fnExampleLoaded = function (sFullUrl, sExample2, bSuppressLog) {
+				var sCategory2 = gcFiddle.config.category,
+					oExamples2 = gcFiddle.examples[sCategory2],
+					sName2 = sCategory2 + "/" + sExample2 + ".js",
+					sUnknownExample;
+
+				gcFiddle.config.example = sExample2;
+				if (!bSuppressLog) {
+					window.console.log("Example " + sName2 + " loaded");
+				}
+				if (oExamples2[sExample2] === undefined) { // TODO: example without id loaded (Do we still need this?)
+					window.console.warn("Example " + sName2 + ": Wrong format! Must start with #<id>: <title>");
+					sUnknownExample = gcFiddle.emptyExample.unknown.key;
+					if (oExamples2[sUnknownExample]) {
+						oExamples2[sExample2] = oExamples2[sUnknownExample];
+						delete oExamples2[sUnknownExample];
+					} else {
+						window.console.error("No example 'unknown' found");
+						oExamples2[sExample2] = parseExample("", "", sExample2);
+					}
+				}
+				setInputAreaValue(oExamples2[sExample2].script);
+				initUndoRedoButtons();
+				that.onExecuteButtonClick();
+			};
+
+		exampleSelect.title = (exampleSelect.selectedIndex >= 0) ? exampleSelect.options[exampleSelect.selectedIndex].title : "";
+		if (oExamples[sExample] !== undefined) {
+			fnExampleLoaded("", sExample, true);
+		} else if (sExample) {
+			setInputAreaValue("#loading " + sExample + "...");
+			setOutputAreaValue("waiting...");
+			sName = sCategory + "/" + sExample + ".js";
+			gcFiddle.pendingScripts.push({
+				category: sCategory,
+				example: sExample,
+				url: sName
+			});
+			Utils.loadScript(sName, fnExampleLoaded, sExample);
+		} else {
+			setInputAreaValue("");
+			gcFiddle.config.example = "";
+			initUndoRedoButtons();
+			this.onExecuteButtonClick();
+		}
+	},
+
+	onCategorySelectChange: function () {
+		var that = this,
+			categorySelect = document.getElementById("categorySelect"),
+			sCategory = categorySelect.value,
+			exampleSelect = document.getElementById("exampleSelect"),
+			oCategories = gcFiddle.categories,
+			sName,
+
+			fnCategoryLoaded = function (sFullUrl, sCategory2) {
+				var exampleSelect2 = document.getElementById("exampleSelect"),
+					sName2 = sCategory2 + "/0index.js";
+
+				gcFiddle.config.category = sCategory2;
+				window.console.log("category " + sName2 + " loaded");
+				removeSelectOptions(exampleSelect2);
+				setExampleList();
+				that.onExampleSelectChange();
+			},
+			fnLoadCategoryLocalStorage = function () {
+				var	oStorage = window.localStorage,
+					oExamples,
+					i, sKey, sItem;
+
+				oExamples = setExampleIndex("", sCategory); // create category, set example object
+				for (i = 0; i < oStorage.length; i += 1) {
+					sKey = oStorage.key(i);
+					sItem = oStorage.getItem(sKey);
+					oExamples[sKey] = addExample(sItem, sCategory, {
+						key: sKey,
+						title: "" // currently title not stored in saved data if not in input
+					});
+				}
+				fnCategoryLoaded("", sCategory);
+			};
+
+		if (oCategories[sCategory] !== undefined) {
+			gcFiddle.config.category = sCategory;
 			removeSelectOptions(exampleSelect);
 			setExampleList();
-			onExampleSelectChange();
+			this.onExampleSelectChange();
+		} else {
+			document.getElementById("inputArea").value = "#loading index " + sCategory + "...";
+			if (sCategory === "saved") {
+				fnLoadCategoryLocalStorage(sCategory);
+			} else {
+				sName = sCategory + "/0index.js";
+				gcFiddle.pendingScripts.push({
+					category: sCategory,
+					example: "0index",
+					url: sName
+				});
+				Utils.loadScript(sName, fnCategoryLoaded, sCategory);
+			}
+		}
+		setDisabled("deleteButton", (sCategory !== "saved") || !Object.keys(gcFiddle.categories.saved).length);
+	},
+
+	onInputLegendClick: function () {
+		gcFiddle.config.showInput = Utils.toogleHidden("inputArea");
+	},
+
+	onOutputLegendClick: function () {
+		gcFiddle.config.showOutput = Utils.toogleHidden("outputArea");
+	},
+
+	onVarLegendClick: function () {
+		gcFiddle.config.showVariable = Utils.toogleHidden("varArea");
+	},
+
+	onNotesLegendClick: function () {
+		gcFiddle.config.showNotes = Utils.toogleHidden("notesArea");
+	},
+
+	onWaypointLegendClick: function () {
+		gcFiddle.config.showWaypoint = Utils.toogleHidden("waypointArea");
+	},
+
+	onMapLegendClick: function () {
+		var sMapType = gcFiddle.config.mapType;
+
+		gcFiddle.config.showMap = Utils.toogleHidden("mapCanvas-" + sMapType);
+		if (gcFiddle.config.showMap) {
+			gcFiddle.maFa.resize();
+			gcFiddle.maFa.fitBounds();
+		}
+	},
+
+	onLogsLegendClick: function () {
+		gcFiddle.config.showLogs = Utils.toogleHidden("logsArea");
+	},
+
+	onConsoleLogLegendClick: function () {
+		gcFiddle.config.showConsole = Utils.toogleHidden("consoleLogArea");
+	},
+
+	onFitBoundsButtonClick: function () {
+		var oMaFa = gcFiddle.maFa;
+
+		oMaFa.clearMarkers(); // clear needed for SimpleMarker
+		oMaFa.clearPolyline();
+		oMaFa.fitBounds();
+		oMaFa.setPolyline();
+		oMaFa.showMarkers();
+	},
+
+	onLocationButtonClick: function () {
+		var that = this;
+
+		function showPosition(position) {
+			var oPos = new LatLng(position.coords.latitude, position.coords.longitude),
+				iMarkersLength = gcFiddle.maFa.getMarkers().length;
+
+			window.console.log("Location: " + oPos.toString());
+			gcFiddle.maFa.setMarker({
+				position: oPos
+			}, iMarkersLength);
+			that.onFitBoundsButtonClick();
+		}
+
+		function showError(error) {
+			switch (error.code) {
+			case error.PERMISSION_DENIED:
+				window.console.warn("User denied the request for Geolocation.");
+				break;
+			case error.POSITION_UNAVAILABLE:
+				window.console.warn("Location information is unavailable.");
+				break;
+			case error.TIMEOUT:
+				window.console.warn("The request to get user location timed out.");
+				break;
+			case error.UNKNOWN_ERROR:
+				window.console.warn("An unknown error occurred.");
+				break;
+			default:
+				window.console.warn("An error occurred.");
+				break;
+			}
+		}
+
+		if (navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(showPosition, showError);
+		} else {
+			window.console.warn("Geolocation is not supported by this browser.");
+		}
+	},
+
+	onOutputAreaClick: function (event) {
+		var variables = gcFiddle.variables,
+			oTarget = event.target,
+			iSelStart = oTarget.selectionStart,
+			sOutput = oTarget.value,
+			iLineStart,
+			iLineEnd,
+			iEqual,
+			sPar = "",
+			varSelect = document.getElementById("varSelect"),
+			waypointSelect = document.getElementById("waypointSelect");
+
+		if (gDebug) {
+			gDebug.log("onOutputAreaClick: selStart=" + event.target.selectionStart + " selEnd=" + event.target.selectionEnd);
+		}
+		if (sOutput) {
+			iLineEnd = sOutput.indexOf("\n", iSelStart);
+			if (iLineEnd >= 0) {
+				sOutput = sOutput.substring(0, iLineEnd);
+			}
+			iLineStart = sOutput.lastIndexOf("\n");
+			if (iLineStart >= 0) {
+				sOutput = sOutput.substring(iLineStart + 1, iLineEnd);
+			}
+			iEqual = sOutput.indexOf("=");
+			if (iEqual >= 0) {
+				sPar = sOutput.substring(0, iEqual);
+			}
+			if (gDebug) {
+				gDebug.log("onOutputAreaClick: line='" + sOutput + "' var=" + sPar);
+			}
+			if (sPar && variables[sPar] !== null) {
+				if (isWaypoint(sPar)) {
+					if (sPar !== waypointSelect.value) {
+						waypointSelect.value = sPar;
+						this.onWaypointSelectChange();
+					}
+				} else if (sPar !== varSelect.value) {
+					varSelect.value = sPar;
+					this.onVarSelectChange();
+				}
+			}
+		}
+	},
+
+	onMapTypeSelectChange: function () {
+		var	aMapCanvas = document.getElementsByClassName("canvas"),
+			mapTypeSelect = document.getElementById("mapTypeSelect"),
+			sMapType = mapTypeSelect.value,
+			sMapTypeId = "mapCanvas-" + sMapType,
+			oItem, i,
+
+			fnMapLoaded = function (map) {
+				var sMapType2 = map.options.mapType,
+					oMapProxy = gcFiddle.mapProxy[sMapType2];
+
+				oMapProxy.setMap(map);
+				if (gcFiddle.maFa) {
+					gcFiddle.maFa.initMap(oMapProxy);
+				}
+			},
+			fnMapProxyLoaded = function (mapProxy) {
+				var sMapType2 = mapProxy.options.mapType,
+					sMapTypeId2 = "mapCanvas-" + sMapType2;
+
+				gcFiddle.mapProxy[sMapType2] = mapProxy;
+				mapProxy.createMap({
+					googleKey: gcFiddle.config.googleKey,
+					leafletUrl: gcFiddle.config.leafletUrl,
+					mapboxKey: gcFiddle.config.mapboxKey,
+					openLayersUrl: gcFiddle.config.openLayersUrl,
+					zoom: gcFiddle.config.zoom,
+					mapType: sMapType2,
+					mapDivId: sMapTypeId2,
+					onload: fnMapLoaded
+				});
+			};
+
+		gcFiddle.config.mapType = sMapType;
+		for (i = 0; i < aMapCanvas.length; i += 1) {
+			oItem = aMapCanvas[i];
+			if (oItem.id === sMapTypeId) {
+				Utils.setHidden(oItem.id, !gcFiddle.config.showMap);
+			} else {
+				Utils.setHidden(oItem.id, true);
+			}
+		}
+
+		if (!gcFiddle.mapProxy[sMapType]) {
+			MapProxy.create({
+				mapType: sMapType,
+				onload: fnMapProxyLoaded
+			});
+		} else if (gcFiddle.maFa) {
+			gcFiddle.maFa.initMap(gcFiddle.mapProxy[sMapType]);
+		}
+	},
+
+	onReloadButtonClick: function () {
+		var oChanged = getChangedParameters(gcFiddle.config, gcFiddle.initialConfig);
+
+		window.location.search = "?" + encodeUriParam(oChanged); // jQuery.param(oChanged, true)
+	},
+
+	onSaveButtonClick: function () {
+		var categorySelect = document.getElementById("categorySelect"),
+			sCategory = categorySelect.value,
+			exampleSelect = document.getElementById("exampleSelect"),
+			oselectedExample = gcFiddle.examples[sCategory][exampleSelect.value],
+			sInput = document.getElementById("inputArea").value,
+			oExample, oSavedList;
+
+		if (sCategory !== "saved") {
+			sCategory = "saved";
+			categorySelect.value = sCategory;
+			this.onCategorySelectChange(); // may change example value as well
+		}
+
+		oExample = addExample(sInput, sCategory, oselectedExample || gcFiddle.emptyExample.draft);
+		window.localStorage.setItem(oExample.key, sInput);
+
+		if (gcFiddle.config.testIndexedDb) {
+			testIndexedDb(oExample);
+		}
+
+		oSavedList = gcFiddle.categories.saved;
+
+		if (oSavedList[oExample.key]) {
+			oSavedList[oExample.key] = oExample;
+			if (exampleSelect.value !== oExample.key) {
+				exampleSelect.value = oExample.key;
+			}
+			this.onExampleSelectChange(); // make sure correct input is shown
+		} else {
+			oSavedList[oExample.key] = oExample;
+			gcFiddle.config.example = oExample.key;
+			setExampleList();
+			this.onExampleSelectChange();
 		}
 		setDisabled("deleteButton", !Object.keys(oSavedList).length);
+	},
+
+	onDeleteButtonClick: function () {
+		var sCategory = document.getElementById("categorySelect").value,
+			exampleSelect = document.getElementById("exampleSelect"),
+			sExample = exampleSelect.value,
+			oSavedList = gcFiddle.categories.saved;
+
+		if (sCategory !== "saved") {
+			return;
+		}
+		if (!myConfirm("Delete " + sCategory + "/" + sExample)) {
+			return;
+		}
+		window.console.log("Deleting " + sExample);
+		window.localStorage.removeItem(sExample);
+
+		if (oSavedList) {
+			if (oSavedList[sExample]) {
+				delete oSavedList[sExample];
+				removeSelectOptions(exampleSelect);
+				setExampleList();
+				this.onExampleSelectChange();
+			}
+			setDisabled("deleteButton", !Object.keys(oSavedList).length);
+		}
 	}
-}
+};
 
 // https://stackoverflow.com/questions/6604192/showing-console-errors-and-alerts-in-a-div-inside-the-page
 function redirectConsole() {
@@ -1051,17 +1145,18 @@ function redirectConsole() {
 
 	for (i = 0; i < aVerbs.length; i += 1) {
 		sVerb = aVerbs[i];
-		window.console[sVerb] = (function (oOldLog, oLog, sVerb2) {
+		window.console[sVerb] = (function (fnMethod, sVerb2, oLog) {
 			return function () {
+				if (fnMethod) {
+					fnMethod.apply(console, arguments);
+				}
 				oLog.value += sVerb2 + ": " + Array.prototype.slice.call(arguments).join(" ") + "\n";
-				oOldLog.apply(console, arguments);
 			};
-		}(window.console.log.bind(console), consoleLogArea, sVerb));
+		}(window.console[sVerb], sVerb, consoleLogArea));
 	}
-	document.getElementById("consoleLogBox").hidden = false;
 }
 
-function onLoad() {
+function doStart() {
 	var oConfig = gcFiddle.config;
 
 	Utils.objectAssign(oConfig, gcFiddleExternalConfig || {});
@@ -1069,6 +1164,7 @@ function onLoad() {
 	parseUri(oConfig);
 	if (oConfig.showConsole) {
 		redirectConsole();
+		document.getElementById("consoleLogBox").hidden = false;
 	}
 	if (Number(oConfig.debug) > 0) {
 		gDebug = {
@@ -1082,59 +1178,34 @@ function onLoad() {
 	gcFiddle.maFa = new MarkerFactory({
 		draggable: true
 	});
-	document.getElementById("executeButton").onclick = onExecuteButtonClick;
-	document.getElementById("undoButton").onclick = onUndoButtonClick;
-	document.getElementById("redoButton").onclick = onRedoButtonClick;
-	document.getElementById("preprocessButton").onclick = onPreprocessButtonClick;
-	document.getElementById("reloadButton").onclick = onReloadButtonClick;
-	document.getElementById("saveButton").onclick = onSaveButtonClick;
-	document.getElementById("deleteButton").onclick = onDeleteButtonClick;
-	document.getElementById("categorySelect").onchange = onCategorySelectChange;
-	document.getElementById("exampleSelect").onchange = onExampleSelectChange;
-	document.getElementById("varSelect").onchange = onVarSelectChange;
-	document.getElementById("varViewSelect").onchange = onVarViewSelectChange;
-	document.getElementById("waypointSelect").onchange = onWaypointSelectChange;
-	document.getElementById("varLegend").onclick = onVarLegendClick;
-	document.getElementById("inputLegend").onclick = onInputLegendClick;
-	document.getElementById("outputLegend").onclick = onOutputLegendClick;
-	document.getElementById("notesLegend").onclick = onNotesLegendClick;
-	document.getElementById("waypointLegend").onclick = onWaypointLegendClick;
-	document.getElementById("mapLegend").onclick = onMapLegendClick;
-	document.getElementById("mapTypeSelect").onchange = onMapTypeSelectChange;
-	document.getElementById("locationButton").onclick = onLocationButtonClick;
-	document.getElementById("fitBoundsButton").onclick = onFitBoundsButtonClick;
-	document.getElementById("logsLegend").onclick = onLogsLegendClick;
-	document.getElementById("consoleLogLegend").onclick = onConsoleLogLegendClick;
 
-	document.getElementById("outputArea").onclick = onOutputAreaClick;
-	document.getElementById("varInput").onchange = onVarInputChange;
-	document.getElementById("waypointInput").onchange = onWaypointInputChange;
+	gcFiddle.eventHandlers = new CommonEventHandlers();
 
 	if (oConfig.variableType) {
 		document.getElementById("varViewSelect").value = oConfig.variableType;
 	}
 
 	if (!oConfig.showInput) {
-		onInputLegendClick();
+		gcFiddle.eventHandlers.onInputLegendClick();
 	}
 	if (!oConfig.showOutput) {
-		onOutputLegendClick();
+		gcFiddle.eventHandlers.onOutputLegendClick();
 	}
 	if (!oConfig.showVariable) {
-		onVarLegendClick();
+		gcFiddle.eventHandlers.onVarLegendClick();
 	}
 	if (!oConfig.showNotes) {
-		onNotesLegendClick();
+		gcFiddle.eventHandlers.onNotesLegendClick();
 	}
 	if (!oConfig.showWaypoint) {
-		onWaypointLegendClick();
+		gcFiddle.eventHandlers.onWaypointLegendClick();
 	}
 	if (oConfig.showMap) {
-		onMapLegendClick();
+		gcFiddle.eventHandlers.onMapLegendClick();
 	}
 
 	if (!oConfig.showLogs) {
-		onLogsLegendClick();
+		gcFiddle.eventHandlers.onLogsLegendClick();
 	}
 
 	if (oConfig.example) {
@@ -1143,15 +1214,37 @@ function onLoad() {
 
 	if (oConfig.category) {
 		document.getElementById("categorySelect").value = oConfig.category;
-		onCategorySelectChange();
+		gcFiddle.eventHandlers.onCategorySelectChange();
 	} else {
-		onExampleSelectChange();
+		gcFiddle.eventHandlers.onExampleSelectChange();
 	}
 
 	if (oConfig.mapType) {
 		document.getElementById("mapTypeSelect").value = oConfig.mapType;
 	}
-	onMapTypeSelectChange();
+	gcFiddle.eventHandlers.onMapTypeSelectChange();
+}
+
+function onLoad() {
+	var sUrl = "Polyfills.js",
+		bDebugForcePolyFill = false; //switch in debugger for testing
+
+	if (bDebugForcePolyFill) {
+		window.console = null;
+		String.prototype.trim = null; // eslint-disable-line no-extend-native
+		document.getElementsByClassName = null;
+		document.addEventListener = null;
+		Array.prototype.forEach = null; // eslint-disable-line no-extend-native
+	}
+
+	if ((!window.console || !Array.prototype.forEach || !Object.create) && typeof Polyfills === "undefined") { // need Polyfill?, load module on demand
+		Utils.loadScript(sUrl, function () {
+			window.console.log(sUrl + " loaded");
+			doStart();
+		});
+	} else {
+		doStart();
+	}
 }
 
 window.onload = onLoad;

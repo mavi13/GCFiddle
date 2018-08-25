@@ -91,6 +91,10 @@ MapProxy.Simple.Map.prototype = {
 			canvas = this.aCanvas[0];
 
 		if (path.length) {
+			if (!canvas.getContext) {
+				window.console.warn("Browser does not support canvas.getContext()");
+				return;
+			}
 			context = canvas.getContext("2d");
 			if (strokeStyle !== this.options.backgroundStyle) {
 				context.save();
@@ -123,6 +127,10 @@ MapProxy.Simple.Map.prototype = {
 
 		oPos = this.myConvertGeoToPixel(marker.position, this.oPixelMap);
 
+		if (!canvas.getContext) {
+			window.console.warn("Browser does not support canvas.getContext()");
+			return;
+		}
 		context = canvas.getContext("2d");
 		context.save();
 		context.translate((canvas.width - this.oPixelMap.width) / 2, (canvas.height - this.oPixelMap.height) / 2);
