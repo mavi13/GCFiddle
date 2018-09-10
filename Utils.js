@@ -85,18 +85,44 @@ var Utils = {
 	stringEndsWith: function (str, find) {
 		return str.indexOf(find, str.length - find.length) !== -1;
 	},
+	stringCapitalize: function (str) {
+		return str.charAt(0).toUpperCase() + str.substring(1);
+	},
 	getHidden: function (id) {
 		return document.getElementById(id).hidden;
 	},
-	setHidden: function (id, hidden) {
+	setElementProperty: function (id, propertyName, propertyValue) {
 		var element = document.getElementById(id),
-			bHidden = element.hidden;
+			bOldValue = element[propertyName];
 
-		element.hidden = hidden;
-		return bHidden; // return old value
+		element[propertyName] = propertyValue;
+
+		if (propertyName === "hidden") { // for old browsers
+			element.style.display = (propertyValue) ? "none" : "block";
+		}
+		return Boolean(bOldValue); // Boolean for old browsers
+	},
+	setHidden: function (id, hidden) {
+		return Utils.setElementProperty(id, "hidden", hidden);
 	},
 	toogleHidden: function (id) {
 		return this.setHidden(id, !this.getHidden(id));
+	},
+	setDisabled: function (id, disabled) {
+		return Utils.setElementProperty(id, "disabled", disabled);
+	},
+	getChangedParameters: function (current, initial) {
+		var oChanged = {},
+			sName;
+
+		for (sName in current) {
+			if (current.hasOwnProperty(sName)) {
+				if (current[sName] !== initial[sName]) {
+					oChanged[sName] = current[sName];
+				}
+			}
+		}
+		return oChanged;
 	}
 };
 // end

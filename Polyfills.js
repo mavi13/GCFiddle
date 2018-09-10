@@ -33,12 +33,12 @@ if (!String.prototype.trim) {
 if (!document.getElementsByClassName) {
 	document.getElementsByClassName = function (sMatch) {
 		var aResult = [],
-			oElements = document.getElementsByTagName("*"), // >= IE 5.5 or IE 6
+			aElements = document.getElementsByTagName("*"), // >= IE 5.5 or IE 6
 			i, oElem;
 
 		sMatch = " " + sMatch + " ";
-		for (i = 0; i < oElements.length; i += 1) {
-			oElem = oElements[i];
+		for (i = 0; i < aElements.length; i += 1) {
+			oElem = aElements[i];
 			if ((" " + (oElem.className || oElem.getAttribute("class")) + " ").indexOf(sMatch) > -1) {
 				aResult.push(oElem);
 			}
@@ -50,12 +50,39 @@ if (!document.getElementsByClassName) {
 if (!document.addEventListener) {
 	if (document.attachEvent) {
 		document.addEventListener = function (sEvent, fnHandler) {
-			document.attachEvent("on" + sEvent, function (event) {
-				event = event || window.event;
-				event.target = event.target || event.srcElement;
-				fnHandler(event);
-				return false; //event.preventDefault(); //?
-			});
+			var fnFindCaret = function (event) {
+					var oRange, oRange2;
+
+					if (document.selection) {
+						event.target.focus();
+						oRange = document.selection.createRange();
+						oRange2 = oRange.duplicate();
+						oRange2.moveToElementText(event.target);
+						oRange2.setEndPoint("EndToEnd", oRange);
+						event.target.selectionStart = oRange2.text.length - oRange.text.length;
+						event.target.selectionEnd = event.target.selectionStart + oRange.text.length;
+					}
+				},
+				fnOnEvent = function (event) {
+					event = event || window.event;
+					event.target = event.target || event.srcElement;
+					if (event.type === "click" && event.target && event.target.tagName === "TEXTAREA") {
+						fnFindCaret(event);
+					}
+					fnHandler(event);
+					return false;
+				},
+				aElements, i;
+
+			// The change event is not bubbled and fired on document for old IE8. So attach it to every select tag
+			if (sEvent === "change") {
+				aElements = document.getElementsByTagName("select");
+				for (i = 0; i < aElements.length; i += 1) {
+					aElements[i].attachEvent("on" + sEvent, fnOnEvent);
+				}
+			} else { // e.g. "Click"
+				document.attachEvent("on" + sEvent, fnOnEvent);
+			}
 		};
 	} else {
 		window.console.log("No document.attachEvent found."); // will be ignored
@@ -65,7 +92,6 @@ if (!document.addEventListener) {
 		}
 	}
 }
-
 
 // see: https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach
 // Production steps of ECMA-262, Edition 5, 15.4.4.18
@@ -121,7 +147,6 @@ if (!Array.prototype.forEach) {
 	};
 }
 
-
 // https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Object/create
 if (typeof Object.create !== "function") {
 	Object.create = (function (undefined) { // eslint-disable-line no-shadow-restricted-names
@@ -148,5 +173,83 @@ if (typeof Object.create !== "function") {
 		};
 	}());
 }
+
+if (!Object.keys) {
+	// https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
+	Object.keys = function (o) {
+		var k = [],
+			p;
+
+		if (o !== Object(o)) {
+			throw new TypeError("Object.keys called on a non-object");
+		}
+		for (p in o) {
+			if (Object.prototype.hasOwnProperty.call(o, p)) {
+				k.push(p);
+			}
+		}
+		return k;
+	};
+}
+
+if (!window.localStorage) { // for IE8 it is only available if page is hosted on web server, so...
+	// idea from: https://gist.github.com/remy/350433
+	(function () {
+		var oData = {},
+			Storage = function () {
+				this.clear();
+			};
+
+		Storage.prototype = {
+			clear: function () {
+				oData = {};
+				this.length = 0;
+			},
+			key: function (index) {
+				var i = 0,
+					item;
+
+				for (item in oData) {
+					if (oData.hasOwnProperty(item)) {
+						if (i === index) {
+							return item;
+						}
+						i += 1;
+					}
+				}
+				return null;
+			},
+			getItem: function (key) {
+				return (oData[key] === undefined) ? null : oData[key];
+			},
+			setItem: function (key, value) {
+				if (oData[key] === undefined) {
+					this.length += 1;
+				}
+				oData[key] = String(value);
+			},
+			removeItem: function (key) {
+				if (oData[key] !== undefined) {
+					delete oData[key];
+					this.length -= 1;
+				}
+			}
+		};
+		window.myLocalStorage = new Storage();
+	}());
+}
+
+// for old IE8
+(function () { // adaptHiddenProterties
+	var aElements = document.getElementsByTagName("*"), // >= IE 5.5 or IE 6
+		i, oElem;
+
+	for (i = 0; i < aElements.length; i += 1) {
+		oElem = aElements[i];
+		if (oElem.hidden === "") {
+			oElem.hidden = true;
+		}
+	}
+}());
 
 // end

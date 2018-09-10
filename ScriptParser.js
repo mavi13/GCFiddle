@@ -567,36 +567,41 @@ ScriptParser.prototype = {
 
 				// ct (crosstotal)
 				ct: function (x) {
-					return x.toString().replace(/[^\d]/g, "").split("").reduce(
-						function (iSum, sDigit) {
-							return iSum + Number(sDigit);
-						},
-						0
-					);
+					var sStr = x.toString().replace(/[^\d]/g, ""),
+						iSum = 0,
+						i;
+
+					for (i = 0; i < sStr.length; i += 1) {
+						iSum += Number(sStr.charAt(i));
+					}
+					return iSum;
 				},
 				// cti (crosstotal iterated)
 				cti: function (x) {
+					var iOldx; // to be sure to not produce endless loop
+
 					do {
+						iOldx = x;
 						x = mFunctions.ct(x);
-					} while (x > 9);
+					} while (x > 9 && (x !== iOldx));
 					return x;
 				},
 
 				// val (value) for A-Z, a-z: 1-26
 				val: function (s) {
-					var iCodeBeforeA = "a".charCodeAt(0) - 1;
+					var iCodeBeforeA = "a".charCodeAt(0) - 1,
+						iSum = 0,
+						i, iNumber;
 
-					return s.toString().toLowerCase().split("").reduce(
-						function (sum, value) {
-							var number = value.charCodeAt(0) - iCodeBeforeA;
-
-							if ((number < 0) || (number > 26)) {
-								number = 0;
-							}
-							return sum + number;
-						},
-						0
-					);
+					s = s.toString().toLowerCase();
+					for (i = 0; i < s.length; i += 1) {
+						iNumber = s.charCodeAt(i) - iCodeBeforeA;
+						if ((iNumber < 0) || (iNumber > 26)) {
+							iNumber = 0;
+						}
+						iSum += iNumber;
+					}
+					return iSum;
 				},
 
 				// sval (separate value) for A-Z, a-z: 01 02 03 ...
@@ -612,25 +617,23 @@ ScriptParser.prototype = {
 					return sOut;
 				},
 
-				// vstr (value(s) to string, optiomnal iShift) (new)
+				// vstr (value(s) to string, optional iShift) (new)
 				vstr: function (s, iShift) {
 					var iCodeBeforeA = "a".charCodeAt(0) - 1,
 						sOut = "",
-						aNum, iCode;
+						aNum, i, iCode;
 
 					iShift = iShift || 0;
 					iShift = Number(iShift);
 					s = s.toString().toLowerCase().replace(/[^0-9]/g, " ");
 					aNum = s.split(" ");
-					if (aNum) {
-						sOut = aNum.reduce(function (sList, iNum) {
-							iCode = ((Number(iNum) - 1) + iShift) % 26;
-							if (iCode < 0) {
-								iCode += 26;
-							}
-							iCode += 1;
-							return sList + String.fromCharCode(iCode + iCodeBeforeA);
-						}, sOut);
+					for (i = 0; i < aNum.length; i += 1) {
+						iCode = ((Number(aNum[i]) - 1) + iShift) % 26;
+						if (iCode < 0) {
+							iCode += 26;
+						}
+						iCode += 1;
+						sOut += String.fromCharCode(iCode + iCodeBeforeA);
 					}
 					return sOut;
 				},
@@ -671,7 +674,7 @@ ScriptParser.prototype = {
 				// count(s, s2) count individual characters from s2 in string s
 				count: function (s, s2) {
 					var sOut = "",
-						aSearch;
+						aSearch, i, sStr;
 
 					s = s.toString();
 					s2 = s2.toString();
@@ -679,9 +682,10 @@ ScriptParser.prototype = {
 						return mFunctions.countstr(s, s2);
 					}
 					aSearch = s2.toString().split("");
-					sOut = aSearch.reduce(function (sSum, sStr) {
-						return sSum + " " + sStr + "=" + mFunctions.countstr(s, sStr);
-					}, sOut);
+					for (i = 0; i < aSearch.length; i += 1) {
+						sStr = aSearch[i];
+						sOut += " " + sStr + "=" + mFunctions.countstr(s, sStr);
+					}
 					return sOut.trim();
 					// CacheWolf appends a space, we don't do that.
 				},

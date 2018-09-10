@@ -16,11 +16,6 @@ Preprocessor.prototype = {
 		this.mVariables = {};
 		this.mInfo = {};
 	},
-	/*
-	fnEndsWith: function (str, find) {
-		return str.indexOf(find, str.length - find.length) !== -1;
-	},
-	*/
 	// Find undefined variables and put them on top of the script
 	fnFixScript: function (script, scriptParser) {
 		var oVars = {},
@@ -310,7 +305,6 @@ Preprocessor.prototype = {
 	fnWaypoints: function (str) {
 		var that = this,
 			sExpression = "[ ]*([0-9A-Za-z()\\[\\]+\\-*/]+)[ ]*",
-			//rWaypoint = new RegExp("N\\s*(\\S+)°\\s*(\\S+)\\s*[.,]\\s*(\\S+)\\s*(?:\\n#)?E\\s*(\\S+)°\\s*(\\S+)\\s*[.,]\\s*(\\S+)([#\\n ])", "g"),
 			rWaypoint = new RegExp("N" + sExpression + "°" + sExpression + "[.,]" + sExpression + "(?:\\n#)?E" + sExpression + "°" + sExpression + "[.,]" + sExpression + "([#\\n ])", "g"),
 			iWpIndex = 1;
 
