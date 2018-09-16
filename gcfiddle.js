@@ -51,7 +51,7 @@ var gDebug,
 				title: "Unknown"
 			}
 		},
-		eventHandlers: null,
+		commonEventHandler: null,
 		pendingScripts: [],
 		localStorage: window.localStorage,
 
@@ -168,7 +168,7 @@ var gDebug,
 			for (sPar in variables) {
 				if (variables.hasOwnProperty(sPar) && gcFiddle.fnIsWaypoint(sPar)) {
 					oSettings = {
-						position: new LatLng().parse(variables[sPar].toString()),
+						position: new LatLng().parse(variables[sPar].toString(gcFiddle.config.positionFormat)),
 						label: Utils.strZeroFormat(i.toString(), 2),
 						title: sPar
 					};
@@ -233,7 +233,7 @@ var gDebug,
 
 		fnSetWaypointSelectOptions: function () {
 			var fnTextFormat = function (parameter, value) {
-				value = value.toString().replace(/(N|S|E|W)\s*(\d+)°?\s*/g, "");
+				value = value.toString(gcFiddle.config.positionFormat).replace(/(N|S|E|W)\s*(\d+)°?\s*/g, "");
 
 				parameter = parameter.substring(1, 4);
 				return parameter + "=" + value;
@@ -270,7 +270,7 @@ var gDebug,
 							option.title = sTitle;
 						}
 					}
-					if (option.value === gcFiddle.config.example) {
+					if (!selectExample || option.value === gcFiddle.config.example) {
 						selectExample = option.value;
 					}
 					i += 1;
@@ -360,6 +360,61 @@ var gDebug,
 			}
 		},
 
+		fnParseXml: function (sXml) {
+			var oParser = new window.DOMParser(),
+				oXml = oParser.parseFromString(sXml, "text/xml"),
+				mInfo = {},
+				oJson, aWpt, iWp, oWpt;
+
+			// based on: http://blogs.sitepointstatic.com/examples/tech/xml2json/index.html, https://codepen.io/KurtWM/pen/JnLak
+			function xml2json(node) {
+				var data = {},
+					i, cn;
+
+				function addItem(name, value) { // append value
+					if (data[name]) {
+						if (data[name].constructor !== Array) {
+							data[name] = [data[name]];
+						}
+						data[name][data[name].length] = value;
+					} else {
+						data[name] = value;
+					}
+				}
+				if (node.nodeType === 1) { // element
+					for (i = 0; i < node.attributes.length; i += 1) { // element attributes
+						cn = node.attributes.item(i);
+						addItem(cn.name, cn.value);
+					}
+				}
+				// child elements
+				if (node.hasChildNodes()) {
+					for (i = 0; i < node.childNodes.length; i += 1) {
+						cn = node.childNodes[i];
+						if (cn.nodeType === 1) {
+							if (cn.childNodes.length === 1 && cn.firstChild.nodeType === 3) {
+								addItem(cn.nodeName, cn.firstChild.nodeValue); // text value
+							} else {
+								addItem(cn.nodeName, xml2json(cn)); // sub-object
+							}
+						}
+					}
+				}
+				return data;
+			}
+
+			oJson = xml2json(oXml);
+			if (oJson.gpx && oJson.gpx.wpt && oJson.gpx.wpt.length) {
+				aWpt = oJson.gpx.wpt;
+				mInfo.script = "";
+				for (iWp = 0; iWp < aWpt.length; iWp += 1) {
+					oWpt = aWpt[iWp];
+					mInfo.script += "$W" + iWp + '="' + new LatLng(oWpt.lat, oWpt.lon).toString(gcFiddle.config.positionFormat) + '" # ' + oWpt.name + ", " + oWpt.cmt + "\n";
+				}
+			}
+			return mInfo;
+		},
+
 		fnDoPreprocess: function () {
 			var inputArea = document.getElementById("inputArea"),
 				sInput = inputArea.value,
@@ -369,7 +424,11 @@ var gDebug,
 			oProcessor = new Preprocessor({
 				scriptParser: new ScriptParser()
 			});
-			mInfo = oProcessor.processText(sInput);
+			if (sInput.substr(0, 6) === "<?xml ") {
+				mInfo = gcFiddle.fnParseXml(sInput);
+			} else {
+				mInfo = oProcessor.processText(sInput);
+			}
 			sOutput = mInfo.script;
 			mInfo.script = "";
 			if (sOutput !== "") {
@@ -385,7 +444,7 @@ var gDebug,
 
 			gcFiddle.fnPutChangedInputOnStack();
 			gcFiddle.fnSetInputAreaValue(sOutput);
-			gcFiddle.eventHandlers.onExecuteButtonClick();
+			gcFiddle.commonEventHandler.onExecuteButtonClick();
 		},
 
 		// https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
@@ -489,7 +548,7 @@ var gDebug,
 				draggable: true
 			});
 
-			gcFiddle.eventHandlers = new CommonEventHandler();
+			gcFiddle.commonEventHandler = new CommonEventHandler();
 
 			if (oConfig.variableType) {
 				document.getElementById("varViewSelect").value = oConfig.variableType;
@@ -510,15 +569,15 @@ var gDebug,
 
 			if (oConfig.category) {
 				document.getElementById("categorySelect").value = oConfig.category;
-				gcFiddle.eventHandlers.onCategorySelectChange();
+				gcFiddle.commonEventHandler.onCategorySelectChange();
 			} else {
-				gcFiddle.eventHandlers.onExampleSelectChange();
+				gcFiddle.commonEventHandler.onExampleSelectChange();
 			}
 
 			if (oConfig.mapType) {
 				document.getElementById("mapTypeSelect").value = oConfig.mapType;
 			}
-			gcFiddle.eventHandlers.onMapTypeSelectChange();
+			gcFiddle.commonEventHandler.onMapTypeSelectChange();
 		},
 
 		fnOnLoad: function () {

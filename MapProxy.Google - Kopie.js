@@ -100,7 +100,8 @@ MapProxy.Google.Marker = function (options) {
 
 MapProxy.Google.Marker.prototype = {
 	init: function (options) {
-		var oMarkerOptions;
+		var that = this,
+			oMarkerOptions;
 
 		this.options = Utils.objectAssign({	}, options);
 		oMarkerOptions = this.options;
@@ -111,31 +112,26 @@ MapProxy.Google.Marker.prototype = {
 			title: oMarkerOptions.title,
 			draggable: oMarkerOptions.draggable
 		});
-		google.maps.event.addListener(this.marker, "click", this.fnMarkerClick.bind(this)); // is it ok to use bind?
-		google.maps.event.addListener(this.marker, "drag", this.fnMarkerDrag.bind(this));
-	},
+		google.maps.event.addListener(this.marker, "click", function () {
+			var oInfoWindow = that.options.infoWindow;
 
-	fnMarkerClick: function () {
-		var oInfoWindow = this.options.infoWindow;
-
-		if (oInfoWindow) {
-			if (oInfoWindow.getAnchor() !== this) {
-				oInfoWindow.setContent(this);
-				oInfoWindow.open(this.map, this);
-			} else {
-				oInfoWindow.close();
+			if (oInfoWindow) {
+				if (oInfoWindow.getAnchor() !== that) {
+					oInfoWindow.setContent(that);
+					oInfoWindow.open(that.map, that);
+				} else {
+					oInfoWindow.close();
+				}
 			}
-		}
+		});
+		google.maps.event.addListener(this.marker, "drag", function () {
+			var oInfoWindow = that.options.infoWindow;
+
+			if (oInfoWindow && oInfoWindow.getAnchor() === that) {
+				oInfoWindow.setContent(that);
+			}
+		});
 	},
-
-	fnMarkerDrag: function () {
-		var oInfoWindow = this.options.infoWindow;
-
-		if (oInfoWindow && oInfoWindow.getAnchor() === this) {
-			oInfoWindow.setContent(this);
-		}
-	},
-
 	getPosition: function () {
 		var oPos = this.marker.getPosition();
 

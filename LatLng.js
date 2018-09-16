@@ -3,7 +3,7 @@
 // based on: http://www.movable-type.co.uk/scripts/latlong.html
 // Latitude/longitude spherical geodesy tools, (c) Chris Veness 2002-2016
 //
-/* globals Utils, gcFiddle */
+/* globals Utils */
 
 "use strict";
 
@@ -231,7 +231,7 @@ LatLng.prototype = {
 			return sDD;
 		}
 
-		format = format || gcFiddle.config.positionFormat;
+		format = format || "dmm";
 		switch (format) {
 		case "dmm":
 			sValue = position2dmm(this);
