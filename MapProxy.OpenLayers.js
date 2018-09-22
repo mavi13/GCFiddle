@@ -286,7 +286,12 @@ MapProxy.OpenLayers.Polyline = function (options) {
 
 MapProxy.OpenLayers.Polyline.prototype = {
 	init: function (options) {
-		this.options = Utils.objectAssign({	}, options);
+		this.options = Utils.objectAssign({
+			clickable: true
+			// strokeColor: "red",
+			// strokeOpacity: 0.8,
+			// strokeWidth: 2
+		}, options);
 		this.polyline = new OpenLayers.Geometry.LineString(this.options);
 		this.map = options.map;
 	},

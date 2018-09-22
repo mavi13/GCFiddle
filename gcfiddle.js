@@ -553,7 +553,6 @@ var gDebug,
 			gcFiddle.inputStack = new InputStack();
 
 			gcFiddle.maFa = new MarkerFactory({
-				draggable: true,
 				positionFormat: gcFiddle.config.positionFormat
 			});
 
@@ -570,6 +569,9 @@ var gDebug,
 			Utils.setHidden("waypointArea", !oConfig.showWaypoint);
 			Utils.setHidden("logsArea", !oConfig.showLogs);
 			Utils.setHidden("consoleLogArea", !oConfig.showConsole);
+			if (!document.getElementById("mapCanvas-" + oConfig.mapType)) {
+				oConfig.mapType = "none";
+			}
 			Utils.setHidden("mapCanvas-" + oConfig.mapType, !oConfig.showMap);
 
 			if (oConfig.example) {

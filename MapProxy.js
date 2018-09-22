@@ -29,14 +29,16 @@ MapProxy.prototype = {
 		}, options);
 
 		this.mapClass = MapProxy.AvailableModules[this.options.mapType];
-		sUrl = "MapProxy." + this.mapClass + ".js";
-		Utils.loadScript(sUrl, function () {
-			window.console.log(sUrl + " loaded");
+		if (this.mapClass) {
+			sUrl = "MapProxy." + this.mapClass + ".js";
+			Utils.loadScript(sUrl, function () {
+				window.console.log(sUrl + " loaded");
 
-			if (that.options.onload) {
-				that.options.onload(that);
-			}
-		});
+				if (that.options.onload) {
+					that.options.onload(that);
+				}
+			});
+		}
 		return null;
 	},
 	getMap: function () {

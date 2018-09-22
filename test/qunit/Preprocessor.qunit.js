@@ -39,106 +39,106 @@ QUnit.test("Load Preprocessor", function (assert) {
 
 QUnit.test("return comment lines unmodified", function (assert) {
 	var oPre = this.pre, // eslint-disable-line no-invalid-this
-		sOut;
+		oOut;
 
-	sOut = oPre.processText("");
-	assert.equal(sOut.script, "", "empty string");
+	oOut = oPre.processText("");
+	assert.equal(oOut.script, "", "empty string");
 
-	sOut = oPre.processText("#comment\n#comment\n");
-	assert.equal(sOut.script, "#comment\n#comment\n", "commented lines are kept");
+	oOut = oPre.processText("#comment\n#comment\n");
+	assert.equal(oOut.script, "#comment\n#comment\n", "commented lines are kept");
 });
 
 QUnit.test("prefix text lines with hash comment", function (assert) {
 	var oPre = this.pre, // eslint-disable-line no-invalid-this
-		sOut;
+		oOut;
 
-	sOut = oPre.processText("a line");
-	assert.equal(sOut.script, "#a line\n", "one line");
+	oOut = oPre.processText("a line");
+	assert.equal(oOut.script, "#a line\n", "one line");
 
-	sOut = oPre.processText("line 1\nline2");
-	assert.equal(sOut.script, "#line 1\n#line2\n", "two lines");
+	oOut = oPre.processText("line 1\nline2");
+	assert.equal(oOut.script, "#line 1\n#line2\n", "two lines");
 
-	sOut = oPre.processText("line 1\n#comment1\nline2");
-	assert.equal(sOut.script, "#line 1\n#comment1\n#line2\n", "three mixed lines");
+	oOut = oPre.processText("line 1\n#comment1\nline2");
+	assert.equal(oOut.script, "#line 1\n#comment1\n#line2\n", "three mixed lines");
 });
 
 QUnit.test("find variables", function (assert) {
 	var oPre = this.pre, // eslint-disable-line no-invalid-this
-		sOut;
+		oOut;
 
-	sOut = oPre.processText("a=");
-	assert.equal(sOut.script, "#a=\na=0\n", "variable equals nothing");
+	oOut = oPre.processText("a=");
+	assert.equal(oOut.script, "#a=\na=0\n", "variable equals nothing");
 
-	sOut = oPre.processText("a=12");
-	assert.equal(sOut.script, "#a=12\na=12\n", "variable equals number");
+	oOut = oPre.processText("a=12");
+	assert.equal(oOut.script, "#a=12\na=12\n", "variable equals number");
 
-	sOut = oPre.processText("a=b");
-	assert.equal(sOut.script, "#a=b\na=0\n", "variable equals variable: use 0");
+	oOut = oPre.processText("a=b");
+	assert.equal(oOut.script, "#a=b\na=0\n", "variable equals variable: use 0");
 
-	sOut = oPre.processText("a=1+2*3-4/5+b-c d e f");
-	assert.equal(sOut.script, "#a=1+2*3-4/5+b-c d e f\na=1+2*3-4/5+b-c\n", "variable equals expression with variables");
+	oOut = oPre.processText("a=1+2*3-4/5+b-c d e f");
+	assert.equal(oOut.script, "#a=1+2*3-4/5+b-c d e f\na=1+2*3-4/5+b-c\n", "variable equals expression with variables");
 
-	sOut = oPre.processText("a=12 \u2013 4"); // \u2013 is a dash which looks line a minus
-	assert.equal(sOut.script, "#a=12 - 4\na=12 - 4\n", "during preprocessing, dash is replaced by minus everywhere");
+	oOut = oPre.processText("a=12 \u2013 4"); // \u2013 is a dash which looks line a minus
+	assert.equal(oOut.script, "#a=12 - 4\na=12 - 4\n", "during preprocessing, dash is replaced by minus everywhere");
 
-	sOut = oPre.processText("text1 a=0 text2");
-	assert.equal(sOut.script, "#text1 a=0 text2\na=0\n", "variable equals number between text");
+	oOut = oPre.processText("text1 a=0 text2");
+	assert.equal(oOut.script, "#text1 a=0 text2\na=0\n", "variable equals number between text");
 
-	sOut = oPre.processText("text1 a  =   0 text2  text3");
-	assert.equal(sOut.script, "#text1 a  =   0 text2  text3\na=0\n", "variable equals number with spaces");
+	oOut = oPre.processText("text1 a  =   0 text2  text3");
+	assert.equal(oOut.script, "#text1 a  =   0 text2  text3\na=0\n", "variable equals number with spaces");
 
-	sOut = oPre.processText("c=a+b d=a*b");
-	assert.equal(sOut.script, "#c=a+b\nc=a+b\n#d=a*b\nd=a*b\n", "multiple variables in one line");
+	oOut = oPre.processText("c=a+b d=a*b");
+	assert.equal(oOut.script, "#c=a+b\nc=a+b\n#d=a*b\nd=a*b\n", "multiple variables in one line");
 
-	sOut = oPre.processText("text1 c=a+b text2 d=a*b text3");
-	assert.equal(sOut.script, "#text1 c=a+b text2\nc=a+b\n#d=a*b text3\nd=a*b\n", "multiple variables in one line between text");
+	oOut = oPre.processText("text1 c=a+b text2 d=a*b text3");
+	assert.equal(oOut.script, "#text1 c=a+b text2\nc=a+b\n#d=a*b text3\nd=a*b\n", "multiple variables in one line between text");
 
-	sOut = oPre.processText("text1 x=a+26325 text2");
-	assert.equal(sOut.script, "#text1 x=a+26325 text2\nx=a+26325\n", "variable eqals expression");
+	oOut = oPre.processText("text1 x=a+26325 text2");
+	assert.equal(oOut.script, "#text1 x=a+26325 text2\nx=a+26325\n", "variable eqals expression");
 
-	sOut = oPre.processText("text1 x = a + b + c + d + 26325 text2 text3");
-	assert.equal(sOut.script, "#text1 x = a + b + c + d + 26325 text2 text3\nx=a + b + c + d + 26325\n", "variable eqals expression with spaces");
+	oOut = oPre.processText("text1 x = a + b + c + d + 26325 text2 text3");
+	assert.equal(oOut.script, "#text1 x = a + b + c + d + 26325 text2 text3\nx=a + b + c + d + 26325\n", "variable eqals expression with spaces");
 
-	sOut = oPre.processText("text1 text2 = text3 * text4 + text5 text6");
-	assert.equal(sOut.script, "#text1 text2 = text3 * text4 + text5 text6\ntext2=text3 * text4 + text5\n", "variable eqals expression; long variables");
+	oOut = oPre.processText("text1 text2 = text3 * text4 + text5 text6");
+	assert.equal(oOut.script, "#text1 text2 = text3 * text4 + text5 text6\ntext2=text3 * text4 + text5\n", "variable eqals expression; long variables");
 });
 
 QUnit.test("find waypoints", function (assert) {
 	var oPre = this.pre, // eslint-disable-line no-invalid-this
-		sOut;
+		oOut;
 
-	sOut = oPre.processText("N 49° 18.123 E 008° 42.456");
-	assert.equal(sOut.script, "#N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n", "one waypoint");
+	oOut = oPre.processText("N 49° 18.123 E 008° 42.456");
+	assert.equal(oOut.script, "#N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n", "one waypoint");
 
-	sOut = oPre.processText("N49°18.123E008°42.456");
-	assert.equal(sOut.script, "#N49°18.123E008°42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n", "one waypoint, less spaces");
+	oOut = oPre.processText("N49°18.123E008°42.456");
+	assert.equal(oOut.script, "#N49°18.123E008°42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n", "one waypoint, less spaces");
 
-	sOut = oPre.processText("N 49° 18.123 E 008° 42.456 N 49° 18.789 E 008° 42.987");
-	assert.equal(sOut.script, "#N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#N 49° 18.789 E 008° 42.987\n$W2=\"N 49° 18.789 E 008° 42.987\"\n", "two waypoints in one line");
+	oOut = oPre.processText("N 49° 18.123 E 008° 42.456 N 49° 18.789 E 008° 42.987");
+	assert.equal(oOut.script, "#N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#N 49° 18.789 E 008° 42.987\n$W2=\"N 49° 18.789 E 008° 42.987\"\n", "two waypoints in one line");
 
-	sOut = oPre.processText("N 49° 18.123\nE 008° 42.456");
-	assert.equal(sOut.script, "#N 49° 18.123\n#E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n", "multi line waypoint");
+	oOut = oPre.processText("N 49° 18.123\nE 008° 42.456");
+	assert.equal(oOut.script, "#N 49° 18.123\n#E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n", "multi line waypoint");
 
-	sOut = oPre.processText("N 49° 18.a E 008° 42.b");
-	assert.equal(sOut.script, "#N 49° 18.a E 008° 42.b\n$W1=[\"N 49° 18.\" a \" E 008° 42.\" b]\n", "waypoint with varibles");
+	oOut = oPre.processText("N 49° 18.a E 008° 42.b");
+	assert.equal(oOut.script, "#N 49° 18.a E 008° 42.b\n$W1=[\"N 49° 18.\" a \" E 008° 42.\" b]\n", "waypoint with varibles");
 
-	sOut = oPre.processText("N 49° 18.1a7 E 008° 42.05b");
-	assert.equal(sOut.script, "#N 49° 18.1a7 E 008° 42.05b\n$W1=[\"N 49° 18.1\" a7 \" E 008° 42.05\" b]\n", "waypoint with number and variable"); //TODO: do not know if a7 or a "7"
+	oOut = oPre.processText("N 49° 18.1a7 E 008° 42.05b");
+	assert.equal(oOut.script, "#N 49° 18.1a7 E 008° 42.05b\n$W1=[\"N 49° 18.1\" a7 \" E 008° 42.05\" b]\n", "waypoint with number and variable"); //TODO: do not know if a7 or a "7"
 
-	sOut = oPre.processText("N 49° 18+a.a+b E 008° 42+a.a*b");
-	assert.equal(sOut.script, "#N 49° 18+a.a+b E 008° 42+a.a*b\n$W1=[\"N 49° \" 18+a \".\" a+b \" E 008° \" 42+a \".\" a*b]\n", "waypoint with simple expression");
+	oOut = oPre.processText("N 49° 18+a.a+b E 008° 42+a.a*b");
+	assert.equal(oOut.script, "#N 49° 18+a.a+b E 008° 42+a.a*b\n$W1=[\"N 49° \" 18+a \".\" a+b \" E 008° \" 42+a \".\" a*b]\n", "waypoint with simple expression");
 
-	sOut = oPre.processText("N 49° (A-1)(B).(4*A)(B)(A) E 008° (2*A)(5).(A/2)(3*A)(3*A)");
-	assert.equal(sOut.script, "#N 49° (A-1)(B).(4*A)(B)(A) E 008° (2*A)(5).(A/2)(3*A)(3*A)\n$W1=[\"N 49° \" (A-1)(B) \".\" (4*A)(B)(A) \" E 008° \" (2*A)(5) \".\" (A/2)(3*A)(3*A)]\n", "waypoint with variables in parenthesis");
+	oOut = oPre.processText("N 49° (A-1)(B).(4*A)(B)(A) E 008° (2*A)(5).(A/2)(3*A)(3*A)");
+	assert.equal(oOut.script, "#N 49° (A-1)(B).(4*A)(B)(A) E 008° (2*A)(5).(A/2)(3*A)(3*A)\n$W1=[\"N 49° \" (A-1)(B) \".\" (4*A)(B)(A) \" E 008° \" (2*A)(5) \".\" (A/2)(3*A)(3*A)]\n", "waypoint with variables in parenthesis");
 
-	sOut = oPre.processText("N (49) ° (A+1)(B) . (4*A)(B)(A) E (8) ° (2*A)(5) . (A/2)(3*A)(3*A)");
-	assert.equal(sOut.script, "#N (49) ° (A+1)(B) . (4*A)(B)(A) E (8) ° (2*A)(5) . (A/2)(3*A)(3*A)\n$W1=[\"N \" (49) \"° \" (A+1)(B) \".\" (4*A)(B)(A) \" E \" (8) \"° \" (2*A)(5) \".\" (A/2)(3*A)(3*A)]\n", "waypoint with variables in parenthesis, with some spaces");
+	oOut = oPre.processText("N (49) ° (A+1)(B) . (4*A)(B)(A) E (8) ° (2*A)(5) . (A/2)(3*A)(3*A)");
+	assert.equal(oOut.script, "#N (49) ° (A+1)(B) . (4*A)(B)(A) E (8) ° (2*A)(5) . (A/2)(3*A)(3*A)\n$W1=[\"N \" (49) \"° \" (A+1)(B) \".\" (4*A)(B)(A) \" E \" (8) \"° \" (2*A)(5) \".\" (A/2)(3*A)(3*A)]\n", "waypoint with variables in parenthesis, with some spaces");
 
-	sOut = oPre.processText("(N 49° 18.123 E 008° 42.456)");
-	assert.equal(sOut.script, "#(N 49° 18.123 E 008° 42.456)\n$W1=\"N 49° 18.123 E 008° 42.456\"\n", "waypoint in parenthesis");
+	oOut = oPre.processText("(N 49° 18.123 E 008° 42.456)");
+	assert.equal(oOut.script, "#(N 49° 18.123 E 008° 42.456)\n$W1=\"N 49° 18.123 E 008° 42.456\"\n", "waypoint in parenthesis");
 
-	sOut = oPre.processText("N 49° 1B.940 E 008° 30.04[A+1]");
-	assert.equal(sOut.script, "#N 49° 1B.940 E 008° 30.04[A+1]\n$W1=[\"N 49° 1\" B \".940 E 008° 30.\" 04[A+1]]\n", "waypoint with expression containing brackets in parenthesis"); //TODO: 0 before 4 is ignored during execution
+	oOut = oPre.processText("N 49° 1B.940 E 008° 30.04[A+1]");
+	assert.equal(oOut.script, "#N 49° 1B.940 E 008° 30.04[A+1]\n$W1=[\"N 49° 1\" B \".940 E 008° 30.\" 04[A+1]]\n", "waypoint with expression containing brackets in parenthesis"); //TODO: 0 before 4 is ignored during execution
 });
 
 
@@ -164,22 +164,22 @@ QUnit.test("Parameters from section: Skip to Content", function (assert) {
 			type: "multi-cache",
 			waypoint: "N 49° 18.071 E 008° 42.167"
 		},
-		sOut;
+		oOut;
 
-	sOut = oPre.processText(sText1);
-	delete sOut.script;
-	assert.deepEqual(sOut, mResult, "parameters extracted from text1");
-
-	oPre.init(oPre.options); // init
-	sOut = oPre.processText(sText2);
-	delete sOut.script;
-	assert.deepEqual(sOut, mResult, "parameters extracted from text2");
+	oOut = oPre.processText(sText1);
+	delete oOut.script;
+	assert.deepEqual(oOut, mResult, "parameters extracted from text1");
 
 	oPre.init(oPre.options); // init
-	sOut = oPre.processText(sText3);
-	//delete sOut.script;
+	oOut = oPre.processText(sText2);
+	delete oOut.script;
+	assert.deepEqual(oOut, mResult, "parameters extracted from text2");
+
+	oPre.init(oPre.options); // init
+	oOut = oPre.processText(sText3);
+	//delete oOut.script;
 	mResult.script = "#Geocache Description:\n#my description\n";
-	assert.deepEqual(sOut, mResult, "parameters extracted from text3");
+	assert.deepEqual(oOut, mResult, "parameters extracted from text3");
 });
 
 QUnit.test("Parameters from section: Additional Hints", function (assert) {
@@ -202,18 +202,18 @@ QUnit.test("Parameters from section: Additional Hints", function (assert) {
 			watchCount: 4,
 			watching: false
 		},
-		sOut;
+		oOut;
 
-	sOut = oPre.processText(sText1);
-	assert.deepEqual(sOut, mResult1, "parameters extracted from text1");
-
-	oPre.init(oPre.options); // init
-	sOut = oPre.processText(sText2);
-	assert.deepEqual(sOut, mResult2, "parameters extracted from text2");
+	oOut = oPre.processText(sText1);
+	assert.deepEqual(oOut, mResult1, "parameters extracted from text1");
 
 	oPre.init(oPre.options); // init
-	sOut = oPre.processText(sText3);
-	assert.deepEqual(sOut, mResult3, "parameters extracted from text3");
+	oOut = oPre.processText(sText2);
+	assert.deepEqual(oOut, mResult2, "parameters extracted from text2");
+
+	oPre.init(oPre.options); // init
+	oOut = oPre.processText(sText3);
+	assert.deepEqual(oOut, mResult3, "parameters extracted from text3");
 });
 
 QUnit.test("Parameters from section: Decryption Key", function (assert) {
@@ -241,20 +241,20 @@ QUnit.test("Parameters from section: Decryption Key", function (assert) {
 			watchCount: 4,
 			watching: false
 		},
-		sOut;
+		oOut;
 
-	sOut = oPre.processText(sText1);
-	assert.deepEqual(sOut, mResult1, "parameters extracted from text1");
-
-	oPre.init(oPre.options); // init
-	sOut = oPre.processText(sText2);
-	delete sOut.script;
-	assert.deepEqual(sOut, mResult2, "parameters extracted from text2");
+	oOut = oPre.processText(sText1);
+	assert.deepEqual(oOut, mResult1, "parameters extracted from text1");
 
 	oPre.init(oPre.options); // init
-	sOut = oPre.processText(sText3);
-	delete sOut.script;
-	assert.deepEqual(sOut, mResult3, "parameters extracted from text3");
+	oOut = oPre.processText(sText2);
+	delete oOut.script;
+	assert.deepEqual(oOut, mResult2, "parameters extracted from text2");
+
+	oPre.init(oPre.options); // init
+	oOut = oPre.processText(sText3);
+	delete oOut.script;
+	assert.deepEqual(oOut, mResult3, "parameters extracted from text3");
 });
 
 QUnit.test("Parameters from section: Additional Waypoints", function (assert) {
@@ -263,10 +263,10 @@ QUnit.test("Parameters from section: Additional Waypoints", function (assert) {
 		mResult1 = {
 			script: "#Additional Waypoints\n#Prefix Lookup Name Coordinate\n#Visible Parking Area P0 P0 Park1 (Parking Area) N 49° 18.071 E 008° 42.191\n$W1=\"N 49° 18.071 E 008° 42.191\"\n#Note:\n"
 		},
-		sOut;
+		oOut;
 
-	sOut = oPre.processText(sText1);
-	assert.deepEqual(sOut, mResult1, "waypoints extracted");
+	oOut = oPre.processText(sText1);
+	assert.deepEqual(oOut, mResult1, "waypoints extracted");
 });
 
 QUnit.test("Parameters from section: n Logged Visits", function (assert) {
@@ -322,10 +322,10 @@ QUnit.test("Parameters from section: n Logged Visits", function (assert) {
 			],
 			script: "#Geocache Description:\n#my description\n"
 		},
-		sOut;
+		oOut;
 
-	sOut = oPre.processText(sText1);
-	assert.deepEqual(sOut, mResult1, "parameters extracted from text1");
+	oOut = oPre.processText(sText1);
+	assert.deepEqual(oOut, mResult1, "parameters extracted from text1");
 });
 
 QUnit.test("Parameters from section: Current Time", function (assert) {
@@ -338,10 +338,10 @@ QUnit.test("Parameters from section: Current Time", function (assert) {
 			lastUpdated: "2017-02-04T18:39:52Z",
 			script: "#Geocache Description:\n#my description\n"
 		},
-		sOut;
+		oOut;
 
-	sOut = oPre.processText(sText1);
-	assert.deepEqual(sOut, mResult1, "parameters extracted from text1");
+	oOut = oPre.processText(sText1);
+	assert.deepEqual(oOut, mResult1, "parameters extracted from text1");
 });
 
 QUnit.test("Use ScriptParser to add undefined variables", function (assert) {
@@ -371,12 +371,12 @@ QUnit.test("Use ScriptParser to add undefined variables", function (assert) {
 				return oRet;
 			}
 		},
-		sOut;
+		oOut;
 
 	oPre.init({
 		scriptParser: oScriptParser
 	});
-	sOut = oPre.processText(sText1);
-	assert.deepEqual(sOut, mResult1, "undefinied variables added");
+	oOut = oPre.processText(sText1);
+	assert.deepEqual(oOut, mResult1, "undefinied variables added");
 });
 // end

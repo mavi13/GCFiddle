@@ -90,6 +90,102 @@ MapProxy.Leaflet.LatLngBounds.prototype = {
 	}
 };
 
+/*
+//TEST
+// use https://leafletjs.com/reference-1.3.4.html#featuregroup?
+MapProxy.Leaflet.FeatureGroup = function (options) {
+	this.init(options);
+};
+
+MapProxy.Leaflet.FeatureGroup.prototype = {
+	init: function (options) {
+		var that = this,
+			oInfoWindow;
+
+		this.options = Utils.objectAssign({	}, options);
+		this.featureGroup = L.featureGroup();
+
+		// map.addLayer(featureGroup);
+		// https://gis.stackexchange.com/questions/258929/add-layers-to-a-feature-group-with-a-function-loop
+		// https://leafletjs.com/reference-1.3.4.html#featuregroup
+		// L.marker([54.962725, 12.548215]).addTo(featureGroup);
+
+		oInfoWindow = this.options.infoWindow;
+		if (oInfoWindow) {
+			this.featureGroup.bindPopup(oInfoWindow.privGetinfoWindow()).on("click", function () {
+				// window.console.log("click: " + that.getLabel() + " " + that.getPosition() + " isOpen=" + oInfoWindow.privGetinfoWindow().isOpen());
+				if (oInfoWindow.privGetinfoWindow().isOpen()) {
+					oInfoWindow.privSetAnchor(that);
+					oInfoWindow.setContent(that);
+				} else {
+					oInfoWindow.privSetAnchor(null);
+				}
+			/ *
+			}).on("popupopen", function () {
+				window.console.log("popupopen: " + that.getLabel() + " " + that.getPosition());
+			}).on("popupclose", function () {
+				window.console.log("popupclose: " + that.getLabel() + " " + that.getPosition());
+			}).on("dragend", function () {
+				window.console.log("dragend: " + that.getLabel() + " " + that.getPosition());
+			* /
+			}).on("dragstart", function (event) {
+				// window.console.log("dragstart: " + that.getLabel() + " " + that.getPosition());
+				if (oInfoWindow.getAnchor() === that) {
+					oInfoWindow.privGetinfoWindow().openOn(that.marker); // reopen during drag
+				}
+			}).on("drag", function (event) {
+				// window.console.log("drag: " + that.getLabel() + " " + that.getPosition());
+				if (oInfoWindow.privGetinfoWindow().isOpen()) {
+					if (oInfoWindow.getAnchor() === that) {
+						oInfoWindow.setContent(that);
+					}
+				}
+			});
+		}
+	},
+	addMarkers: function (aList) {
+		var i, oItem, oMarker, leafLetId;
+
+		for (i = 0; i < aList.length; i += 1) {
+			oItem = aList[i];
+			oMarker = new L.Marker(MapProxy.Leaflet.position2leaflet(oItem.position), {
+				draggable: true,
+				icon: new L.DivIcon({
+					html: this.options.label,
+					iconSize: [16, 16] // eslint-disable-line array-element-newline
+				})
+			});
+
+			oMarker.bindTooltip(oItem.title);
+			oMarker.addTo(this.featureGroup);
+			leafLetId = this.featureGroup.getLayerId(oMarker);
+			oItem.leafLetId = leafLetId; //TTT
+		}
+	},
+	changeMarker: function (oItem, options) {
+		var leafLetId = oItem.leafLetId,
+			oMarker;
+
+		oMarker = this.featureGroup.getLayer(leafLetId);
+		//TTT
+	},
+	deleteMarkers: function () {
+		this.featureGroup.clearLayers();
+	},
+	getMap: function () {
+		return this.map;
+	},
+	setMap: function (map) {
+		if (map) {
+			this.featureGroup.addTo(map.privGetMap());
+		} else if (this.map) {
+			this.featureGroup.removeFrom(this.map.privGetMap());
+		}
+		this.map = map;
+	}
+};
+*/
+
 
 MapProxy.Leaflet.Marker = function (options) {
 	this.init(options);
@@ -103,7 +199,7 @@ MapProxy.Leaflet.Marker.prototype = {
 		this.options = Utils.objectAssign({	}, options);
 
 		this.marker = new L.Marker(MapProxy.Leaflet.position2leaflet(this.options.position), {
-			draggable: this.options.draggable,
+			draggable: true,
 			icon: new L.DivIcon({
 				html: this.options.label,
 				iconSize: [16, 16] // eslint-disable-line array-element-newline
@@ -194,8 +290,24 @@ MapProxy.Leaflet.Polyline = function (options) {
 
 MapProxy.Leaflet.Polyline.prototype = {
 	init: function (options) {
-		this.options = Utils.objectAssign({	}, options);
-		this.polyline = new L.Polyline(this.options);
+		var polylineOptions;
+
+		this.options = Utils.objectAssign({
+			strokeColor: "red",
+			strokeWidth: 2,
+			strokeOpacity: 0.7
+		}, options);
+
+		polylineOptions = {
+			color: this.options.strokeColor, // default: #3388FF
+			weight: this.options.strokeWidth, // default: 3
+			opacity: this.options.strokeOpacity // default: 1
+		};
+
+		// https://stackoverflow.com/questions/32882523/how-to-apply-css-on-polylines-leaflet
+		// https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Fills_and_Strokes
+		// https://leafletjs.com/reference-1.3.4.html#path
+		this.polyline = new L.Polyline([], polylineOptions);
 	},
 	setPath: function (path) {
 		this.polyline.setLatLngs(path);

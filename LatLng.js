@@ -15,8 +15,7 @@ LatLng.prototype = {
 	init: function (lat, lng) {
 		this.lat = Number(lat);
 		this.lng = Number(lng);
-		this.format = "";
-		this.comment = "";
+		// other properties: format, comment, error
 	},
 	distanceTo: function (point) {
 		var radius = 6371e3,
@@ -132,7 +131,7 @@ LatLng.prototype = {
 		return new LatLng(Utils.toDegrees(phi3), (Utils.toDegrees(lambda3) + 540) % 360 - 180); // normalise to −180..+180°
 	},
 	getComment: function () {
-		return this.comment;
+		return (this.comment !== undefined) ? this.comment : "";
 	},
 	setComment: function (sComment) {
 		this.comment = sComment;
@@ -149,8 +148,7 @@ LatLng.prototype = {
 	parse: function (coord) {
 		var lat = 0,
 			lng = 0,
-			sFormat = "",
-			iCommentIndex, aParts, bParseOk;
+			sFormat, iCommentIndex, aParts, bParseOk;
 
 		function dmm2position() {
 			aParts = coord.match(/^\s*(N|S)\s*(\d+)°?\s*(\d+\.\d+)\s*(E|W)\s*(\d+)°?\s*(\d+\.\d+)/); // dmm
@@ -207,19 +205,19 @@ LatLng.prototype = {
 		if (iCommentIndex >= 0) {
 			this.comment = coord.substr(iCommentIndex);
 			coord = coord.substr(0, iCommentIndex);
-		} else {
+		} else if (this.comment !== undefined) {
 			this.comment = "";
 		}
 
 		bParseOk = dmm2position() || dms2position() || dd2position();
 		this.lat = lat;
 		this.lng = lng;
-		this.format = sFormat;
+		if (sFormat) {
+			this.format = sFormat;
+		}
 		if (!bParseOk && coord !== "") {
 			this.error = "Cannot parse " + coord;
 			window.console.warn("parse2position: Cannot parse '" + coord + "'");
-		} else {
-			this.error = "";
 		}
 		return this;
 	},

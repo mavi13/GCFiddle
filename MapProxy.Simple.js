@@ -17,10 +17,10 @@ MapProxy.Simple.Map.prototype = {
 		this.options = Utils.objectAssign({
 			markerStyle: "green",
 			textStyle: "black",
-			lineStyle: "red",
 			backgroundStyle: "#E6E6E6",
 			zoom: 0 // not used
 		}, options);
+
 		mapDiv = document.getElementById(this.options.mapDivId);
 
 		bHidden = Utils.setHidden(this.options.mapDivId, false); // make sure canvas is not hidden (allows to get width, height)
@@ -29,24 +29,107 @@ MapProxy.Simple.Map.prototype = {
 		Utils.setHidden(this.options.mapDivId, bHidden); // restore
 		window.console.log("SimpleMap: width=" + iWidth + " height=" + iHeight + " created");
 
+		this.oPixelMap = {
+			width: iWidth,
+			height: iHeight,
+			scaleWidth: 8 / 10,
+			scaleHeight: 8 / 10
+			// will be extended by width, height; and latBottom, latTop, lngLeft, lngRight in fitBounds()
+		};
+
+		this.mElements = {
+			path: [],
+			marker: []
+		};
+
 		this.aCanvas = [];
-		for (i = 0; i <= 1; i += 1) {
+		for (i = 0; i < 2; i += 1) {
 			canvas = document.createElement("CANVAS");
 			canvas.width = iWidth;
 			canvas.height = iHeight;
-			canvas.id = "canvas" + (i + 1);
+			canvas.id = "simpleCanvas" + (i + 1);
 			canvas.style.position = "absolute";
 			mapDiv.appendChild(canvas);
 			this.aCanvas.push(canvas);
 		}
 
+		/*
 		this.oPixelMap = {
 			width: iWidth * 8 / 10,
 			height: iHeight * 8 / 10
 			// will be extended by latBottom, latTop, lngLeft, lngRight in fitBounds()
 		};
+		*/
 		if (this.options.onload) {
 			this.options.onload(this);
+		}
+		document.getElementById("simpleCanvas2").addEventListener("click", this.onSimpleCanvas2Click.bind(this), false);
+		window.addEventListener("resize", this.fnDebounce(this.resize.bind(this), 200, false), false);
+	},
+	onSimpleCanvas2Click: function (event) {
+		var oTarget = event.target,
+			x = event.clientX - oTarget.offsetLeft + window.scrollX, // x,y are relative to the canvas
+			y = event.clientY - oTarget.offsetTop + window.scrollY;
+
+		window.console.log("onSimpleCanvas2Click: x=" + x + ", y=" + y);
+		if (event.stopPropagation) {
+			event.stopPropagation();
+		} else {
+			event.cancelBubble = true;
+		}
+	},
+	fnDebounce: function (func, wait, immediate) {
+		var timeout,
+			that = this;
+
+		return function () {
+			var args = arguments,
+				later = function () {
+					timeout = null;
+					if (!immediate) {
+						func.apply(that, args);
+					}
+				},
+				callNow = immediate && !timeout;
+
+			clearTimeout(timeout);
+			timeout = setTimeout(later, wait);
+			if (callNow) {
+				func.apply(that, args);
+			}
+		};
+	},
+	/*
+	onSimpleCanvas2Resize: function (event) {
+		//window.console.log("onSimpleCanvas2Resize");
+		this.resize();
+	},
+	*/
+	resize: function () {
+		var mapDiv = document.getElementById(this.options.mapDivId), // mapCanvas-simple
+			iWidth = mapDiv.clientWidth,
+			iHeight = mapDiv.clientHeight,
+			i, canvas;
+
+		if (iWidth !== this.oPixelMap.width || iHeight !== this.oPixelMap.height) {
+			window.console.log("MapProxy.Simple.resize width=" + iWidth + " height=" + iHeight);
+			for (i = 0; i < this.aCanvas.length; i += 1) {
+				canvas = this.aCanvas[i];
+				if (canvas.width !== iWidth) {
+					this.oPixelMap.width = iWidth;
+					canvas.width = iWidth;
+				}
+				if (canvas.height !== iHeight) {
+					this.oPixelMap.height = iHeight;
+					canvas.height = iHeight;
+				}
+			}
+			for (i = 0; i < this.mElements.path.length; i += 1) {
+				this.privDrawPath(this.mElements.path[i]);
+			}
+			for (i = 0; i < this.mElements.marker.length; i += 1) {
+				this.privDrawMarker(this.mElements.marker[i]);
+			}
 		}
 	},
 	setZoom: function (zoom) {
@@ -70,8 +153,8 @@ MapProxy.Simple.Map.prototype = {
 			},
 			ymin = mercY(south),
 			ymax = mercY(north),
-			xFactor = map.width / ((east - west) || 1),
-			yFactor = map.height / ((ymax - ymin) || 1),
+			xFactor = map.width * map.scaleWidth / ((east - west) || 1),
+			yFactor = map.height * map.scaleHeight / ((ymax - ymin) || 1),
 			x,
 			y;
 
@@ -84,10 +167,8 @@ MapProxy.Simple.Map.prototype = {
 			y: y
 		};
 	},
-	privDrawPath: function (path, lineStyle) {
-		var context, i, oPos,
-			strokeStyle = lineStyle || this.options.lineStyle,
-			iLineWidth = 1,
+	privDrawPath: function (path, bRemove) {
+		var pathStyle, context, i, oPos,
 			canvas = this.aCanvas[0];
 
 		if (path.length) {
@@ -95,12 +176,13 @@ MapProxy.Simple.Map.prototype = {
 				window.console.warn("Browser does not support canvas.getContext()");
 				return;
 			}
+			pathStyle = path.pathStyle;
 			context = canvas.getContext("2d");
-			if (strokeStyle !== this.options.backgroundStyle) {
+			if (!bRemove) {
 				context.save();
-				context.translate((canvas.width - this.oPixelMap.width) / 2, (canvas.height - this.oPixelMap.height) / 2);
-				context.strokeStyle = strokeStyle;
-				context.lineWidth = iLineWidth;
+				context.translate((canvas.width - this.oPixelMap.width * this.oPixelMap.scaleWidth) / 2, (canvas.height - this.oPixelMap.height * this.oPixelMap.scaleHeight) / 2);
+				context.strokeStyle = pathStyle.strokeColor;
+				context.lineWidth = pathStyle.strokeWidth;
 				context.beginPath();
 				for (i = 0; i < path.length; i += 1) {
 					oPos = this.myConvertGeoToPixel(path[i], this.oPixelMap);
@@ -117,10 +199,10 @@ MapProxy.Simple.Map.prototype = {
 			}
 		}
 	},
-	privDrawMarker: function (marker, markerStyle, textStyle) {
+	privDrawMarker: function (marker, bRemove) {
 		var context, oPos,
-			strokeStyle = markerStyle || this.options.markerStyle,
-			fillStyle = textStyle || this.options.textStyle,
+			strokeStyle = marker.markerStyle || this.options.markerStyle,
+			fillStyle = marker.textStyle || this.options.textStyle,
 			iRadius = 10,
 			iLineWidth = 1,
 			canvas = this.aCanvas[1];
@@ -133,8 +215,8 @@ MapProxy.Simple.Map.prototype = {
 		}
 		context = canvas.getContext("2d");
 		context.save();
-		context.translate((canvas.width - this.oPixelMap.width) / 2, (canvas.height - this.oPixelMap.height) / 2);
-		if (strokeStyle !== this.options.backgroundStyle) {
+		context.translate((canvas.width - this.oPixelMap.width * this.oPixelMap.scaleWidth) / 2, (canvas.height - this.oPixelMap.height * this.oPixelMap.scaleHeight) / 2);
+		if (!bRemove) {
 			context.strokeStyle = strokeStyle;
 			context.lineWidth = iLineWidth;
 			context.textAlign = "center";
@@ -152,14 +234,39 @@ MapProxy.Simple.Map.prototype = {
 		}
 		context.restore();
 	},
+	addPath: function (path) {
+		if (path && path.length) {
+			this.mElements.path.push(path);
+			this.privDrawPath(path); // new path
+		}
+	},
+	removePath: function (path) {
+		var idx;
+
+		idx = this.mElements.path.indexOf(path);
+		if (idx >= 0) {
+			this.mElements.path.splice(idx, 1);
+			this.privDrawPath(path, true); // old path: background (draw over old path)
+		}
+	},
+	addMarker: function (marker) {
+		this.mElements.marker.push(marker);
+		this.privDrawMarker(marker); // new path
+	},
+	removeMarker: function (marker) {
+		var idx;
+
+		idx = this.mElements.marker.indexOf(marker);
+		if (idx >= 0) {
+			this.mElements.marker.splice(idx, 1);
+		}
+		this.privDrawMarker(marker, true); // old path: background (draw over old path)
+	},
 	fitBounds: function (bounds) {
 		var oBounds = bounds.getBounds();
 
 		// We do no redraw here. Please clear, redraw if needed
 		Utils.objectAssign(this.oPixelMap, oBounds);
-	},
-	resize: function () {
-		// maybe not needed
 	}
 };
 
@@ -197,6 +304,12 @@ MapProxy.Simple.Marker = function (options) {
 
 MapProxy.Simple.Marker.prototype = {
 	init: function (options) {
+		/* TTT
+		this.markerStyle = {
+		};
+		this.textStyle = {
+		};
+		*/
 		Utils.objectAssign(this, options); // position, title, label, map
 	},
 	getPosition: function () {
@@ -205,11 +318,11 @@ MapProxy.Simple.Marker.prototype = {
 	setPosition: function (position) {
 		if (this.position.lat !== position.lat || this.position.lng !== position.lng) {
 			if (this.map) {
-				this.map.privDrawMarker(this, this.map.options.backgroundStyle, this.map.options.backgroundStyle); // old marker
+				this.map.removeMarker(this); // remove old marker
 			}
 			this.position = position;
 			if (this.map) {
-				this.map.privDrawMarker(this); // new marker
+				this.map.addMarker(this); // draw new marker
 			}
 		}
 	},
@@ -230,11 +343,11 @@ MapProxy.Simple.Marker.prototype = {
 	},
 	setMap: function (map) {
 		if (this.map) {
-			this.map.privDrawMarker(this, this.map.options.backgroundStyle, this.map.options.backgroundStyle); // old marker
+			this.map.removeMarker(this); // remove old marker
 		}
 		this.map = map;
 		if (this.map) {
-			this.map.privDrawMarker(this); // new marker
+			this.map.addMarker(this); // draw new marker
 		}
 	}
 };
@@ -247,15 +360,22 @@ MapProxy.Simple.Polyline = function (options) {
 MapProxy.Simple.Polyline.prototype = {
 	init: function (options) {
 		this.map = options.map;
-		this.strokeColor = options.strokeColor;
-		// MyPolyline: options={map, strokeColor, strokeOpacity, strokeWeight}
+		this.options = Utils.objectAssign({
+			strokeColor: "red",
+			strokeWidth: 2,
+			strokeOpacity: 0.7
+		}, options);
+		// MyPolyline: options={map, [strokeColor, strokeOpacity, strokeWeight]}
 	},
 	setPath: function (path) {
 		if (this.map) {
 			if (this.path) {
-				this.map.privDrawPath(this.path, this.map.options.backgroundStyle); // old path: background (draw over old path)
+				this.map.removePath(this.path); // remove old path
 			}
-			this.map.privDrawPath(path, this.strokeColor); // new path
+			if (!path.style) {
+				path.pathStyle = this.options; // modify path, memorize path style!
+			}
+			this.map.addPath(path); // add new path
 		}
 		this.path = path;
 	},
@@ -264,11 +384,11 @@ MapProxy.Simple.Polyline.prototype = {
 	},
 	setMap: function (map) {
 		if (this.map && this.path) {
-			this.map.privDrawPath(this.path, this.map.options.backgroundStyle); // old path: background (draw over old path)
+			this.map.removePath(this.path); // remove old path
 		}
 		this.map = map;
 		if (this.map && this.path) {
-			this.map.privDrawPath(this.path, this.strokeColor); // new path
+			this.map.addPath(this.path); // add new path
 		}
 	}
 };

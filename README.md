@@ -9,7 +9,7 @@ GCFiddle Links:
 [Source code](https://github.com/mavi13/GCFiddle/),
 [HTML Readme](https://mavi13.github.io/GCFiddle/),
 [GCNEW1](https://mavi13.github.io/GCFiddle/gcfiddle.html),
-[GCJVT3](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCJVT3&mapType=openlayers)
+[GCJVT3](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCJVT3&mapType=leaflet)
 
 ## Features
 
@@ -242,8 +242,8 @@ $W2="N 49° 15.903 E 008° 40.777"
 - `showConsole=false`: Show console box (for debugging messages)
 - `variableType=number`: Set general type of variables in the variable box to `number`, `text` or `range`
   - If a variable is not a number, `text` is used
-- `positionFormat=dmm`: Set position output format: `dmm`, `dms`, `dd`
-- `mapType=simple`: Set type of map to `simple`, `openlayers`, `leaflet` or `google`.
+- `positionFormat=`: Set position output format: `(empty string)`, `dmm`, `dms`, `dd`
+- `mapType=simple`: Set type of map to `simple`, `openlayers`, `leaflet`, `google` or `none`.
   - For `google`, an API key must be set
 - `googleKey=""`: Set [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key)
   - Can also be set in file `gcconfig.js` or `gcfiddle.js`

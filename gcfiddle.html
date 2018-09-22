@@ -85,12 +85,14 @@
 				<option value="openlayers" title="Open Street Map (OpenLayers)">OpenLayers</option>
 				<option value="leaflet" title="Open Street Map (Leaflet)">Leaflet</option>
 				<option value="google" title="Google Maps">Google</option>
+				<option value="none" title="No map">None</option>
 			</select>
 		</legend>
 		<div class="canvas" id="mapCanvas-google" hidden></div>
 		<div class="canvas" id="mapCanvas-leaflet" hidden></div>
 		<div class="canvas" id="mapCanvas-openlayers" hidden></div>
 		<div class="canvas" id="mapCanvas-simple" hidden></div>
+		<div class="canvas" id="mapCanvas-none" hidden></div>
 		<div>
 			<button id="locationButton" title="Get Location">Location</button>
 			<button id="fitBoundsButton" title="Fit markers in map bounds">Fit Bounds</button>
@@ -109,6 +111,7 @@
 <script src="InputStack.js"></script>
 <script src="LatLng.js"></script>
 <script src="MapProxy.js"></script>
+<!-- <script src="MapProxy.None.js"></script> -->
 <script src="MarkerFactory.js"></script>
 <script src="ScriptParser.js"></script>
 <script src="CommonEventHandler.js"></script>

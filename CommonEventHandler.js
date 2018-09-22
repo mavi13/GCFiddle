@@ -148,7 +148,6 @@ CommonEventHandler.prototype = {
 			this.onVarSelectChange(); // title change?
 			gcFiddle.fnSetWaypointSelectOptions();
 			gcFiddle.fnSetMarkers(variables);
-			gcFiddle.maFa.setPolyline();
 			gcFiddle.maFa.showMarkers();
 			this.onWaypointSelectChange();
 		}
@@ -173,7 +172,6 @@ CommonEventHandler.prototype = {
 			gcFiddle.fnSetVarSelectOptions();
 			gcFiddle.fnSetWaypointSelectOptions();
 			gcFiddle.fnSetMarkers(variables);
-			gcFiddle.maFa.setPolyline();
 			gcFiddle.maFa.showMarkers();
 			this.onWaypointSelectChange();
 		}
@@ -189,7 +187,6 @@ CommonEventHandler.prototype = {
 		};
 		gcFiddle.fnCalculate2();
 		gcFiddle.maFa.deleteMarkers();
-		gcFiddle.maFa.deletePolyline();
 		gcFiddle.fnSetMarkers(gcFiddle.variables);
 		gcFiddle.fnSetVarSelectOptions();
 		this.onVarSelectChange();
@@ -199,7 +196,6 @@ CommonEventHandler.prototype = {
 		}
 		this.onWaypointSelectChange();
 		gcFiddle.maFa.fitBounds();
-		gcFiddle.maFa.setPolyline();
 		gcFiddle.maFa.showMarkers();
 	},
 
@@ -378,9 +374,7 @@ CommonEventHandler.prototype = {
 		var oMaFa = gcFiddle.maFa;
 
 		oMaFa.clearMarkers(); // clear needed for SimpleMarker
-		oMaFa.clearPolyline();
 		oMaFa.fitBounds();
-		oMaFa.setPolyline();
 		oMaFa.showMarkers();
 	},
 

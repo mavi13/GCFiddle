@@ -109,7 +109,7 @@ MapProxy.Google.Marker.prototype = {
 			position: MapProxy.Google.position2google(oMarkerOptions.position),
 			label: oMarkerOptions.label,
 			title: oMarkerOptions.title,
-			draggable: oMarkerOptions.draggable
+			draggable: true
 		});
 		google.maps.event.addListener(this.marker, "click", this.fnMarkerClick.bind(this)); // is it ok to use bind?
 		google.maps.event.addListener(this.marker, "drag", this.fnMarkerDrag.bind(this));

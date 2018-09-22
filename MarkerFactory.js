@@ -4,6 +4,43 @@
 
 "use strict";
 
+
+function Marker(options) {
+	// position, label, title
+	this.init(options);
+}
+
+Marker.prototype = {
+	init: function (options) {
+		Utils.objectAssign(this, options);
+	},
+	getPosition: function () {
+		return this.position;
+	},
+	setPosition: function (position) {
+		this.position = position;
+	},
+	getLabel: function () {
+		return this.label;
+	},
+	setLabel: function (label) {
+		this.label = label;
+	},
+	getTitle: function () {
+		return this.title;
+	},
+	setTitle: function (title) {
+		this.title = title;
+	},
+	getMap: function () {
+		return this.map;
+	},
+	setMap: function (map) {
+		this.map = map;
+	}
+};
+
+
 //
 // MarkerFactory: settings={draggable}
 function MarkerFactory(options) {
@@ -30,7 +67,6 @@ MarkerFactory.prototype = {
 				}
 			}
 			this.deleteMarkers();
-			this.deletePolyline();
 			this.deleteInfoWindow();
 
 			this.createInfoWindow();
@@ -40,15 +76,13 @@ MarkerFactory.prototype = {
 				this.setMarker(oMarkerOptions, i);
 			}
 			this.fitBounds();
-			this.setPolyline();
 			this.showMarkers();
 		} else {
 			this.mapProxy = null;
 		}
 	},
 	init: function (options) {
-		this.positionFormat = options.positionFormat;
-		this.oCommonOptions = options;
+		this.options = Utils.objectAssign({}, options);
 		this.aMarkerList = [];
 		this.initMap(null);
 	},
@@ -56,7 +90,7 @@ MarkerFactory.prototype = {
 		return this.aMarkerList;
 	},
 	setMarker: function (options, i) {
-		var oMarkerOptions = Utils.objectAssign({}, this.oCommonOptions, options),
+		var oMarkerOptions = Utils.objectAssign({}, options),
 			mapProxy = this.mapProxy,
 			oMarker;
 
@@ -76,23 +110,7 @@ MarkerFactory.prototype = {
 					this.setCenter(oMarker);
 				}
 			} else { // !map
-				oMarker = Utils.objectAssign({
-					getPosition: function () {
-						return this.position;
-					},
-					getTitle: function () {
-						return this.title;
-					},
-					getLabel: function () {
-						return this.label;
-					},
-					getMap: function () {
-						return this.map;
-					},
-					setMap: function (map) {
-						this.map = map;
-					}
-				}, oMarkerOptions);
+				oMarker = new Marker(oMarkerOptions);
 			}
 		} else { // adapt existing marker
 			oMarker = this.aMarkerList[i];
@@ -113,10 +131,9 @@ MarkerFactory.prototype = {
 			this.aMarkerList[i] = oMarker;
 		}
 	},
-	setMapOnAllMarkers: function (mapProxy) {
-		var map, oMarker, i;
+	privSetMapOnAllMarkers: function (map) {
+		var i, oMarker;
 
-		map = mapProxy ? mapProxy.getMap() : null;
 		for (i = 0; i < this.aMarkerList.length; i += 1) {
 			oMarker = this.aMarkerList[i];
 			if (oMarker && oMarker.getMap() !== map) {
@@ -125,10 +142,14 @@ MarkerFactory.prototype = {
 		}
 	},
 	showMarkers: function () {
-		this.setMapOnAllMarkers(this.mapProxy);
+		var map = this.mapProxy ? this.mapProxy.getMap() : null;
+
+		this.privSetPolyline();
+		this.privSetMapOnAllMarkers(map);
 	},
 	clearMarkers: function () {
-		this.setMapOnAllMarkers(null);
+		this.privSetMapOnAllMarkers(null);
+		this.privClearPolyline();
 	},
 	deleteMarkers: function () {
 		var oMarker, i;
@@ -142,6 +163,7 @@ MarkerFactory.prototype = {
 			this.aMarkerList[i] = null;
 		}
 		this.aMarkerList = [];
+		this.privDeletePolyline();
 	},
 	setCenter: function (marker) {
 		var mapProxy = this.mapProxy;
@@ -172,19 +194,20 @@ MarkerFactory.prototype = {
 			mapProxy.getMap().resize();
 		}
 	},
-	clearPolyline: function () {
+
+	privClearPolyline: function () {
 		if (this.polyLine) {
 			this.polyLine.setMap(null);
 		}
 	},
-	deletePolyline: function () {
-		this.clearPolyline();
+	privDeletePolyline: function () {
+		this.privClearPolyline();
 		if (this.polyLine && this.polyLine.destroy) { // needed for OpenLayers?
 			this.polyLine.destroy();
 		}
 		this.polyLine = null;
 	},
-	setPolyline: function () {
+	privSetPolyline: function () {
 		var aList = [],
 			mapProxy = this.mapProxy,
 			oPolyLineOptions, i;
@@ -195,10 +218,9 @@ MarkerFactory.prototype = {
 			}
 			if (!this.polyLine) {
 				oPolyLineOptions = {
-					clickable: true,
 					strokeColor: "red",
 					strokeOpacity: 0.8,
-					strokeWeight: 0.5
+					strokeWidth: 2
 				};
 				this.polyLine = mapProxy.createPolyline(oPolyLineOptions);
 			}
@@ -206,6 +228,7 @@ MarkerFactory.prototype = {
 			this.polyLine.setPath(aList);
 		}
 	},
+
 	deleteInfoWindow: function () {
 		if (this.infoWindow) {
 			this.infoWindow.close();
@@ -222,7 +245,7 @@ MarkerFactory.prototype = {
 					var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
 						sContent, oPreviousMarker, iIndex, oPosition1, oPosition2, iAngle, iDistance, sDirection;
 
-					sContent = marker.getTitle() + "=" + marker.getPosition().toFormattedString(that.positionFormat);
+					sContent = marker.getTitle() + "=" + marker.getPosition().toFormattedString(that.options.positionFormat);
 					iIndex = that.aMarkerList.indexOf(marker);
 					if (iIndex >= 1) {
 						oPreviousMarker = that.aMarkerList[iIndex - 1];
