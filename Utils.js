@@ -42,7 +42,7 @@ var Utils = {
 	strNumFormat: function (s, iLen, sFillChar) {
 		var i;
 
-		s = s.toString();
+		s = String(s);
 		if (sFillChar === null) {
 			sFillChar = " ";
 		}

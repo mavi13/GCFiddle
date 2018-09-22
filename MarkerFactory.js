@@ -47,6 +47,7 @@ MarkerFactory.prototype = {
 		}
 	},
 	init: function (options) {
+		this.positionFormat = options.positionFormat;
 		this.oCommonOptions = options;
 		this.aMarkerList = [];
 		this.initMap(null);
@@ -60,7 +61,7 @@ MarkerFactory.prototype = {
 			oMarker;
 
 		if (!oMarkerOptions.label) {
-			oMarkerOptions.label = Utils.strZeroFormat(i.toString(), 2);
+			oMarkerOptions.label = Utils.strZeroFormat(String(i), 2);
 		}
 		if (!oMarkerOptions.title) {
 			oMarkerOptions.title = "W" + oMarkerOptions.label;
@@ -221,7 +222,7 @@ MarkerFactory.prototype = {
 					var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
 						sContent, oPreviousMarker, iIndex, oPosition1, oPosition2, iAngle, iDistance, sDirection;
 
-					sContent = marker.getTitle() + "=" + marker.getPosition().toString();
+					sContent = marker.getTitle() + "=" + marker.getPosition().toFormattedString(that.positionFormat);
 					iIndex = that.aMarkerList.indexOf(marker);
 					if (iIndex >= 1) {
 						oPreviousMarker = that.aMarkerList[iIndex - 1];

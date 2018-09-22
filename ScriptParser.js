@@ -518,7 +518,7 @@ ScriptParser.prototype = {
 						oPosition3,	sValue;
 
 					oPosition3 = LatLng.prototype.intersection(oPosition1, angle1, oPosition2, angle2);
-					sValue = oPosition3.toString();
+					sValue = oPosition3.toFormattedString();
 					return sValue;
 				},
 
@@ -538,7 +538,7 @@ ScriptParser.prototype = {
 						oPosition2,	sValue;
 
 					oPosition2 = oPosition1.destinationPoint(distance, bearing); // order of arguments!
-					sValue = oPosition2.toString();
+					sValue = oPosition2.toFormattedString();
 					return sValue;
 				},
 
@@ -549,7 +549,7 @@ ScriptParser.prototype = {
 						oPosition3,	sValue;
 
 					oPosition3 = oPosition1.midpointTo(oPosition2);
-					sValue = oPosition3.toString();
+					sValue = oPosition3.toFormattedString();
 					return sValue;
 				},
 
@@ -558,7 +558,7 @@ ScriptParser.prototype = {
 					var oPosition = new LatLng().parse(w1),
 						sValue;
 
-					sValue = oPosition.toString(format, true);
+					sValue = oPosition.toFormattedString(format, true);
 					if (sValue === undefined) { // format not "dmm", "dms", "dd"
 						throw new ScriptParser.ErrorObject("Unknown format", format, this.pos);
 					}
@@ -567,7 +567,7 @@ ScriptParser.prototype = {
 
 				// ct (crosstotal)
 				ct: function (x) {
-					var sStr = x.toString().replace(/[^\d]/g, ""),
+					var sStr = String(x).replace(/[^\d]/g, ""),
 						iSum = 0,
 						i;
 
@@ -593,7 +593,7 @@ ScriptParser.prototype = {
 						iSum = 0,
 						i, iNumber;
 
-					s = s.toString().toLowerCase();
+					s = String(s).toLowerCase();
 					for (i = 0; i < s.length; i += 1) {
 						iNumber = s.charCodeAt(i) - iCodeBeforeA;
 						if ((iNumber < 0) || (iNumber > 26)) {
@@ -610,7 +610,7 @@ ScriptParser.prototype = {
 						sOut = "",
 						i;
 
-					s = s.toString().toLowerCase().replace(/[^a-z]/g, "");
+					s = String(s).toLowerCase().replace(/[^a-z]/g, "");
 					for (i = 0; i < s.length; i += 1) {
 						sOut += ((i > 0) ? " " : "") + mFunctions.zformat(s.charCodeAt(i) - iCodeBeforeA, 2);
 					}
@@ -625,7 +625,7 @@ ScriptParser.prototype = {
 
 					iShift = iShift || 0;
 					iShift = Number(iShift);
-					s = s.toString().toLowerCase().replace(/[^0-9]/g, " ");
+					s = String(s).toLowerCase().replace(/[^0-9]/g, " ");
 					aNum = s.split(" ");
 					for (i = 0; i < aNum.length; i += 1) {
 						iCode = ((Number(aNum[i]) - 1) + iShift) % 26;
@@ -662,13 +662,13 @@ ScriptParser.prototype = {
 
 				// instr (indexOf with positions starting with 1), 'start' is optional
 				instr: function (s, search, start) {
-					return s.toString().indexOf(search, (start) ? (start - 1) : 0) + 1;
+					return String(s).indexOf(search, (start) ? (start - 1) : 0) + 1;
 				},
 
 				// countstr(s, c) Count number of occurrences of substring s2 in s
 				// https://stackoverflow.com/questions/881085/count-the-number-of-occurrences-of-a-character-in-a-string-in-javascript
 				countstr: function (s, s2) {
-					return (s.toString().match(new RegExp(s2, "g")) || []).length;
+					return (String(s).match(new RegExp(s2, "g")) || []).length;
 				},
 
 				// count(s, s2) count individual characters from s2 in string s
@@ -676,12 +676,12 @@ ScriptParser.prototype = {
 					var sOut = "",
 						aSearch, i, sStr;
 
-					s = s.toString();
-					s2 = s2.toString();
+					s = String(s);
+					s2 = String(s2);
 					if (s2.length === 1) {
 						return mFunctions.countstr(s, s2);
 					}
-					aSearch = s2.toString().split("");
+					aSearch = s2.split("");
 					for (i = 0; i < aSearch.length; i += 1) {
 						sStr = aSearch[i];
 						sOut += " " + sStr + "=" + mFunctions.countstr(s, sStr);
@@ -692,42 +692,42 @@ ScriptParser.prototype = {
 
 				// len(s) length of string
 				len: function (s) {
-					return s.toString().length;
+					return String(s).length;
 				},
 
 				// mid(s, index, len) substr with positions starting with 1
 				mid: function (s, start, length) {
-					return s.toString().substr(start - 1, length);
+					return String(s).substr(start - 1, length);
 				},
 
 				// uc (toUpperCase)  beware: toUpperCase converts 'ß' to 'SS'!
 				uc: function (s) {
-					return s.toString().toUpperCase();
+					return String(s).toUpperCase();
 				},
 
 				// lc (toLowerCase)
 				lc: function (s) {
-					return s.toString().toLowerCase();
+					return String(s).toLowerCase();
 				},
 
 				// replace(s, s1, r1): replace all occurrences of s1 in s by r1
 				replace: function (s, search, replace) {
 					var oPattern = new RegExp(search, "g");
 
-					return s.toString().replace(oPattern, replace);
+					return String(s).replace(oPattern, replace);
 				},
 				reverse: function (s) {
-					return s.toString().split("").reverse().join("");
+					return String(s).split("").reverse().join("");
 				},
 				rot13: function (s) {
-					return s.toString().replace(/[A-Za-z]/g, function (c) {
+					return String(s).replace(/[A-Za-z]/g, function (c) {
 						return String.fromCharCode(c.charCodeAt(0) + (c.toUpperCase() <= "M" ? 13 : -13));
 					});
 				},
 				zformat: function (s, length) {
 					var i;
 
-					s = s.toString();
+					s = String(s);
 					for (i = s.length; i < length; i += 1) {
 						s = "0" + s;
 					}
@@ -768,7 +768,7 @@ ScriptParser.prototype = {
 					oOut = new ScriptParser().calculate(input, oVars);
 					if (oOut.error) {
 						oErr = oOut.error;
-						iEndPos = oErr.pos + oErr.value.toString().length;
+						iEndPos = oErr.pos + String(oErr.value).length;
 						oOut.text = oErr.message + ": '" + oErr.value + "' (pos " + oErr.pos + "-" + iEndPos + ")";
 					}
 					return oOut.text;

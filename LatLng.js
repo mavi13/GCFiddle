@@ -15,6 +15,8 @@ LatLng.prototype = {
 	init: function (lat, lng) {
 		this.lat = Number(lat);
 		this.lng = Number(lng);
+		this.format = "";
+		this.comment = "";
 	},
 	distanceTo: function (point) {
 		var radius = 6371e3,
@@ -129,10 +131,26 @@ LatLng.prototype = {
 
 		return new LatLng(Utils.toDegrees(phi3), (Utils.toDegrees(lambda3) + 540) % 360 - 180); // normalise to −180..+180°
 	},
+	getComment: function () {
+		return this.comment;
+	},
+	setComment: function (sComment) {
+		this.comment = sComment;
+	},
+	getFormat: function () {
+		return this.format;
+	},
+	setFormat: function (sFormat) {
+		this.format = sFormat;
+	},
+	getError: function () {
+		return this.error;
+	},
 	parse: function (coord) {
 		var lat = 0,
 			lng = 0,
-			aParts, bParseOk;
+			sFormat = "",
+			iCommentIndex, aParts, bParseOk;
 
 		function dmm2position() {
 			aParts = coord.match(/^\s*(N|S)\s*(\d+)°?\s*(\d+\.\d+)\s*(E|W)\s*(\d+)°?\s*(\d+\.\d+)/); // dmm
@@ -145,6 +163,7 @@ LatLng.prototype = {
 				if (aParts[4] === "W") {
 					lng = -lng;
 				}
+				sFormat = "dmm";
 				return true;
 			}
 			return false;
@@ -161,6 +180,7 @@ LatLng.prototype = {
 				if (aParts[5] === "W") {
 					lng = -lng;
 				}
+				sFormat = "dms";
 				return true;
 			}
 			return false;
@@ -177,21 +197,34 @@ LatLng.prototype = {
 				if (aParts[3] === "W") {
 					lng = -lng;
 				}
+				sFormat = "dd";
 				return true;
 			}
 			return false;
 		}
 
+		iCommentIndex = coord.indexOf("!");
+		if (iCommentIndex >= 0) {
+			this.comment = coord.substr(iCommentIndex);
+			coord = coord.substr(0, iCommentIndex);
+		} else {
+			this.comment = "";
+		}
+
 		bParseOk = dmm2position() || dms2position() || dd2position();
 		this.lat = lat;
 		this.lng = lng;
-		if (!bParseOk) {
-			window.console.warn("parse2position: Do not know how to parse '" + coord + "'");
+		this.format = sFormat;
+		if (!bParseOk && coord !== "") {
+			this.error = "Cannot parse " + coord;
+			window.console.warn("parse2position: Cannot parse '" + coord + "'");
+		} else {
+			this.error = "";
 		}
 		return this;
 	},
-	toString: function (format, bSuppressWarnings) {
-		var sValue;
+	toFormattedString: function (format, bSuppressWarnings) {
+		var sValue, sComment;
 
 		function position2dmm(position) {
 			var lat = Math.abs(position.lat),
@@ -223,15 +256,27 @@ LatLng.prototype = {
 		}
 
 		function position2dd(position) {
-			var latNS = (position.lat >= 0) ? "N" : "S",
-				lngEW = (position.lng >= 0) ? "E" : "W",
+			var lat = position.lat,
+				lng = position.lng,
+				latNS = (lat >= 0) ? "N" : "S",
+				lngEW = (lng >= 0) ? "E" : "W",
 				sDD;
 
-			sDD = latNS + " " + Utils.strZeroFormat(position.lat.toFixed(5), 8) + "° " + lngEW + " " + Utils.strZeroFormat(position.lng.toFixed(5), 9) + "°";
+			if (latNS === "S") {
+				lat = -lat;
+			}
+			if (lngEW === "W") {
+				lng = -lng;
+			}
+			sDD = latNS + " " + Utils.strZeroFormat(lat.toFixed(5), 8) + "° " + lngEW + " " + Utils.strZeroFormat(lng.toFixed(5), 9) + "°";
 			return sDD;
 		}
 
-		format = format || "dmm";
+		format = format || this.format || "dmm";
+		if (format.charAt(format.length - 1) === "c") {
+			format = format.substr(0, format.length - 1);
+			sComment = this.getComment();
+		}
 		switch (format) {
 		case "dmm":
 			sValue = position2dmm(this);
@@ -246,6 +291,9 @@ LatLng.prototype = {
 			if (!bSuppressWarnings) {
 				window.console.warn("position2string: Unknown format", format);
 			}
+		}
+		if (sComment) {
+			sValue += "!" + sComment;
 		}
 		return sValue;
 	}

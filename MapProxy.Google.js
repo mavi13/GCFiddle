@@ -59,7 +59,7 @@ MapProxy.Google.Map.prototype = {
 			that = this;
 
 		if (oBounds.getSouthWest()) { // Google maps available? (with API key)
-			if (oBounds.getSouthWest().toString() === oBounds.getNorthEast().toString()) { // only one waypoint
+			if (String(oBounds.getSouthWest()) === String(oBounds.getNorthEast)) { // only one waypoint
 				this.fitBoundsZoom = that.options.zoom; // limit zoom level
 			}
 		}

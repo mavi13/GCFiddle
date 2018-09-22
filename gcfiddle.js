@@ -22,7 +22,7 @@ var gDebug,
 			showLogs: false,
 			showConsole: false, // for debugging
 			variableType: "number", // number, text, range
-			positionFormat: "dmm", // position output format: dmm, dms, dd
+			positionFormat: "", // position output format: "", dmm, dms, dd
 			mapboxKey: "", // mapbox access token (for leaflet maps)
 			mapType: "simple", // simple, google, leaflet, openlayers
 			googleKey: "", // Google API key
@@ -57,7 +57,7 @@ var gDebug,
 
 		// see: https://stackoverflow.com/questions/805107/creating-multiline-strings-in-javascript?rq=1
 		fnHereDoc: function (fn) {
-			return fn.toString().
+			return String(fn).
 				replace(/^[^/]+\/\*\S*/, "").
 				replace(/\*\/[^/]+$/, "");
 		},
@@ -163,14 +163,15 @@ var gDebug,
 
 		fnSetMarkers: function (variables) {
 			var i = 0,
-				sPar, oSettings;
+				sPar, oPosition, oSettings;
 
 			for (sPar in variables) {
 				if (variables.hasOwnProperty(sPar) && gcFiddle.fnIsWaypoint(sPar)) {
+					oPosition = new LatLng().parse(String(variables[sPar]));
 					oSettings = {
-						position: new LatLng().parse(variables[sPar].toString(gcFiddle.config.positionFormat)),
-						label: Utils.strZeroFormat(i.toString(), 2),
-						title: sPar
+						position: oPosition,
+						label: Utils.strZeroFormat(String(i), 2),
+						title: sPar + oPosition.getComment()
 					};
 					gcFiddle.maFa.setMarker(oSettings, i);
 					i += 1;
@@ -233,7 +234,7 @@ var gDebug,
 
 		fnSetWaypointSelectOptions: function () {
 			var fnTextFormat = function (parameter, value) {
-				value = value.toString(gcFiddle.config.positionFormat).replace(/(N|S|E|W)\s*(\d+)°?\s*/g, "");
+				value = String(value).replace(/(N|S|E|W)\s*(\d+)°?\s*/g, "");
 
 				parameter = parameter.substring(1, 4);
 				return parameter + "=" + value;
@@ -328,7 +329,7 @@ var gDebug,
 			oOutput = new ScriptParser().calculate(input, variables);
 			if (oOutput.error) {
 				oError = oOutput.error;
-				iEndPos = oError.pos + ((oError.value !== undefined) ? oError.value.toString().length : 0);
+				iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
 				if (inputArea.selectionStart !== undefined) {
 					inputArea.focus();
 					inputArea.selectionStart = oError.pos;
@@ -409,7 +410,14 @@ var gDebug,
 				mInfo.script = "";
 				for (iWp = 0; iWp < aWpt.length; iWp += 1) {
 					oWpt = aWpt[iWp];
-					mInfo.script += "$W" + iWp + '="' + new LatLng(oWpt.lat, oWpt.lon).toString(gcFiddle.config.positionFormat) + '" # ' + oWpt.name + ", " + oWpt.cmt + "\n";
+					mInfo.script += "$W" + iWp + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(gcFiddle.config.positionFormat) + '" # ' + oWpt.name + ", " + oWpt.cmt + "\n";
+				}
+			} else if (oJson.gpx && oJson.gpx.trk && oJson.gpx.trk.trkseg && oJson.gpx.trk.trkseg.trkpt && oJson.gpx.trk.trkseg.trkpt.length) {
+				aWpt = oJson.gpx.trk.trkseg.trkpt;
+				mInfo.script = "";
+				for (iWp = 0; iWp < aWpt.length; iWp += 1) {
+					oWpt = aWpt[iWp];
+					mInfo.script += "$W" + iWp + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(gcFiddle.config.positionFormat) + '" # ' + oWpt.ele + ", " + oWpt.time + "\n";
 				}
 			}
 			return mInfo;
@@ -545,7 +553,8 @@ var gDebug,
 			gcFiddle.inputStack = new InputStack();
 
 			gcFiddle.maFa = new MarkerFactory({
-				draggable: true
+				draggable: true,
+				positionFormat: gcFiddle.config.positionFormat
 			});
 
 			gcFiddle.commonEventHandler = new CommonEventHandler();

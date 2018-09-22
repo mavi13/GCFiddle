@@ -83,7 +83,19 @@ CommonEventHandler.prototype = {
 			waypointInput = document.getElementById("waypointInput"),
 			sPar = waypointSelect.value,
 			aMarkers = gcFiddle.maFa.getMarkers(),
-			sValue,	oMarker, i;
+			sValue,	oMarker, i, oPos, sError,
+			fnAddClass = function (element, sClassName) {
+				var aClasses = element.className.split(" ");
+
+				if (aClasses.indexOf(sClassName) === -1) {
+					element.className += " " + sClassName;
+				}
+			},
+			fnRemoveClass = function (element, sClassName) {
+				var regExp = new RegExp("\\b" + sClassName + "\\b", "g");
+
+				element.className = element.className.replace(regExp, "");
+			};
 
 		// center to selected waypoint
 		for (i = 0; i < aMarkers.length; i += 1) {
@@ -101,7 +113,17 @@ CommonEventHandler.prototype = {
 		}
 		waypointLabel.innerText = sPar;
 		waypointLabel.title = sPar;
+
 		waypointInput.value = sValue;
+		oPos = new LatLng().parse(sValue);
+		sError = oPos.getError();
+		waypointInput.title = sError || oPos.toFormattedString(gcFiddle.config.positionFormat);
+		if (sError) {
+			fnAddClass(waypointInput, "invalid");
+		} else {
+			fnRemoveClass(waypointInput, "invalid");
+		}
+
 		waypointSelect.title = (waypointSelect.selectedIndex >= 0) ? waypointSelect.options[waypointSelect.selectedIndex].title : "";
 		document.getElementById("waypointLegend").textContent = "Waypoints (" + waypointSelect.length + ")";
 	},
@@ -369,7 +391,7 @@ CommonEventHandler.prototype = {
 			var oPos = new LatLng(position.coords.latitude, position.coords.longitude),
 				iMarkersLength = gcFiddle.maFa.getMarkers().length;
 
-			window.console.log("Location: " + oPos.toString());
+			window.console.log("Location: " + oPos.toFormattedString(gcFiddle.config.positionFormat));
 			gcFiddle.maFa.setMarker({
 				position: oPos
 			}, iMarkersLength);

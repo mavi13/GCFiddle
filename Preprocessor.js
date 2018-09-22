@@ -319,7 +319,7 @@ Preprocessor.prototype = {
 			iLength = Math.min(arguments.length, 6 + 1); // we need at most 6 arguments starting with index 1
 			for (i = 1; i < iLength; i += 1) {
 				sArg = arguments[i];
-				sArg = sArg.toString().replace(/['"]/, ""); // remove apostropthes, quotes
+				sArg = String(sArg).replace(/['"]/, ""); // remove apostropthes, quotes
 				if (i === iLength - 1) { // last argument?
 					if (Utils.stringEndsWith(sArg, ")") && sArg.indexOf("(") < 0) { // sometimes a waypoint is surrounded by parenthesis, remove closing parenthesis
 						sArg = sArg.substring(0, sArg.length - 1);
@@ -368,13 +368,13 @@ Preprocessor.prototype = {
 		return str;
 	},
 	fnRot13: function (s) {
-		return s.toString().replace(/[A-Za-z]/g, function (c) {
+		return String(s).replace(/[A-Za-z]/g, function (c) {
 			return String.fromCharCode(c.charCodeAt(0) + (c.toUpperCase() <= "M" ? 13 : -13));
 		});
 	},
 	fnRot13WithBrackets: function (s) { // keep text in brackets []
 		var that = this,
-			aStr = s.toString().split(/(\[|\])/),
+			aStr = String(s).split(/(\[|\])/),
 			iNestingLevel = 0;
 
 		aStr = aStr.map(function (s1) {

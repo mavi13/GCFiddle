@@ -58,3 +58,7 @@ body {
 .editable {
 	background-color: white;
 }
+
+.invalid {
+	border-color: red;
+}
