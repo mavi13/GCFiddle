@@ -146,6 +146,7 @@ ScriptParser.prototype = {
 		addToken("(end)", 0, iIndex);
 		return aTokens;
 	},
+
 	// http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
 	// Operator precedence parsing
 	// Operator: With left binding power (lbp) and operational function.
@@ -203,14 +204,14 @@ ScriptParser.prototype = {
 						throw new ScriptParser.ErrorObject("Unexpected token", t.type, t.pos);
 					}
 				}
-				left = t.nud(t);
-				while (rbp < token().lbp) {
+				left = t.nud(t); // process literals, variables, and prefix operators
+				while (rbp < token().lbp) { // as long as the right binding power is less than the left binding power of the next token...
 					t = token();
 					advance();
 					if (!t.led) {
 						throw new ScriptParser.ErrorObject("Unexpected token", t.type, tokens[iIndex].pos);
 					}
-					left = t.led(left);
+					left = t.led(left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
 				}
 				return left;
 			},
@@ -284,17 +285,22 @@ ScriptParser.prototype = {
 		});
 
 		symbol("[", function () {
-			var iParseIndex = iIndex,
+			var t = token(),
+				iParseIndex = iIndex,
 				oValue,
 				aArgs = [];
 
+			if (t.type === "(end)") {
+				throw new ScriptParser.ErrorObject("Unexpected end of file", "", t.pos);
+			}
 			if (tokens[iIndex + 1].type === "]") {
 				oValue = expression(2);
 			} else {
 				do {
 					aArgs.push(expression(2));
-				} while (token().type !== "]" && token().type !== "(end)");
-				if (token().type !== "]") {
+					t = token();
+				} while (t.type !== "]" && t.type !== "(end)");
+				if (t.type !== "]") {
 					throw new ScriptParser.ErrorObject("Expected closing bracket", "]", tokens[iParseIndex].pos);
 				}
 				oValue = {
@@ -310,10 +316,13 @@ ScriptParser.prototype = {
 
 		// sort of suffix function
 		symbol("formatter", null, 3, function (left) {
+			var oFormatterToken = tokens[iIndex - 1]; //fast hack
+
 			return {
 				type: "formatter",
-				value: tokens[iIndex - 1].value, //fast hack
-				left: left
+				value: oFormatterToken.value,
+				left: left,
+				pos: oFormatterToken.pos
 			};
 		});
 
@@ -360,10 +369,11 @@ ScriptParser.prototype = {
 		}
 		return aParseTree;
 	},
+
 	//
 	// evaluate
 	//
-	evaluate: function (parseTree, variables) {
+	evaluate: function (parseTree, variables, functions) {
 		var sOutput = "",
 			mOperators = {
 				"+": function (a, b) {
@@ -389,7 +399,111 @@ ScriptParser.prototype = {
 				}
 			},
 
-			mFunctions = {
+			mFunctions = Utils.objectAssign({}, functions), // create copy of predefined functions so that they can be redefined
+
+			oArgs = { },
+
+			checkArgs = function (name, aArgs, iPos) {
+				var oFunction = mFunctions[name],
+					sFunction, sFirstLine, aMatch, iMin;
+
+				if (oFunction.length !== aArgs.length) {
+					sFunction = String(oFunction);
+					sFirstLine = sFunction.split("\n", 1)[0];
+					if (sFirstLine.indexOf("function () { // varargs") === 0) {
+						return; // no check for functions with varargs comment
+					}
+					aMatch = sFirstLine.match(/{ \/\/ optional args (\d+)/);
+					if (aMatch) {
+						if (aMatch[1]) {
+							iMin = oFunction.length - Number(aMatch[1]);
+							if (aArgs.length >= iMin && aArgs.length <= oFunction.length) {
+								return;
+							}
+						}
+					}
+					//window.console.warn("function " + name + " expects " + oFunction.length + " parameters but called with " + aArgs.length);
+					throw new ScriptParser.ErrorObject("Wrong number of arguments for function", name, iPos);
+				}
+			},
+
+			parseNode = function (node) {
+				var i, sValue, aNodeArgs;
+
+				if (gDebug && gDebug.level > 2) {
+					gDebug.log("DEBUG: parseNode node=%o type=" + node.type + " name=" + node.name + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+				}
+				if (node.type === "number" || node.type === "string") {
+					sValue = node.value;
+				} else if (mOperators[node.type]) {
+					if (node.left) {
+						sValue = mOperators[node.type](parseNode(node.left), parseNode(node.right));
+					} else {
+						sValue = mOperators[node.type](parseNode(node.right));
+					}
+				} else if (node.type === "identifier") {
+					sValue = oArgs.hasOwnProperty(node.value) ? oArgs[node.value] : variables[node.value];
+					if (sValue === undefined) {
+						throw new ScriptParser.ErrorObject("Variable is undefined", node.value, node.pos);
+					}
+				} else if (node.type === "assign") {
+					sValue = parseNode(node.value);
+					if (variables.gcfOriginal && variables.gcfOriginal[node.name] !== undefined && variables.gcfOriginal[node.name] !== variables[node.name]) {
+						window.console.log("Variable is set to hold: " + node.name + "=" + variables[node.name] + " (" + sValue + ")");
+						sValue = node.name + "=" + variables[node.name];
+					} else {
+						variables[node.name] = sValue;
+						sValue = node.name + "=" + sValue;
+					}
+				} else if (node.type === "call") {
+					aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
+					for (i = 0; i < node.args.length; i += 1) {
+						aNodeArgs[i] = parseNode(node.args[i]);
+					}
+					if (mFunctions[node.name] === undefined) {
+						throw new ScriptParser.ErrorObject("Function is undefined", node.name, node.pos);
+					}
+					checkArgs(node.name, aNodeArgs, node.pos);
+					sValue = mFunctions[node.name].apply(node, aNodeArgs);
+				} else if (node.type === "function") {
+					mFunctions[node.name] = function () { // varargs
+						for (i = 0; i < node.args.length; i += 1) {
+							oArgs[node.args[i].value] = arguments[i];
+						}
+						sValue = parseNode(node.value);
+						//oArgs = {}; //do not reset here!
+						return sValue;
+					};
+				} else if (node.type === "formatter") {
+					sValue = parseNode(node.left);
+					sValue = mFunctions.nformat(sValue, node.value);
+				} else {
+					window.console.error("parseNode node=%o unknown type=" + node.type, node);
+					sValue = node;
+				}
+				return sValue;
+			},
+
+			i,
+			sNode;
+
+		for (i = 0; i < parseTree.length; i += 1) {
+			if (gDebug && gDebug.level > 1) {
+				gDebug.log("DEBUG: parseTree i=%d, node=%o", i, parseTree[i]);
+			}
+			sNode = parseNode(parseTree[i]);
+			if ((sNode !== undefined) && (sNode !== "")) {
+				if (sNode !== null) {
+					sOutput += sNode + "\n";
+				} else {
+					sOutput = ""; // cls (clear output when sNode is set to null)
+				}
+			}
+		}
+		return sOutput;
+	},
+	calculate: function (input, variables) {
+		var mFunctions = {
 				// concat(s1, s2, ...) concatenate strings (called by operator [..] )
 				concat: function () { // varargs
 					var	s = "",
@@ -470,16 +584,16 @@ ScriptParser.prototype = {
 
 				// fib(x) xth Fibonacci number
 				fib: function (x) {
-					var fib = [
-							0,
-							1
-						],
-						i;
+					var a = 0,
+						b = 1,
+						i, h;
 
-					for (i = 2; i <= x; i += 1) {
-						fib[i] = fib[i - 2] + fib[i - 1];
+					for (i = 1; i <= x; i += 1) {
+						h = a;
+						a = b;
+						b = h + b;
 					}
-					return fib[x];
+					return a;
 				},
 
 				// deg() switch do degrees mode (default, ignored, we always use degrees)
@@ -618,7 +732,7 @@ ScriptParser.prototype = {
 				},
 
 				// vstr (value(s) to string, optional iShift) (new)
-				vstr: function (s, iShift) {
+				vstr: function (s, iShift) { // optional args 1: iShift
 					var iCodeBeforeA = "a".charCodeAt(0) - 1,
 						sOut = "",
 						aNum, i, iCode;
@@ -652,7 +766,7 @@ ScriptParser.prototype = {
 				},
 
 				// ic(n) Ignore variable case (not implemented, we are always case sensitive)
-				ic: function (mode) {
+				ic: function (mode) { // optional args 1: mode
 					if (typeof mode === "undefined") { // no parameter, return status
 						return false;
 					}
@@ -661,7 +775,7 @@ ScriptParser.prototype = {
 				},
 
 				// instr (indexOf with positions starting with 1), 'start' is optional
-				instr: function (s, search, start) {
+				instr: function (s, search, start) { // optional args 1: start
 					return String(s).indexOf(search, (start) ? (start - 1) : 0) + 1;
 				},
 
@@ -761,11 +875,11 @@ ScriptParser.prototype = {
 						throw new ScriptParser.ErrorObject("Unknown constant", name, this.pos);
 					}
 				},
-				parse: function (input) {
+				parse: function (s) {
 					var oVars = {},
 						oOut, oErr, iEndPos;
 
-					oOut = new ScriptParser().calculate(input, oVars);
+					oOut = new ScriptParser().calculate(s, oVars);
 					if (oOut.error) {
 						oErr = oOut.error;
 						iEndPos = oErr.pos + String(oErr.value).length;
@@ -780,96 +894,10 @@ ScriptParser.prototype = {
 					}
 				},
 				cls: function () {
-					sOutput = "";
-					return "";
+					return null; // clear output trigger
 				}
 			},
-
-			oArgs = { },
-
-			checkArgs = function (name, aArgs) {
-				var oFunction = mFunctions[name];
-
-				if (oFunction.length !== aArgs.length) {
-					if (gDebug && gDebug.level >= 1) {
-						gDebug.log("DEBUG: function " + name + " expects " + oFunction.length + " parameters but called with " + aArgs.length);
-					}
-				}
-			},
-
-			parseNode = function (node) {
-				var i, sValue, aNodeArgs;
-
-				if (gDebug && gDebug.level > 2) {
-					gDebug.log("DEBUG: parseNode node=%o type=" + node.type + " name=" + node.name + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
-				}
-				if (node.type === "number" || node.type === "string") {
-					sValue = node.value;
-				} else if (mOperators[node.type]) {
-					if (node.left) {
-						sValue = mOperators[node.type](parseNode(node.left), parseNode(node.right));
-					} else {
-						sValue = mOperators[node.type](parseNode(node.right));
-					}
-				} else if (node.type === "identifier") {
-					sValue = oArgs.hasOwnProperty(node.value) ? oArgs[node.value] : variables[node.value];
-					if (sValue === undefined) {
-						throw new ScriptParser.ErrorObject("Variable is undefined", node.value, node.pos);
-					}
-				} else if (node.type === "assign") {
-					sValue = parseNode(node.value);
-					if (variables.gcfOriginal && variables.gcfOriginal[node.name] !== undefined && variables.gcfOriginal[node.name] !== variables[node.name]) {
-						window.console.log("Variable is set to hold: " + node.name + "=" + variables[node.name] + " (" + sValue + ")");
-						sValue = node.name + "=" + variables[node.name];
-					} else {
-						variables[node.name] = sValue;
-						sValue = node.name + "=" + sValue;
-					}
-				} else if (node.type === "call") {
-					aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
-					for (i = 0; i < node.args.length; i += 1) {
-						aNodeArgs[i] = parseNode(node.args[i]);
-					}
-					if (mFunctions[node.name] === undefined) {
-						throw new ScriptParser.ErrorObject("Function is undefined", node.name, node.pos);
-					}
-					checkArgs(node.name, aNodeArgs);
-					sValue = mFunctions[node.name].apply(node, aNodeArgs);
-				} else if (node.type === "function") {
-					mFunctions[node.name] = function () {
-						for (i = 0; i < node.args.length; i += 1) {
-							oArgs[node.args[i].value] = arguments[i];
-						}
-						sValue = parseNode(node.value);
-						// oArgs = {}; //do not reset here!
-						return sValue;
-					};
-				} else if (node.type === "formatter") {
-					sValue = parseNode(node.left);
-					sValue = mFunctions.nformat(sValue, node.value);
-				} else {
-					window.console.error("parseNode node=%o unknown type=" + node.type, node);
-					sValue = node;
-				}
-				return sValue;
-			},
-
-			i,
-			sNode;
-
-		for (i = 0; i < parseTree.length; i += 1) {
-			if (gDebug && gDebug.level > 1) {
-				gDebug.log("DEBUG: parseTree i=%d, node=%o", i, parseTree[i]);
-			}
-			sNode = parseNode(parseTree[i]);
-			if ((sNode !== undefined) && (sNode !== "")) {
-				sOutput += sNode + "\n";
-			}
-		}
-		return sOutput;
-	},
-	calculate: function (input, variables) {
-		var oOut = {
+			oOut = {
 				text: ""
 			},
 			aTokens, aParseTree, sOutput;
@@ -877,7 +905,7 @@ ScriptParser.prototype = {
 		try {
 			aTokens = this.lex(input);
 			aParseTree = this.parse(aTokens);
-			sOutput = this.evaluate(aParseTree, variables);
+			sOutput = this.evaluate(aParseTree, variables, mFunctions);
 			oOut.text = sOutput;
 		} catch (e) {
 			oOut.error = e;
