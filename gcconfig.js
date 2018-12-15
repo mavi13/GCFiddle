@@ -7,14 +7,14 @@ var gcFiddleExternalConfig = { // eslint-disable-line no-unused-vars
 	// leafletUrl: "../leaflet/leaflet.js",
 	// leafletUrl: "../leaflet/leaflet-src.js", // debug
 
-	// openLayersUrl: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js",
-	// openLayersUrl: "http://www.openlayers.org/api/OpenLayers.js" // http only
-	// openLayersUrl: "../OpenLayers/lib/OpenLayers.js"
-	// openLayersUrl: "../OpenLayers/lib/OpenLayers.debug.js",
-	// openLayersUrl: "../OpenLayers/lib/OpenLayers.light.js"
-	// openLayersUrl: "../OpenLayers/lib/OpenLayers.light.debug.js",
+	// openlayersUrl: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js",
+	// openlayersUrl: "http://www.openlayers.org/api/OpenLayers.js" // http only
+	// openlayersUrl: "../OpenLayers/lib/OpenLayers.js"
+	// openlayersUrl: "../OpenLayers/lib/OpenLayers.debug.js",
+	// openlayersUrl: "../OpenLayers/lib/OpenLayers.light.js"
+	// openlayersUrl: "../OpenLayers/lib/OpenLayers.light.debug.js",
 
-	// mapboxKey: "", // mapboxKey can be set here (can be used for e.g. leaflet)
+	// leafletMapboxKey: "", // mapboxKey can be set here (currently unused)
 
 	// googleKey: "" // googleKey can be set here
 };

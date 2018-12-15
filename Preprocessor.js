@@ -325,7 +325,7 @@ Preprocessor.prototype = {
 						sArg = sArg.substring(0, sArg.length - 1);
 					}
 				}
-				if (/^\d+$/.test(sArg)) { // number?
+				if ((/^\d+$/).test(sArg)) { // number?
 					// sArg
 				} else if (sArg in that.mVariables) { // variable?
 					sArg = '" ' + sArg + ' "';

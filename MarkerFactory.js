@@ -49,11 +49,13 @@ function MarkerFactory(options) {
 
 MarkerFactory.prototype = {
 	initMap: function (mapProxy) {
-		var aMarkerOptions = [],
-			oMarker, oMarkerOptions, i;
+		var aMarkerOptions = this.aMarkerOptions,
+			oMarkerOptions, i;
 
 		if (mapProxy && mapProxy.getMap()) {
 			this.mapProxy = mapProxy;
+
+			/*
 			for (i = 0; i < this.aMarkerList.length; i += 1) {
 				oMarker = this.aMarkerList[i];
 				if (oMarker) {
@@ -66,17 +68,31 @@ MarkerFactory.prototype = {
 					);
 				}
 			}
+			*/
+
 			this.deleteMarkers();
 			this.deleteInfoWindow();
 
-			this.createInfoWindow();
-			for (i = 0; i < aMarkerOptions.length; i += 1) {
-				oMarkerOptions = aMarkerOptions[i];
-				oMarkerOptions.infoWindow = this.infoWindow;
-				this.setMarker(oMarkerOptions, i);
+			if (gcFiddle.config.testMap) { // test new FeatureGroup map coding
+				this.fg = mapProxy.createFeatureGroup();
+				this.fg.addMarkers(aMarkerOptions);
+				this.fg.fitBounds();
+				this.fg.setMap(mapProxy.getMap());
+				//this.fg.setMap(mapProxy);
+			} else {
+				this.createInfoWindow();
+				if (this.fg) {
+					this.fg.deleteMarkers();
+					delete this.fg;
+				}
+				for (i = 0; i < aMarkerOptions.length; i += 1) {
+					oMarkerOptions = aMarkerOptions[i];
+					oMarkerOptions.infoWindow = this.infoWindow;
+					this.setMarker(oMarkerOptions, i);
+				}
+				this.fitBounds();
+				this.showMarkers();
 			}
-			this.fitBounds();
-			this.showMarkers();
 		} else {
 			this.mapProxy = null;
 		}
@@ -84,6 +100,7 @@ MarkerFactory.prototype = {
 	init: function (options) {
 		this.options = Utils.objectAssign({}, options);
 		this.aMarkerList = [];
+		this.aMarkerOptions = []; //new
 		this.initMap(null);
 	},
 	getMarkers: function () {
@@ -129,11 +146,27 @@ MarkerFactory.prototype = {
 		}
 		if (oMarker) {
 			this.aMarkerList[i] = oMarker;
+			this.aMarkerOptions[i] = oMarker;
+		}
+	},
+	setMarkers: function (aMarkerOptions) {
+		var i;
+
+		if (this.fg) {
+			this.fg.addMarkers(aMarkerOptions);
+			this.aMarkerOptions = aMarkerOptions;
+		} else {
+			for (i = 0; i < aMarkerOptions.length; i += 1) {
+				this.setMarker(aMarkerOptions[i], i);
+			}
 		}
 	},
 	privSetMapOnAllMarkers: function (map) {
 		var i, oMarker;
 
+		if (this.fg) {
+			this.fg.setMap(map);
+		}
 		for (i = 0; i < this.aMarkerList.length; i += 1) {
 			oMarker = this.aMarkerList[i];
 			if (oMarker && oMarker.getMap() !== map) {
@@ -153,6 +186,10 @@ MarkerFactory.prototype = {
 	},
 	deleteMarkers: function () {
 		var oMarker, i;
+
+		if (this.fg) {
+			this.fg.deleteMarkers();
+		}
 
 		this.clearMarkers();
 		for (i = 0; i < this.aMarkerList.length; i += 1) {

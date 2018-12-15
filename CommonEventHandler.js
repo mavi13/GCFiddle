@@ -482,19 +482,26 @@ CommonEventHandler.prototype = {
 			},
 			fnMapProxyLoaded = function (mapProxy) {
 				var sMapType2 = mapProxy.options.mapType,
-					sMapTypeId2 = "mapCanvas-" + sMapType2;
+					sMapTypeId2 = "mapCanvas-" + sMapType2,
+					mConfig = gcFiddle.config,
+					mMapOptions = {
+						zoom: mConfig.zoom,
+						mapType: sMapType2,
+						mapDivId: sMapTypeId2,
+						onload: fnMapLoaded
+					},
+					sKey;
 
+				// include map specific parameters, e.g. googleKey, leafletMapboxKey, leafletUrl, openLayersUrl
+				for (sKey in mConfig) {
+					if (mConfig.hasOwnProperty(sKey)) {
+						if (sKey.startsWith(sMapType2)) {
+							mMapOptions[sKey] = mConfig[sKey];
+						}
+					}
+				}
 				gcFiddle.mapProxy[sMapType2] = mapProxy;
-				mapProxy.createMap({
-					googleKey: gcFiddle.config.googleKey,
-					leafletUrl: gcFiddle.config.leafletUrl,
-					mapboxKey: gcFiddle.config.mapboxKey,
-					openLayersUrl: gcFiddle.config.openLayersUrl,
-					zoom: gcFiddle.config.zoom,
-					mapType: sMapType2,
-					mapDivId: sMapTypeId2,
-					onload: fnMapLoaded
-				});
+				mapProxy.createMap(mMapOptions);
 			};
 
 		gcFiddle.config.mapType = sMapType;

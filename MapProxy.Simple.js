@@ -168,7 +168,12 @@ MapProxy.Simple.Map.prototype = {
 		};
 	},
 	privDrawPath: function (path, bRemove) {
-		var pathStyle, context, i, oPos,
+		var pathStyle = {
+				strokeColor: "red",
+				strokeWidth: 2,
+				strokeOpacity: 0.7
+			},
+			context, i, oPos,
 			canvas = this.aCanvas[0];
 
 		if (path.length) {
@@ -176,7 +181,7 @@ MapProxy.Simple.Map.prototype = {
 				window.console.warn("Browser does not support canvas.getContext()");
 				return;
 			}
-			pathStyle = path.pathStyle;
+			//pathStyle = path.pathStyle;
 			context = canvas.getContext("2d");
 			if (!bRemove) {
 				context.save();
@@ -298,6 +303,126 @@ MapProxy.Simple.LatLngBounds.prototype = {
 };
 
 
+//TODO experimental
+MapProxy.Simple.FeatureGroup = function (options) {
+	this.init(options);
+};
+
+MapProxy.Simple.FeatureGroup.prototype = {
+	init: function (options) {
+		var oPolyLineOptions = {
+			strokeColor: "red",
+			strokeOpacity: 0.8,
+			strokeWidth: 2
+		};
+
+		this.options = Utils.objectAssign({	}, options);
+		this.aMarkers = [];
+		this.polyLine = new MapProxy.Simple.Polyline(oPolyLineOptions);
+		//this.polyLine.setMap(mapProxy.getMap());
+	},
+	addMarkers: function (aList) {
+		var aMarkers = this.aMarkers,
+			aPath = [],
+			i, oItem, oPosition, oMarker;
+
+		for (i = 0; i < aList.length; i += 1) {
+			oItem = aList[i];
+			oPosition = oItem.position; //MapProxy.Leaflet.position2leaflet(oItem.position);
+			aPath.push(oPosition);
+			if (i >= aMarkers.length) {
+				oMarker = new MapProxy.Simple.Marker(oItem);
+				aMarkers.push(oMarker);
+			} else {
+				oMarker = aMarkers[i];
+				oMarker.label = oItem.label;
+				oMarker.title = oItem.title;
+				oMarker.position = oPosition;
+			}
+		}
+
+		this.polyLine.setPath(aPath);
+	},
+	deleteMarkers: function () {
+		var aMarkers = this.aMarkers,
+			i, oMarker;
+
+		this.setMap(null);
+		for (i = 0; i < aMarkers.length; i += 1) {
+			oMarker = aMarkers[i];
+			if (oMarker && oMarker.destroy) { // needed for OpenLayers?
+				oMarker.destroy();
+			}
+			aMarkers[i] = null;
+		}
+		this.aMarkers = [];
+		if (this.polyLine) {
+			this.polyLine.setMap(null);
+		}
+	},
+	fitBounds: function () {
+		var aMarkers = this.aMarkers,
+			oBounds, i;
+
+		if (this.map) {
+			if (this.aMarkers.length) {
+				oBounds = new MapProxy.Simple.LatLngBounds();
+				for (i = 0; i < aMarkers.length; i += 1) {
+					oBounds.extend(aMarkers[i].getPosition());
+				}
+				this.map.fitBounds(oBounds);
+			}
+		}
+	},
+	getMapXX: function () {
+		return this.map;
+	},
+	setMap: function (map) {
+		var aMarkers = this.aMarkers,
+			i, oMarker;
+
+		this.map = map;
+		if (map) {
+			this.fitBounds(); //TTT
+			this.polyLine.setMap(map);
+		}
+		for (i = 0; i < aMarkers.length; i += 1) {
+			oMarker = aMarkers[i];
+			//if (oMarker && oMarker.getMap() !== map) {
+				oMarker.setMap(map);
+			//}
+			if (map) {
+				/*
+				oBounds = this.featureGroup.getBounds();
+				if (oBounds.isValid()) {
+					map.privGetMap().fitBounds(oBounds, {
+						padding: [10, 10] // eslint-disable-line array-element-newline
+					});
+				} else {
+					window.console.warn("bounds are not vaild."); //TTT
+				}
+				//this.featureGroup.addTo(map.privGetMap());
+				*/
+			} else if (this.map) {
+				//this.featureGroup.removeFrom(this.map.privGetMap());
+			}
+		}
+		//this.map = map;
+	},
+	deleteFeatureGroup: function () {
+		this.deleteMarkers();
+		if (this.polyLine && this.polyLine.destroy) { // needed for OpenLayers?
+			this.polyLine.destroy();
+		}
+		this.polyLine = null;
+		if (this.infoWindow) {
+			this.infoWindow.close();
+			this.infoWindow = null;
+		}
+	}
+};
+
+
 MapProxy.Simple.Marker = function (options) {
 	this.init(options);
 };
@@ -372,9 +497,11 @@ MapProxy.Simple.Polyline.prototype = {
 			if (this.path) {
 				this.map.removePath(this.path); // remove old path
 			}
+			/* TTT
 			if (!path.style) {
 				path.pathStyle = this.options; // modify path, memorize path style!
 			}
+			*/
 			this.map.addPath(path); // add new path
 		}
 		this.path = path;

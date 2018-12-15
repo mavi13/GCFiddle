@@ -30,7 +30,7 @@ MapProxy.OpenLayers.Map.prototype = {
 		this.options = Utils.objectAssign({ }, options);
 		this.registeredMarkers = {};
 		sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
-		sUrl = this.options.openLayersUrl.replace(/^http(s)?:/, sProtocol);
+		sUrl = this.options.openlayersUrl.replace(/^http(s)?:/, sProtocol);
 		Utils.loadScript(sUrl, function () {
 			var mapDivId = that.options.mapDivId,
 				bHidden;
@@ -194,6 +194,162 @@ MapProxy.OpenLayers.LatLngBounds.prototype = {
 	},
 	extend: function (position) {
 		this.bounds.extend(MapProxy.OpenLayers.position2openlayers(position));
+	}
+};
+
+
+//TODO experimental
+MapProxy.OpenLayers.FeatureGroup = function (options) {
+	this.init(options);
+};
+
+MapProxy.OpenLayers.FeatureGroup.prototype = {
+	init: function (options) {
+		var oPolyLineOptions = {
+			strokeColor: "red",
+			strokeOpacity: 0.8,
+			strokeWidth: 2
+		};
+
+		this.options = Utils.objectAssign({	}, options);
+		this.aMarkers = [];
+		this.polyLine = new MapProxy.OpenLayers.Polyline(oPolyLineOptions);
+		this.infoWindow = new MapProxy.OpenLayers.InfoWindow({
+			onGetInfoWindowContent: this.testClosure1()
+		});
+	},
+	addMarkers: function (aList) {
+		//OpenLayers.Geometry.Collection() //???
+		var aMarkers = this.aMarkers,
+			aPath = [],
+			oMarkerOptions, i, oItem, oPosition, oMarker;
+
+		for (i = 0; i < aList.length; i += 1) {
+			oItem = aList[i];
+			oPosition = oItem.position; //MapProxy.Leaflet.position2leaflet(oItem.position);
+			aPath.push(oPosition);
+			if (i >= aMarkers.length) {
+				//oMarker = new MapProxy.OpenLayers.Marker(Utils.objectAssign({ infoWindow : this.map.oPopup }, oItem));
+				oMarkerOptions = Utils.objectAssign(oItem, {
+					infoWindow: this.infoWindow
+				}, oItem);
+				oMarker = new MapProxy.OpenLayers.Marker(oMarkerOptions);
+				aMarkers.push(oMarker);
+			} else { // adapt existing marker
+				oMarker = aMarkers[i];
+				//oMarker.label = oItem.label;
+				//oMarker.title = oItem.title;
+				//oMarker.position = oPosition;
+				oMarker.setLabel(oItem.label);
+				oMarker.setTitle(oItem.title);
+				oMarker.setPosition(oPosition);
+				if (this.infoWindow && this.infoWindow.getAnchor() === oMarker) {
+					this.infoWindow.setContent(oMarker);
+				}
+			}
+		}
+
+		if (this.polyLine) {
+			this.polyLine.setPath(aPath);
+		}
+	},
+	deleteMarkers: function () {
+		var aMarkers = this.aMarkers,
+			i, oMarker;
+
+		this.setMap(null);
+		for (i = 0; i < aMarkers.length; i += 1) {
+			oMarker = aMarkers[i];
+			if (oMarker && oMarker.destroy) { // needed for OpenLayers?
+				oMarker.destroy();
+			}
+			aMarkers[i] = null;
+		}
+		this.aMarkers = [];
+		if (this.polyLine) {
+			this.polyLine.setMap(null);
+		}
+	},
+	fitBounds: function () {
+		var oBounds, i;
+
+		if (this.map) {
+			if (this.aMarkers.length) {
+				oBounds = new MapProxy.OpenLayers.LatLngBounds();
+
+				for (i = 0; i < this.aMarkers.length; i += 1) {
+					oBounds.extend(this.aMarkers[i].getPosition());
+				}
+				this.map.fitBounds(oBounds);
+			}
+		}
+	},
+	setMap: function (map) {
+		var aMarkers = this.aMarkers,
+			i, oMarker;
+
+		this.map = map;
+		if (map) {
+			this.fitBounds();
+			this.polyLine.setMap(map);
+		}
+		for (i = 0; i < aMarkers.length; i += 1) {
+			oMarker = aMarkers[i];
+			oMarker.setMap(map);
+		}
+	},
+	testClosure1: function () {
+		var that = this,
+			privGetInfoWindowContent = function (marker) {
+				var oSimpleMarker,
+					aMarkers = that.aMarkers,
+					oPreviousMarker, oPreviousSimpleMarker, sContent, iIndex;
+
+				oSimpleMarker = {
+					title: marker.getTitle(), // title
+					position: marker.getPosition() //MapProxy.OpenLayers.openlayers2position(marker.getPosition())
+				};
+				//aMarkers = oFeatureGroup.getLayers();
+				iIndex = aMarkers.indexOf(marker);
+				if (iIndex >= 1) { // not the first one?
+					oPreviousMarker = aMarkers[iIndex - 1];
+					oPreviousSimpleMarker = {
+						title: oPreviousMarker.getTitle(), // title
+						position: oPreviousMarker.getPosition()
+					};
+				}
+				sContent = that.privGetInfoWindowContent2(oSimpleMarker, oPreviousSimpleMarker);
+				return sContent;
+			};
+
+		return privGetInfoWindowContent;
+	},
+	privGetInfoWindowContent2: function (marker, previousMarker) {
+		var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
+			sContent, oPosition1, oPosition2, iAngle, iDistance, sDirection;
+
+		sContent = marker.title + "=" + marker.position.toFormattedString(this.options.positionFormat); //TTT TODO
+
+		if (previousMarker) {
+			oPosition1 = previousMarker.position;
+			oPosition2 = marker.position;
+			iAngle = Math.round(LatLng.prototype.bearingTo.call(oPosition1, oPosition2));
+			iDistance = Math.round(LatLng.prototype.distanceTo.call(oPosition1, oPosition2));
+			sDirection = aDirections[Math.round(iAngle / (360 / aDirections.length)) % aDirections.length];
+			sContent += "<br>" + sDirection + ": " + iAngle + "° " + iDistance + "m";
+		}
+		return sContent;
+	},
+	deleteFeatureGroup: function () {
+		this.deleteMarkers();
+		if (this.polyLine && this.polyLine.destroy) { // needed for OpenLayers?
+			this.polyLine.destroy();
+		}
+		this.polyLine = null;
+		if (this.infoWindow) {
+			this.infoWindow.close();
+			this.infoWindow = null;
+		}
 	}
 };
 

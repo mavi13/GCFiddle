@@ -61,6 +61,9 @@ MapProxy.prototype = {
 	},
 	createInfoWindow: function (options) {
 		return new MapProxy[this.mapClass].InfoWindow(options);
+	},
+	createFeatureGroup: function (options) {
+		return new MapProxy[this.mapClass].FeatureGroup(options);
 	}
 };
 // end
