@@ -43,10 +43,15 @@ MapProxy.Google.Map.prototype = {
 				}
 			});
 
+			that.featureGroup = new MapProxy.Google.FeatureGroup({});
+
 			if (that.options.onload) {
 				that.options.onload(that);
 			}
 		});
+	},
+	getFeatureGroup: function () {
+		return this.featureGroup;
 	},
 	setZoom: function (zoom) {
 		this.map.setZoom(zoom);
@@ -94,7 +99,6 @@ MapProxy.Google.LatLngBounds.prototype = {
 };
 
 
-//TODO experimental
 MapProxy.Google.FeatureGroup = function (options) {
 	this.init(options);
 };
@@ -115,17 +119,15 @@ MapProxy.Google.FeatureGroup.prototype = {
 		});
 	},
 	addMarkers: function (aList) {
-		//OpenLayers.Geometry.Collection() //???
 		var aMarkers = this.aMarkers,
 			aPath = [],
 			oMarkerOptions,	i, oItem, oPosition, oMarker;
 
 		for (i = 0; i < aList.length; i += 1) {
 			oItem = aList[i];
-			oPosition = oItem.position; //MapProxy.Leaflet.position2leaflet(oItem.position);
+			oPosition = oItem.position;
 			aPath.push(oPosition);
 			if (i >= aMarkers.length) {
-				//oMarker = new MapProxy.OpenLayers.Marker(Utils.objectAssign({ infoWindow : this.map.oPopup }, oItem);
 				oMarkerOptions = Utils.objectAssign(oItem, {
 					infoWindow: this.infoWindow
 				}, oItem);
@@ -134,9 +136,6 @@ MapProxy.Google.FeatureGroup.prototype = {
 				aMarkers.push(oMarker);
 			} else {
 				oMarker = aMarkers[i];
-				//oMarker.label = oItem.label;
-				//oMarker.title = oItem.title;
-				//oMarker.position = oPosition;
 				oMarker.setLabel(oItem.label);
 				oMarker.setTitle(oItem.title);
 				oMarker.setPosition(oPosition);
@@ -152,14 +151,10 @@ MapProxy.Google.FeatureGroup.prototype = {
 	},
 	deleteMarkers: function () {
 		var aMarkers = this.aMarkers,
-			i, oMarker;
+			i;
 
 		this.setMap(null);
 		for (i = 0; i < aMarkers.length; i += 1) {
-			oMarker = aMarkers[i];
-			if (oMarker && oMarker.destroy) { // needed for OpenLayers?
-				oMarker.destroy();
-			}
 			aMarkers[i] = null;
 		}
 		this.aMarkers = [];
@@ -209,13 +204,11 @@ MapProxy.Google.FeatureGroup.prototype = {
 					title: oGoogleMarker.getTitle(), // title
 					position: MapProxy.Google.google2position(oGoogleMarker.getPosition())
 				};
-				//aMarkers = oFeatureGroup.getLayers();
 				iIndex = aMarkers.indexOf(marker);
 				if (iIndex >= 1) { // not the first one?
 					oPreviousMarker = aMarkers[iIndex - 1];
 					oPreviousSimpleMarker = {
 						title: oPreviousMarker.getTitle(), // title
-						//position: MapProxy.Google.google2position(oPreviousMarker.marker.getPosition()) //or: oPreviousMarker.getPosition() //?
 						position: oPreviousMarker.getPosition()
 					};
 				}
@@ -240,8 +233,9 @@ MapProxy.Google.FeatureGroup.prototype = {
 			sContent += "<br>" + sDirection + ": " + iAngle + "° " + iDistance + "m";
 		}
 		return sContent;
-	},
-	deleteFeatureGroup: function () {
+	}
+	/*
+	, deleteFeatureGroup: function () {
 		this.deleteMarkers();
 		this.polyLine = null;
 		if (this.infoWindow) {
@@ -249,6 +243,7 @@ MapProxy.Google.FeatureGroup.prototype = {
 			this.infoWindow = null;
 		}
 	}
+	*/
 };
 
 
@@ -339,9 +334,11 @@ MapProxy.Google.Polyline.prototype = {
 	setPath: function (path) {
 		this.polyline.setPath(path);
 	},
+	/*
 	getMap: function () {
 		return this.map;
 	},
+	*/
 	setMap: function (map) {
 		this.map = map;
 		this.polyline.setMap(map ? map.privGetMap() : null);

@@ -100,7 +100,7 @@ CommonEventHandler.prototype = {
 		// center to selected waypoint
 		for (i = 0; i < aMarkers.length; i += 1) {
 			oMarker = aMarkers[i];
-			if (oMarker && sPar === oMarker.getTitle()) {
+			if (oMarker && sPar === oMarker.title) {
 				gcFiddle.maFa.setCenter(oMarker);
 				break;
 			}
@@ -148,7 +148,6 @@ CommonEventHandler.prototype = {
 			this.onVarSelectChange(); // title change?
 			gcFiddle.fnSetWaypointSelectOptions();
 			gcFiddle.fnSetMarkers(variables);
-			gcFiddle.maFa.showMarkers();
 			this.onWaypointSelectChange();
 		}
 	},
@@ -172,7 +171,6 @@ CommonEventHandler.prototype = {
 			gcFiddle.fnSetVarSelectOptions();
 			gcFiddle.fnSetWaypointSelectOptions();
 			gcFiddle.fnSetMarkers(variables);
-			gcFiddle.maFa.showMarkers();
 			this.onWaypointSelectChange();
 		}
 	},
@@ -196,7 +194,6 @@ CommonEventHandler.prototype = {
 		}
 		this.onWaypointSelectChange();
 		gcFiddle.maFa.fitBounds();
-		gcFiddle.maFa.showMarkers();
 	},
 
 	onUndoButtonClick: function () {
@@ -373,22 +370,25 @@ CommonEventHandler.prototype = {
 	onFitBoundsButtonClick: function () {
 		var oMaFa = gcFiddle.maFa;
 
-		oMaFa.clearMarkers(); // clear needed for SimpleMarker
+		//oMaFa.clearMarkers(); // clear needed for SimpleMarker
 		oMaFa.fitBounds();
-		oMaFa.showMarkers();
+		//oMaFa.showMarkers();
 	},
 
 	onLocationButtonClick: function () {
 		var that = this;
 
 		function showPosition(position) {
-			var oPos = new LatLng(position.coords.latitude, position.coords.longitude),
-				iMarkersLength = gcFiddle.maFa.getMarkers().length;
+			var iLastMarker = gcFiddle.maFa.getMarkers().length,
+				sLabel = Utils.strZeroFormat(String(iLastMarker), 2),
+				oMarker = {
+					position: new LatLng(position.coords.latitude, position.coords.longitude),
+					label: sLabel,
+					title: "W" + sLabel
+				};
 
-			window.console.log("Location: " + oPos.toFormattedString(gcFiddle.config.positionFormat));
-			gcFiddle.maFa.setMarker({
-				position: oPos
-			}, iMarkersLength);
+			window.console.log("Location: " + oMarker.position.toFormattedString(gcFiddle.config.positionFormat));
+			gcFiddle.maFa.addMarkers([oMarker]);
 			that.onFitBoundsButtonClick();
 		}
 

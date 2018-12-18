@@ -53,13 +53,8 @@ MapProxy.Simple.Map.prototype = {
 			this.aCanvas.push(canvas);
 		}
 
-		/*
-		this.oPixelMap = {
-			width: iWidth * 8 / 10,
-			height: iHeight * 8 / 10
-			// will be extended by latBottom, latTop, lngLeft, lngRight in fitBounds()
-		};
-		*/
+		this.featureGroup = new MapProxy.Simple.FeatureGroup({});
+
 		if (this.options.onload) {
 			this.options.onload(this);
 		}
@@ -99,18 +94,16 @@ MapProxy.Simple.Map.prototype = {
 			}
 		};
 	},
-	/*
-	onSimpleCanvas2Resize: function (event) {
-		//window.console.log("onSimpleCanvas2Resize");
-		this.resize();
-	},
-	*/
 	resize: function () {
 		var mapDiv = document.getElementById(this.options.mapDivId), // mapCanvas-simple
+			bHidden = Utils.getHidden(this.options.mapDivId),
 			iWidth = mapDiv.clientWidth,
 			iHeight = mapDiv.clientHeight,
 			i, canvas;
 
+		if (bHidden) {
+			return; // canvas is hidden
+		}
 		if (iWidth !== this.oPixelMap.width || iHeight !== this.oPixelMap.height) {
 			window.console.log("MapProxy.Simple.resize width=" + iWidth + " height=" + iHeight);
 			for (i = 0; i < this.aCanvas.length; i += 1) {
@@ -131,6 +124,9 @@ MapProxy.Simple.Map.prototype = {
 				this.privDrawMarker(this.mElements.marker[i]);
 			}
 		}
+	},
+	getFeatureGroup: function () {
+		return this.featureGroup;
 	},
 	setZoom: function (zoom) {
 		this.zoom = zoom;
@@ -155,8 +151,7 @@ MapProxy.Simple.Map.prototype = {
 			ymax = mercY(north),
 			xFactor = map.width * map.scaleWidth / ((east - west) || 1),
 			yFactor = map.height * map.scaleHeight / ((ymax - ymin) || 1),
-			x,
-			y;
+			x, y;
 
 		x = lng;
 		y = mercY(lat);
@@ -181,7 +176,6 @@ MapProxy.Simple.Map.prototype = {
 				window.console.warn("Browser does not support canvas.getContext()");
 				return;
 			}
-			//pathStyle = path.pathStyle;
 			context = canvas.getContext("2d");
 			if (!bRemove) {
 				context.save();
@@ -268,10 +262,30 @@ MapProxy.Simple.Map.prototype = {
 		this.privDrawMarker(marker, true); // old path: background (draw over old path)
 	},
 	fitBounds: function (bounds) {
-		var oBounds = bounds.getBounds();
+		var oBounds = bounds.getBounds(),
+			aMarker = this.mElements.marker,
+			oPixelMap = this.oPixelMap,
+			bNeedUpdate = false,
+			sKey, i;
 
-		// We do no redraw here. Please clear, redraw if needed
-		Utils.objectAssign(this.oPixelMap, oBounds);
+		for (sKey in oBounds) {
+			if (oBounds.hasOwnProperty(sKey)) {
+				if (oBounds[sKey] !== oPixelMap[sKey]) {
+					bNeedUpdate = true;
+					break;
+				}
+			}
+		}
+
+		if (bNeedUpdate) { // redraw markers if bounds change
+			for (i = 0; i < aMarker.length; i += 1) {
+				this.privDrawMarker(aMarker[i], true); // old path: background (draw over old path)
+			}
+			Utils.objectAssign(this.oPixelMap, oBounds);
+			for (i = 0; i < aMarker.length; i += 1) {
+				this.privDrawMarker(aMarker[i]); // new path
+			}
+		}
 	}
 };
 
@@ -303,7 +317,6 @@ MapProxy.Simple.LatLngBounds.prototype = {
 };
 
 
-//TODO experimental
 MapProxy.Simple.FeatureGroup = function (options) {
 	this.init(options);
 };
@@ -319,7 +332,6 @@ MapProxy.Simple.FeatureGroup.prototype = {
 		this.options = Utils.objectAssign({	}, options);
 		this.aMarkers = [];
 		this.polyLine = new MapProxy.Simple.Polyline(oPolyLineOptions);
-		//this.polyLine.setMap(mapProxy.getMap());
 	},
 	addMarkers: function (aList) {
 		var aMarkers = this.aMarkers,
@@ -328,16 +340,16 @@ MapProxy.Simple.FeatureGroup.prototype = {
 
 		for (i = 0; i < aList.length; i += 1) {
 			oItem = aList[i];
-			oPosition = oItem.position; //MapProxy.Leaflet.position2leaflet(oItem.position);
+			oPosition = oItem.position;
 			aPath.push(oPosition);
 			if (i >= aMarkers.length) {
 				oMarker = new MapProxy.Simple.Marker(oItem);
 				aMarkers.push(oMarker);
 			} else {
 				oMarker = aMarkers[i];
-				oMarker.label = oItem.label;
-				oMarker.title = oItem.title;
-				oMarker.position = oPosition;
+				oMarker.setLabel(oItem.label);
+				oMarker.setTitle(oItem.title);
+				oMarker.setPosition(oPosition);
 			}
 		}
 
@@ -374,52 +386,34 @@ MapProxy.Simple.FeatureGroup.prototype = {
 			}
 		}
 	},
-	getMapXX: function () {
+	/*
+	getMap: function () {
 		return this.map;
 	},
+	*/
 	setMap: function (map) {
 		var aMarkers = this.aMarkers,
 			i, oMarker;
 
 		this.map = map;
 		if (map) {
-			this.fitBounds(); //TTT
+			this.fitBounds();
 			this.polyLine.setMap(map);
 		}
 		for (i = 0; i < aMarkers.length; i += 1) {
 			oMarker = aMarkers[i];
-			//if (oMarker && oMarker.getMap() !== map) {
-				oMarker.setMap(map);
-			//}
-			if (map) {
-				/*
-				oBounds = this.featureGroup.getBounds();
-				if (oBounds.isValid()) {
-					map.privGetMap().fitBounds(oBounds, {
-						padding: [10, 10] // eslint-disable-line array-element-newline
-					});
-				} else {
-					window.console.warn("bounds are not vaild."); //TTT
-				}
-				//this.featureGroup.addTo(map.privGetMap());
-				*/
-			} else if (this.map) {
-				//this.featureGroup.removeFrom(this.map.privGetMap());
-			}
+			oMarker.setMap(map);
 		}
-		//this.map = map;
-	},
-	deleteFeatureGroup: function () {
+	}
+	/*
+	, deleteFeatureGroup: function () {
 		this.deleteMarkers();
 		if (this.polyLine && this.polyLine.destroy) { // needed for OpenLayers?
 			this.polyLine.destroy();
 		}
 		this.polyLine = null;
-		if (this.infoWindow) {
-			this.infoWindow.close();
-			this.infoWindow = null;
-		}
 	}
+	*/
 };
 
 
@@ -429,12 +423,6 @@ MapProxy.Simple.Marker = function (options) {
 
 MapProxy.Simple.Marker.prototype = {
 	init: function (options) {
-		/* TTT
-		this.markerStyle = {
-		};
-		this.textStyle = {
-		};
-		*/
 		Utils.objectAssign(this, options); // position, title, label, map
 	},
 	getPosition: function () {
@@ -451,21 +439,27 @@ MapProxy.Simple.Marker.prototype = {
 			}
 		}
 	},
+	/*
 	getTitle: function () {
 		return this.title;
 	},
+	*/
 	setTitle: function (title) {
 		this.title = title;
 	},
+	/*
 	getLabel: function () {
 		return this.label;
 	},
+	*/
 	setLabel: function (label) {
 		this.label = label;
 	},
+	/*
 	getMap: function () {
 		return this.map;
 	},
+	*/
 	setMap: function (map) {
 		if (this.map) {
 			this.map.removeMarker(this); // remove old marker
@@ -490,7 +484,7 @@ MapProxy.Simple.Polyline.prototype = {
 			strokeWidth: 2,
 			strokeOpacity: 0.7
 		}, options);
-		// MyPolyline: options={map, [strokeColor, strokeOpacity, strokeWeight]}
+		// MyPolyline: options={map, strokeColor, strokeOpacity, strokeWeight}
 	},
 	setPath: function (path) {
 		if (this.map) {
@@ -506,9 +500,11 @@ MapProxy.Simple.Polyline.prototype = {
 		}
 		this.path = path;
 	},
+	/*
 	getMap: function () {
 		return this.map;
 	},
+	*/
 	setMap: function (map) {
 		if (this.map && this.path) {
 			this.map.removePath(this.path); // remove old path
@@ -520,26 +516,4 @@ MapProxy.Simple.Polyline.prototype = {
 	}
 };
 
-
-MapProxy.Simple.InfoWindow = function (options) { // not yet implemented
-	this.init(options);
-};
-
-MapProxy.Simple.InfoWindow.prototype = {
-	init: function (options) {
-		this.options = Utils.objectAssign({}, options);
-	},
-	setContent: function (path) {
-		this.path = path;
-	},
-	getAnchor: function () {
-		return this.anchor;
-	},
-	open: function (map, marker) {
-		this.anchor = marker;
-	},
-	close: function () {
-		this.anchor = null;
-	}
-};
 // end

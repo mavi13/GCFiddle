@@ -29,8 +29,7 @@ var gDebug,
 			zoom: 15, // default zoom level
 			leafletUrl: "https://unpkg.com/leaflet@1.3.1/dist/leaflet.js",
 			openlayersUrl: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js",
-			testIndexedDb: false,
-			testMap: false // test featureGroup for Leaflet (experimental, will be removed)
+			testIndexedDb: false
 		},
 		initialConfig: null,
 		mapProxy: { },
@@ -162,25 +161,6 @@ var gDebug,
 			return s.indexOf("$") === 0; // waypoints start with "$"
 		},
 
-		/*
-		fnSetMarkers: function (variables) {
-			var i = 0,
-				sPar, oPosition, oSettings;
-
-			for (sPar in variables) {
-				if (variables.hasOwnProperty(sPar) && gcFiddle.fnIsWaypoint(sPar)) {
-					oPosition = new LatLng().parse(String(variables[sPar]));
-					oSettings = {
-						position: oPosition,
-						label: Utils.strZeroFormat(String(i), 2),
-						title: sPar + oPosition.getComment()
-					};
-					gcFiddle.maFa.setMarker(oSettings, i);
-					i += 1;
-				}
-			}
-		},
-		*/
 		fnSetMarkers: function (variables) {
 			var aMarkerOptions = [],
 				i = 0,

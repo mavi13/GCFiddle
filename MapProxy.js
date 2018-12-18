@@ -49,21 +49,11 @@ MapProxy.prototype = {
 	},
 	createMap: function (options) {
 		return new MapProxy[this.mapClass].Map(options);
-	},
-	createLatLngBounds: function (options) {
-		return new MapProxy[this.mapClass].LatLngBounds(options);
-	},
-	createMarker: function (options) {
-		return new MapProxy[this.mapClass].Marker(options);
-	},
-	createPolyline: function (options) {
-		return new MapProxy[this.mapClass].Polyline(options);
-	},
-	createInfoWindow: function (options) {
-		return new MapProxy[this.mapClass].InfoWindow(options);
-	},
+	}
+	/*
 	createFeatureGroup: function (options) {
 		return new MapProxy[this.mapClass].FeatureGroup(options);
 	}
+	*/
 };
 // end
