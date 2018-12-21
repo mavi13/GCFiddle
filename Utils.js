@@ -82,6 +82,10 @@ var Utils = {
 	stringTrimRight: function (s) {
 		return s.replace(/[\s\uFEFF\xA0]+$/g, "");
 	},
+	stringStartsWith: function (sStr, sFind, iPos) {
+		iPos = iPos || 0;
+		return sStr.indexOf(sFind, iPos) === iPos;
+	},
 	stringEndsWith: function (str, find) {
 		return str.indexOf(find, str.length - find.length) !== -1;
 	},

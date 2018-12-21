@@ -471,6 +471,23 @@ CommonEventHandler.prototype = {
 			sMapTypeId = "mapCanvas-" + sMapType,
 			oItem, i,
 
+			fnGetInfoWindowContent = function (marker, previousMarker) {
+				var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
+					sContent, oPosition1, oPosition2, iAngle, iDistance, sDirection;
+
+				sContent = marker.title + "=" + marker.position.toFormattedString(gcFiddle.config.positionFormat); //TTT TODO
+
+				if (previousMarker) {
+					oPosition1 = previousMarker.position;
+					oPosition2 = marker.position;
+					iAngle = Math.round(LatLng.prototype.bearingTo.call(oPosition1, oPosition2));
+					iDistance = Math.round(LatLng.prototype.distanceTo.call(oPosition1, oPosition2));
+					sDirection = aDirections[Math.round(iAngle / (360 / aDirections.length)) % aDirections.length];
+					sContent += "<br>" + sDirection + ": " + iAngle + "° " + iDistance + "m";
+				}
+				return sContent;
+			},
+
 			fnMapLoaded = function (map) {
 				var sMapType2 = map.options.mapType,
 					oMapProxy = gcFiddle.mapProxy[sMapType2];
@@ -488,14 +505,15 @@ CommonEventHandler.prototype = {
 						zoom: mConfig.zoom,
 						mapType: sMapType2,
 						mapDivId: sMapTypeId2,
-						onload: fnMapLoaded
+						onload: fnMapLoaded,
+						onGetInfoWindowContent: fnGetInfoWindowContent
 					},
 					sKey;
 
 				// include map specific parameters, e.g. googleKey, leafletMapboxKey, leafletUrl, openLayersUrl
 				for (sKey in mConfig) {
 					if (mConfig.hasOwnProperty(sKey)) {
-						if (sKey.startsWith(sMapType2)) {
+						if (Utils.stringStartsWith(sKey, sMapType2)) {
 							mMapOptions[sKey] = mConfig[sKey];
 						}
 					}
