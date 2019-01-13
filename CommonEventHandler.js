@@ -76,7 +76,7 @@ CommonEventHandler.prototype = {
 		this.onVarSelectChange();
 	},
 
-	onWaypointSelectChange: function () {
+	onWaypointSelectChange: function (event) {
 		var variables = gcFiddle.variables,
 			waypointSelect = document.getElementById("waypointSelect"),
 			waypointLabel = document.getElementById("waypointLabel"),
@@ -97,14 +97,16 @@ CommonEventHandler.prototype = {
 				element.className = element.className.replace(regExp, "");
 			};
 
-		// center to selected waypoint
-		for (i = 0; i < aMarkers.length; i += 1) {
-			oMarker = aMarkers[i];
-			if (oMarker && sPar === oMarker.title) {
-				gcFiddle.maFa.setCenter(oMarker);
-				break;
+		if (event) { // only if user selected, center to selected waypoint
+			for (i = 0; i < aMarkers.length; i += 1) {
+				oMarker = aMarkers[i];
+				if (oMarker && sPar === oMarker.title) {
+					gcFiddle.maFa.setCenter(oMarker);
+					break;
+				}
 			}
 		}
+
 		if (!sPar) {
 			sPar = "";
 			sValue = sPar;
@@ -192,7 +194,7 @@ CommonEventHandler.prototype = {
 		if (waypointSelect.options.length) {
 			waypointSelect.selectedIndex = waypointSelect.options.length - 1; // select last waypoint
 		}
-		this.onWaypointSelectChange();
+		this.onWaypointSelectChange(null); // do not center on wp
 		gcFiddle.maFa.fitBounds();
 	},
 
@@ -370,9 +372,7 @@ CommonEventHandler.prototype = {
 	onFitBoundsButtonClick: function () {
 		var oMaFa = gcFiddle.maFa;
 
-		//oMaFa.clearMarkers(); // clear needed for SimpleMarker
 		oMaFa.fitBounds();
-		//oMaFa.showMarkers();
 	},
 
 	onLocationButtonClick: function () {
@@ -454,7 +454,7 @@ CommonEventHandler.prototype = {
 				if (gcFiddle.fnIsWaypoint(sPar)) {
 					if (sPar !== waypointSelect.value) {
 						waypointSelect.value = sPar;
-						this.onWaypointSelectChange();
+						this.onWaypointSelectChange({});
 					}
 				} else if (sPar !== varSelect.value) {
 					varSelect.value = sPar;
@@ -475,7 +475,7 @@ CommonEventHandler.prototype = {
 				var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
 					sContent, oPosition1, oPosition2, iAngle, iDistance, sDirection;
 
-				sContent = marker.title + "=" + marker.position.toFormattedString(gcFiddle.config.positionFormat); //TTT TODO
+				sContent = marker.title + "=" + marker.position.toFormattedString(gcFiddle.config.positionFormat);
 
 				if (previousMarker) {
 					oPosition1 = previousMarker.position;

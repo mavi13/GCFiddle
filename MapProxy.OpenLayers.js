@@ -6,13 +6,16 @@
 "use strict";
 
 MapProxy.OpenLayers = {
+	oProjectionEPSG4326: null, // geographic, set in init
+	oProjectionEPSG900913: null, // spherical mercator, set in init
+
 	position2openlayers: function (position) {
-		var oPos = new OpenLayers.LonLat(position.lng, position.lat).transform(new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection("EPSG:900913"));
+		var oPos = new OpenLayers.LonLat(position.lng, position.lat).transform(MapProxy.OpenLayers.oProjectionEPSG4326, MapProxy.OpenLayers.oProjectionEPSG900913);
 
 		return oPos;
 	},
 	openlayers2position: function (position) {
-		var oPos = position.clone().transform(new OpenLayers.Projection("EPSG:900913"), new OpenLayers.Projection("EPSG:4326")); // transform back
+		var oPos = position.clone().transform(MapProxy.OpenLayers.oProjectionEPSG900913, MapProxy.OpenLayers.oProjectionEPSG4326); // transform back
 
 		return new LatLng(oPos.lat, oPos.lon);
 	}
@@ -41,7 +44,9 @@ MapProxy.OpenLayers.Map.prototype = {
 			Utils.setHidden(mapDivId, bHidden); // restore
 			that.doInit2();
 
-			that.featureGroup = new MapProxy.OpenLayers.FeatureGroup({});
+			that.featureGroup = new MapProxy.OpenLayers.FeatureGroup({
+				onGetInfoWindowContent: options.onGetInfoWindowContent
+			});
 
 			if (that.options.onload) {
 				that.options.onload(that);
@@ -51,6 +56,9 @@ MapProxy.OpenLayers.Map.prototype = {
 	doInit2: function () {
 		var that = this,
 			oMarkers, oLines;
+
+		MapProxy.OpenLayers.oProjectionEPSG4326 = new OpenLayers.Projection("EPSG:4326"); // geographic
+		MapProxy.OpenLayers.oProjectionEPSG900913 = new OpenLayers.Projection("EPSG:900913"); // spherical mercator
 
 		oMarkers = new OpenLayers.Layer.Vector("Markers", {
 			// http://docs.OpenLayers.org/library/feature_styling.html
@@ -88,7 +96,7 @@ MapProxy.OpenLayers.Map.prototype = {
 				oInfoWindow = oMarker.options.infoWindow;
 
 				if (oInfoWindow) {
-					oInfoWindow.setContent(oMarker);
+					oInfoWindow.setContent(that.getFeatureGroup().privGetPopupContent(oMarker));
 					oInfoWindow.open(oMarker.getMap(), oMarker);
 				}
 			},
@@ -137,7 +145,7 @@ MapProxy.OpenLayers.Map.prototype = {
 						oInfoWindow = oMarker.options.infoWindow;
 
 					if (oInfoWindow && oInfoWindow.getAnchor() === oMarker) {
-						oInfoWindow.setContent(oMarker);
+						oInfoWindow.setContent(that.getFeatureGroup().privGetPopupContent(oMarker));
 						oInfoWindow.privSetPosition(oPosition);
 					}
 				}
@@ -217,11 +225,10 @@ MapProxy.OpenLayers.FeatureGroup.prototype = {
 		};
 
 		this.options = Utils.objectAssign({	}, options);
+		this.aMarkerPool = [];
 		this.aMarkers = [];
 		this.polyLine = new MapProxy.OpenLayers.Polyline(oPolyLineOptions);
-		this.infoWindow = new MapProxy.OpenLayers.InfoWindow({
-			onGetInfoWindowContent: this.testClosure1()
-		});
+		this.infoWindow = new MapProxy.OpenLayers.InfoWindow();
 	},
 	addMarkers: function (aList) {
 		//OpenLayers.Geometry.Collection() //CHECK
@@ -233,20 +240,24 @@ MapProxy.OpenLayers.FeatureGroup.prototype = {
 			oItem = aList[i];
 			oPosition = oItem.position;
 			aPath.push(oPosition);
-			if (i >= aMarkers.length) {
+			if (!this.aMarkerPool[i]) {
 				oMarkerOptions = Utils.objectAssign(oItem, {
 					infoWindow: this.infoWindow
 				}, oItem);
 				oMarker = new MapProxy.OpenLayers.Marker(oMarkerOptions);
-				aMarkers.push(oMarker);
-			} else { // adapt existing marker
-				oMarker = aMarkers[i];
+				this.aMarkerPool[i] = oMarker;
+			} else {
+				oMarker = this.aMarkerPool[i];
 				oMarker.setLabel(oItem.label);
 				oMarker.setTitle(oItem.title);
 				oMarker.setPosition(oPosition);
 				if (this.infoWindow && this.infoWindow.getAnchor() === oMarker) {
-					this.infoWindow.setContent(oMarker);
+					this.infoWindow.setContent(this.privGetPopupContent(oMarker));
 				}
+			}
+
+			if (i >= aMarkers.length) {
+				aMarkers.push(oMarker);
 			}
 		}
 
@@ -255,18 +266,16 @@ MapProxy.OpenLayers.FeatureGroup.prototype = {
 		}
 	},
 	deleteMarkers: function () {
-		var aMarkers = this.aMarkers,
-			i, oMarker;
+		var oSelectFeature;
+
+		if (this.map) {
+			oSelectFeature = this.map.privGetMap().getControlsByClass("OpenLayers.Control.SelectFeature")[0];
+			oSelectFeature.unselectAll();
+		}
 
 		this.setMap(null);
-		for (i = 0; i < aMarkers.length; i += 1) {
-			oMarker = aMarkers[i];
-			if (oMarker && oMarker.destroy) { // needed for OpenLayers?
-				oMarker.destroy();
-			}
-			aMarkers[i] = null;
-		}
 		this.aMarkers = [];
+
 		if (this.polyLine) {
 			this.polyLine.setMap(null);
 		}
@@ -299,60 +308,25 @@ MapProxy.OpenLayers.FeatureGroup.prototype = {
 			oMarker.setMap(map);
 		}
 	},
-	testClosure1: function () {
-		var that = this,
-			privGetInfoWindowContent = function (marker) {
-				var oSimpleMarker,
-					aMarkers = that.aMarkers,
-					oPreviousMarker, oPreviousSimpleMarker, sContent, iIndex;
+	privGetPopupContent: function (oMarker) {
+		var oSimpleMarker, aMarkers, oPreviousMarker, oPreviousSimpleMarker, sContent, iIndex;
 
-				oSimpleMarker = {
-					title: marker.getTitle(), // title
-					position: marker.getPosition()
-				};
-				iIndex = aMarkers.indexOf(marker);
-				if (iIndex >= 1) { // not the first one?
-					oPreviousMarker = aMarkers[iIndex - 1];
-					oPreviousSimpleMarker = {
-						title: oPreviousMarker.getTitle(), // title
-						position: oPreviousMarker.getPosition()
-					};
-				}
-				sContent = that.privGetInfoWindowContent2(oSimpleMarker, oPreviousSimpleMarker);
-				return sContent;
+		oSimpleMarker = {
+			title: oMarker.getTitle(),
+			position: oMarker.getPosition()
+		};
+		aMarkers = this.aMarkers;
+		iIndex = aMarkers.indexOf(oMarker);
+		if (iIndex >= 1) { // not the first one?
+			oPreviousMarker = aMarkers[iIndex - 1];
+			oPreviousSimpleMarker = {
+				title: oPreviousMarker.getTitle(),
+				position: oPreviousMarker.getPosition()
 			};
-
-		return privGetInfoWindowContent;
-	},
-	privGetInfoWindowContent2: function (marker, previousMarker) {
-		var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
-			sContent, oPosition1, oPosition2, iAngle, iDistance, sDirection;
-
-		sContent = marker.title + "=" + marker.position.toFormattedString(this.options.positionFormat); //TTT TODO
-
-		if (previousMarker) {
-			oPosition1 = previousMarker.position;
-			oPosition2 = marker.position;
-			iAngle = Math.round(LatLng.prototype.bearingTo.call(oPosition1, oPosition2));
-			iDistance = Math.round(LatLng.prototype.distanceTo.call(oPosition1, oPosition2));
-			sDirection = aDirections[Math.round(iAngle / (360 / aDirections.length)) % aDirections.length];
-			sContent += "<br>" + sDirection + ": " + iAngle + "° " + iDistance + "m";
 		}
+		sContent = this.options.onGetInfoWindowContent ? this.options.onGetInfoWindowContent(oSimpleMarker, oPreviousSimpleMarker) : "";
 		return sContent;
 	}
-	/*
-	, deleteFeatureGroup: function () {
-		this.deleteMarkers();
-		if (this.polyLine && this.polyLine.destroy) { // needed for OpenLayers?
-			this.polyLine.destroy();
-		}
-		this.polyLine = null;
-		if (this.infoWindow) {
-			this.infoWindow.close();
-			this.infoWindow = null;
-		}
-	}
-	*/
 };
 
 
@@ -366,7 +340,7 @@ MapProxy.OpenLayers.Marker.prototype = {
 
 		this.options = Utils.objectAssign({	}, options);
 		oPosition = this.options.position;
-		oTransformedPosition = new OpenLayers.LonLat(oPosition.lng, oPosition.lat).transform(new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection("EPSG:900913"));
+		oTransformedPosition = MapProxy.OpenLayers.position2openlayers(oPosition); //new OpenLayers.LonLat(oPosition.lng, oPosition.lat).transform(new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection("EPSG:900913"));
 
 		this.marker = new OpenLayers.Feature.Vector(
 			new OpenLayers.Geometry.Point(oTransformedPosition.lon, oTransformedPosition.lat),
@@ -394,16 +368,23 @@ MapProxy.OpenLayers.Marker.prototype = {
 		this.marker.attributes.label = label;
 	},
 	getPosition: function () {
-		var oPos = this.marker.geometry;
+		var oPoint = this.marker.geometry,
+			oPos;
 
-		oPos = new OpenLayers.LonLat(oPos.x, oPos.y); // transformed position
+		oPos = new OpenLayers.LonLat(oPoint.x, oPoint.y); // transformed position
 		return MapProxy.OpenLayers.openlayers2position(oPos);
 	},
 	setPosition: function (position) {
 		var oLonLat = MapProxy.OpenLayers.position2openlayers(position),
-			oInfoWindow = this.options.infoWindow;
+			oInfoWindow = this.options.infoWindow,
+			oPoint;
 
-		this.marker.move(oLonLat);
+		if (this.marker.layer) { // marker visible on layer?
+			this.marker.move(oLonLat);
+		} else {
+			oPoint = this.marker.geometry;
+			oPoint.move(oLonLat.lon - oPoint.x, oLonLat.lat - oPoint.y);
+		}
 		if (oInfoWindow && oInfoWindow.getAnchor() === this) {
 			oInfoWindow.privSetPosition(position);
 		}
@@ -452,18 +433,28 @@ MapProxy.OpenLayers.Polyline.prototype = {
 		}, options);
 		this.polyline = new OpenLayers.Geometry.LineString(this.options);
 		this.map = options.map;
+		this.aPointPool = [];
 	},
 	setPath: function (aList) {
 		var oPosition, oPoint, i;
 
 		for (i = 0; i < aList.length; i += 1) {
 			oPosition = MapProxy.OpenLayers.position2openlayers(aList[i]);
-			if (i >= this.polyline.components.length) {
-				this.polyline.addPoint(new OpenLayers.Geometry.Point(oPosition.lon, oPosition.lat));
+			if (!this.aPointPool[i]) {
+				oPoint = new OpenLayers.Geometry.Point(oPosition.lon, oPosition.lat);
+				this.aPointPool[i] = oPoint;
 			} else {
-				oPoint = this.polyline.components[i];
+				oPoint = this.aPointPool[i];
 				oPoint.move(oPosition.lon - oPoint.x, oPosition.lat - oPoint.y);
 			}
+
+			if (i >= this.polyline.components.length) {
+				this.polyline.addPoint(oPoint);
+			}
+		}
+		for (i = this.polyline.components.length - 1; i >= aList.length; i -= 1) {
+			oPoint = this.polyline.components[i];
+			this.polyline.removePoint(oPoint);
 		}
 		if (this.map) {
 			this.map.privGetMap().getLayersByName("Lines")[0].redraw();
@@ -484,9 +475,6 @@ MapProxy.OpenLayers.Polyline.prototype = {
 			oLines.removeAllFeatures();
 		}
 		this.map = map;
-	},
-	destroy: function () {
-		this.polyline.destroy();
 	}
 };
 
@@ -506,9 +494,7 @@ MapProxy.OpenLayers.InfoWindow.prototype = {
 		this.options = Utils.objectAssign({	}, options);
 		this.infoWindow = new OpenLayers.Popup.FramedCloud(null, null, null, null, null, true, fncloseBoxCallback);
 	},
-	setContent: function (marker) {
-		var sContent = this.options.onGetInfoWindowContent ? this.options.onGetInfoWindowContent(marker) : "";
-
+	setContent: function (sContent) {
 		this.infoWindow.setContentHTML('<div style="font-size:.8em">' + sContent + "</div>");
 	},
 	privSetPosition: function (lonlat) {
@@ -531,6 +517,6 @@ MapProxy.OpenLayers.InfoWindow.prototype = {
 			this.map.privGetMap().removePopup(this.infoWindow);
 		}
 	}
-	// destroy not needed for infoWindow because requires blocks to remove
+	// destroy not needed for infoWindow because it requires blocks to remove
 };
 // end

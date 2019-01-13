@@ -9,7 +9,7 @@ GCFiddle Links:
 [Source code](https://github.com/mavi13/GCFiddle/),
 [HTML Readme](https://mavi13.github.io/GCFiddle/),
 [GCNEW1](https://mavi13.github.io/GCFiddle/gcfiddle.html),
-[GCJVT3](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCJVT3&mapType=leaflet)
+[GCJVT3](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCJVT3)
 
 ## Features
 
@@ -27,7 +27,7 @@ GCFiddle Links:
   The user interface shows several boxes which can be shrunk and expanded by pressing the green buttons.
   There are boxes for input, output, variable, note, waypoint and map.
 
-![A sample with GCJVT3](./img/gcjvt3.jpg)
+![A sample with GCJVT3](./img/gcjvt3.png)
 
 ### Input box
 
@@ -49,7 +49,7 @@ GCFiddle Links:
 ### Output box
 
 - Shows the output of the script execution
-- If you mark a variable or a waypoint, it will be selected in the variable box or in the waypoint box, respectively
+- If you mark a variable or a waypoint, it will be selected in the variable box or in the waypoint box, respectively. The map is centered to the selected waypoint.
 
 ### Variable box
 
@@ -61,7 +61,7 @@ GCFiddle Links:
 
 ### Note box
 
-- Allows you to write some notes
+- Allows you to write some notes. (Currently notes are not stored.)
 
 ### Waypoint box
 
@@ -72,11 +72,11 @@ GCFiddle Links:
 ### Map box
 
 - To show waypoints on a map.
-- The selection field selects a simple map (offline), Open Street Map (online) or Google Maps (online).
-- When using Google Maps: Get a Google API key and set it in gcfiddle.js, in gcconfig.js or as a URL parameter.
-   Clicking on a waypoint opens an info box with coordinates.
-   When you move the waypoint around, the coordinates in the information box are updated. Clicking on "x" closes the info box.
-   Zooming and moving the map are also possible.
+- The selection field selects a Leaflet or OpenLayers Open Street Map (online), Google Maps (online), a simple map (offline, for testing only), or no map.
+- For Google Maps you need to get a Google API key and set it in gcfiddle.js, in gcconfig.js or as a URL parameter.
+- Clicking on a waypoint opens a popup (info box) with coordinates and distance and direction information from the preceding waypoint.
+   When you move the waypoint around, the popup is moved as well and its coordinates are updated. Clicking on "x" closes the popup.
+- Zooming and moving the map are also possible.
 
 ### Log box
 
@@ -229,7 +229,9 @@ $W2="N 49° 15.903 E 008° 40.777"
 
 ## URL parameters as settings
 
-- `category=test`: Set the category to `test`, `tofind`, `found`, `archived` or `saved`
+URL parameters override settings in file `gcconfig.js` or `gcfiddle.js`.
+
+- `category=test`: Set the category to one of parameter `CategoryList`, e.g. `test`, `tofind`, `found`, `archived` or `saved`
   - Directory `category` must exist and must contain an index file `0index.js`
 - `debug=0`: Set the debug level, 0=off, 1=some, 2=some more,...
 - `example=GCNEW1`: Set example
@@ -242,17 +244,31 @@ $W2="N 49° 15.903 E 008° 40.777"
 - `showConsole=false`: Show console box (for debugging messages)
 - `variableType=number`: Set general type of variables in the variable box to `number`, `text` or `range`
   - If a variable is not a number, `text` is used
-- `positionFormat=`: Set position output format: `(empty string)`, `dmm`, `dms`, `dd`
-- `mapType=simple`: Set type of map to `simple`, `openlayers`, `leaflet`, `google` or `none`.
-  - For `google`, an API key must be set
+- `positionFormat=""`: Set position output format: `(empty string)`, `dmm`, `dms`, `dd`
+- `mapType=leaflet`: Set type of map to `leaflet`, `openlayers`, `google`, `simple` or `none`.
+  - For map type `google`, an API key must be set with parameter `googleKey`
 - `googleKey=""`: Set [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key)
   - Can also be set in file `gcconfig.js` or `gcfiddle.js`
 - `zoom=15`: Set initial zoom level for Google Maps (usually automatically set)
+- `leafletUrl`: Set URL for the Leaflet library
+  - [leaflet, https]("https://unpkg.com/leaflet@1.3.1/dist/leaflet.js") (default)
+  - or "lib/leaflet.js" (if available locally)
+  - or "lib/leaflet-src.js", // (if available locally, debug sources)
 - `openLayersUrl`: Set URL for the OpenLayers library
-      - [OpenLayers, https]("https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js") (default)  
+  - [OpenLayers, https]("https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js") (default)  
       or [OpenLayers]("http://www.openlayers.org/api/OpenLayers.js") (http only)  
       or "lib/OpenLayers.js" (if available locally)  
       or "lib/OpenLayers.light.js" (light version with some features missing, e.g. Overview map, keyboard defaults)
+- `categoryList`=test,saved: Set list of possible categories, e.g. test,tofind,found,archived,saved
+  - Usually set in file `gcconfig.js` or `gcfiddle.js`
+- `testIndexedDb=false`: test Index Database (experimental)
+
+## Developing, Testing
+
+QUnit test [GCFiddle.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/GCFiddle.qunit.html) runs:
+
+- [Preprocessor.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/Preprocessor.qunit.html)
+- [ScriptParser.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/ScriptParser.qunit.html)
 
 ## Acknowledgements
 
@@ -270,10 +286,10 @@ $W2="N 49° 15.903 E 008° 40.777"
   - [latlon-spherical on GitHub](https://github.com/chrisveness/geodesy/blob/master/latlon-spherical.js)
   - Thanks for the excellent explanation on geodesy calculations and the library!
 
-- Peter_Olson for an article on [How to write a simple interpreter in JavaScript](https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript). It was a good starting point for the calculator in GCFiddle.
-
-- [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/)
+- Peter Olson for an article on [How to write a simple interpreter in JavaScript](https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript). It was a good starting point for the calculator in GCFiddle.
 
 - [Leaflet](http://leafletjs.com/) and [OpenLayers 2](https://openlayers.org/two/) to display the [Open Street Map](https://www.openstreetmap.org/)
 
-### **mavi13, 05/2018**
+- [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/)
+
+### **mavi13, 01/2019**

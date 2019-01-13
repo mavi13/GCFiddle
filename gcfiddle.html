@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="gcfiddle.css" />
-<title id="title">GCFiddle v0.56</title>
+<title id="title">GCFiddle v0.57</title>
 </head>
 
 <body>
@@ -12,11 +12,6 @@
 		<legend>
 			<span id="inputLegend" class="legendButton" title="Show/Hide Input">Input:</span>
 			<select id="categorySelect" title="Category/Directory">
-				<option value="test" title="Test" selected="selected">Test</option>
-				<option value="tofind" title="To Find">To find</option>
-				<option value="found" title="Found">Found</option>
-				<option value="archived" title="Found">Archived</option>
-				<option value="saved" title="Saved">Saved</option>
 			</select>
 			<select id="exampleSelect" title="Load Example">
 			</select>
@@ -81,21 +76,21 @@
 		<legend>
 			<span id="mapLegend" class="legendButton" title="Show/Hide Map">Map:</span>
 			<select id="mapTypeSelect" title="Map Type">
-				<option value="simple" title="Simple Drawing (offline)" selected="selected">Simple</option>
-				<option value="openlayers" title="Open Street Map (OpenLayers)">OpenLayers</option>
 				<option value="leaflet" title="Open Street Map (Leaflet)">Leaflet</option>
+				<option value="openlayers" title="Open Street Map (OpenLayers)">OpenLayers</option>
 				<option value="google" title="Google Maps">Google</option>
+				<option value="simple" title="Simple Drawing (offline)" selected="selected">Simple</option>
 				<option value="none" title="No map">None</option>
 			</select>
 		</legend>
-		<div class="canvas" id="mapCanvas-google" hidden></div>
 		<div class="canvas" id="mapCanvas-leaflet" hidden></div>
 		<div class="canvas" id="mapCanvas-openlayers" hidden></div>
+		<div class="canvas" id="mapCanvas-google" hidden></div>
 		<div class="canvas" id="mapCanvas-simple" hidden></div>
 		<div class="canvas" id="mapCanvas-none" hidden></div>
 		<div>
 			<button id="locationButton" title="Get Location">Location</button>
-			<button id="fitBoundsButton" title="Fit markers in map bounds">Fit Bounds</button>
+			<button id="fitBoundsButton" title="Fit markers into map bounds">Fit Bounds</button>
 		</div>
 	</fieldset>
 	<fieldset class="flexBox clearLeft">

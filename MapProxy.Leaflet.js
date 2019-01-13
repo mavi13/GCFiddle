@@ -1,7 +1,7 @@
 // MapProxy.Leaflet.js - MapProxy.Leaflet for GCFiddle
 // https://leafletjs.com/reference-1.3.0.html
 //
-/* globals MapProxy, Utils, LatLng, L */ // make ESlint happy
+/* globals MapProxy, Utils, gDebug, LatLng, L */ // make ESlint happy
 
 "use strict";
 
@@ -59,21 +59,9 @@ MapProxy.Leaflet.Map.prototype = {
 	getFeatureGroup: function () {
 		return this.featureGroup;
 	},
-	/*
-	setZoom: function (zoom) {
-		this.map.setZoom(zoom);
-	},
-	*/
 	setCenter: function (position) {
-		this.map.setView(MapProxy.Leaflet.position2leaflet(position), this.options.zoom);
+		this.map.setView(MapProxy.Leaflet.position2leaflet(position)); // keep zoom level
 	},
-	/*
-	fitBounds: function (bounds) {
-		this.map.fitBounds(bounds.getBounds(), {
-			padding: [10, 10] // eslint-disable-line array-element-newline
-		});
-	},
-	*/
 	resize: function () {
 		var oMap = this.map;
 
@@ -97,7 +85,7 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 			mMarkerDragListener = {
 				dragstart: function (event) {
 					var oLeafletMarker = event.target,
-						oPopup = that.featureGroup.getPopup();
+						oPopup = that.markerGroup.getPopup();
 
 					if (oPopup.isOpen()) {
 						oPopup.openOn(oLeafletMarker); // reopen during drag
@@ -108,7 +96,7 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 				},
 				drag: function (event) {
 					var oLeafletMarker = event.target,
-						oPopup = that.featureGroup.getPopup();
+						oPopup = that.markerGroup.getPopup();
 
 					if (oPopup.isOpen()) {
 						oPopup.setContent(that.privGetPopupContent(oLeafletMarker));
@@ -124,41 +112,47 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 			};
 
 		this.options = Utils.objectAssign({	}, options);
-		this.iPopupSourceId = null; // current marker with popup
-		this.featureGroup = L.featureGroup(); // for the markers
-		this.polylineGroup = L.featureGroup(); // for the polyline
+		this.iPopupSourceId = null; // current marker id with popup
+		this.markerGroup = L.featureGroup(); // featureGroup for markers
+		this.polylineGroup = L.featureGroup(); // featureGroup for polyline
+		this.aMarkerPool = [];
 
 		oNewPopup = new L.Popup();
-		this.featureGroup.bindPopup(oNewPopup).on("click", function (event) {
+		this.markerGroup.bindPopup(oNewPopup).on("click", function (event) {
 			// https://leafletjs.com/reference-1.3.4.html#event-objects
-			var oFeatureGroup = event.target, // event.target === that.featuregroup
+			var oMarkerGroup = event.target, // event.target === that.markerGroup
 				oMarker = event.sourceTarget, // or: event.propagatedFrom (event.layer is deprecated)
-				oPopup = oFeatureGroup.getPopup(),
+				oPopup = oMarkerGroup.getPopup(),
 				iOldPopupSourceId = that.iPopupSourceId,
 				oOldMarker;
 
-			that.iPopupSourceId = oFeatureGroup.getLayerId(oMarker); // marker with popup id
+			that.iPopupSourceId = oMarkerGroup.getLayerId(oMarker); // marker with popup id
 
 			if (iOldPopupSourceId && iOldPopupSourceId !== that.iPopupSourceId) { // old marker id different from current marker?
-				oOldMarker = oFeatureGroup.getLayer(iOldPopupSourceId);
+				oOldMarker = oMarkerGroup.getLayer(iOldPopupSourceId);
 				if (oOldMarker && oOldMarker.listens("dragstart")) {
-					oOldMarker.off(mMarkerDragListener); //TTT remove events (the popup closes also when clickingsomewhere else, then they will be kept active)
-					window.console.log("DEBUG: drag events removed from old marker " + iOldPopupSourceId);
+					oOldMarker.off(mMarkerDragListener);
+					if (gDebug) {
+						gDebug.log("DEBUG: drag events removed from old marker id " + iOldPopupSourceId);
+					}
 				}
 			}
 
 			// set drag binding on clicked marker, if not done already
 			if (oPopup.isOpen()) {
 				if (!oMarker.listens("dragstart")) {
-					//old: oLeafletMarker.on("dragstart", that.privOnDragStart.bind(that)).on("drag", that.privOnDrag.bind(that)).on("dragend", that.privOnDragEnd.bind(that)); /check Onject.bind)
 					oMarker.on(mMarkerDragListener);
-					window.console.log("DEBUG: drag events set to marker " + that.iPopupSourceId);
+					if (gDebug) {
+						gDebug.log("DEBUG: drag events set to marker id " + that.iPopupSourceId);
+					}
 				}
 
 				oPopup.setContent(that.privGetPopupContent(oMarker));
 			} else if (oMarker.listens("dragstart")) { // not really needed to check
-				oMarker.off(mMarkerDragListener); //TTT remove events (the popup closes also when clickingsomewhere else, then they will be kept active)
-				window.console.log("DEBUG: drag events removed from marker " + that.iPopupSourceId);
+				oMarker.off(mMarkerDragListener);
+				if (gDebug) {
+					gDebug.log("DEBUG: drag events removed from marker id " + that.iPopupSourceId);
+				}
 			}
 		});
 	},
@@ -181,52 +175,17 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 		}
 	},
 
-	/*
-	privOnDragStart: function (event) {
-		var oLeafletMarker = event.target,
-			oPopup = this.featureGroup.getPopup();
-
-		if (oPopup.isOpen()) {
-			oPopup.openOn(oLeafletMarker); // reopen during drag
-			if (!oLeafletMarker.getPopup()) {
-				oLeafletMarker.bindPopup(oPopup);
-			}
-		}
-	},
-	privOnDrag: function (event) {
-		var oLeafletMarker = event.target,
-			oPopup = this.featureGroup.getPopup();
-
-		if (oPopup.isOpen()) {
-			oPopup.setContent(this.privGetPopupContent(oLeafletMarker));
-		}
-	},
-	privOnDragEnd: function (event) {
-		var oLeafletMarker = event.target;
-
-		if (oLeafletMarker.getPopup()) {
-			oLeafletMarker.unbindPopup();
-		}
-	},
-	*/
-
 	addMarkers: function (aList) {
 		var	aPath = [],
 			i, oItem, oMarker, oPosition, aLayers, oPopup;
 
-		oPopup = this.featureGroup.getPopup();
-		/*
-		if (!oPopup.isOpen()) {
-			oPopup = null; // oPopup is <> null if it exists and is open
-		}
-		*/
-
-		aLayers = this.featureGroup.getLayers();
+		oPopup = this.markerGroup.getPopup();
+		aLayers = this.markerGroup.getLayers();
 		for (i = 0; i < aList.length; i += 1) {
 			oItem = aList[i];
 			oPosition = MapProxy.Leaflet.position2leaflet(oItem.position);
 			aPath.push(oPosition);
-			if (i >= aLayers.length) {
+			if (!this.aMarkerPool[i]) {
 				oMarker = new L.Marker(oPosition, {
 					draggable: true,
 					label: oItem.label,
@@ -235,48 +194,39 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 						iconSize: [16, 16] // eslint-disable-line array-element-newline
 					})
 				});
-
 				oMarker.bindTooltip(oItem.title);
-				/* moved to click event
-				if (oPopup) { // we need to bind the drag events to every marker
-					if (Object.bind) {
-						oMarker.on("dragstart", this.privOnDragStart.bind(this)).on("drag", this.privOnDrag.bind(this)).on("dragend", this.privOnDragEnd.bind(this));
-					}
-				}
-				*/
-
-				oMarker.addTo(this.featureGroup);
-				// leafLetId = this.featureGroup.getLayerId(oMarker); this.featureGroup.getLayer(leafLetId);
+				this.aMarkerPool[i] = oMarker;
 			} else {
-				oMarker = aLayers[i];
+				oMarker = this.aMarkerPool[i];
 				oMarker.options.label = oItem.label;
 				oMarker.getTooltip().setContent(oItem.title);
-
 				oMarker.setLatLng(oPosition);
-
-				if (oPopup && oPopup.isOpen() && this.featureGroup.getLayerId(oMarker) === this.iPopupSourceId) {
+				if (oPopup && oPopup.isOpen() && this.markerGroup.getLayerId(oMarker) === this.iPopupSourceId) {
 					oPopup.setLatLng(oPosition);
 					oPopup.setContent(this.privGetPopupContent(oMarker));
 				}
+			}
+
+			if (i >= aLayers.length) {
+				oMarker.addTo(this.markerGroup);
 			}
 		}
 		this.privSetPolyline(aPath);
 	},
 	deleteMarkers: function () {
-		this.featureGroup.clearLayers(); // delete markers
-		//TODO: put markers in a marker pool and reuse?
-		this.polylineGroup.clearLayers(); // and polyline
+		var oPopup = this.markerGroup.getPopup();
+
+		if (oPopup && oPopup.isOpen()) {
+			oPopup.remove();
+		}
+		this.markerGroup.clearLayers();
+		this.polylineGroup.clearLayers();
 	},
-	/*
-	getMap: function () {
-		return this.map;
-	},
-	*/
 	setMap: function (map) {
 		var oBounds;
 
 		if (map) {
-			oBounds = this.featureGroup.getBounds();
+			oBounds = this.markerGroup.getBounds();
 			if (oBounds.isValid()) {
 				map.privGetMap().fitBounds(oBounds, {
 					padding: [10, 10] // eslint-disable-line array-element-newline
@@ -285,9 +235,9 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 				window.console.warn("bounds are not vaild.");
 			}
 			this.polylineGroup.addTo(map.privGetMap());
-			this.featureGroup.addTo(map.privGetMap());
+			this.markerGroup.addTo(map.privGetMap());
 		} else if (this.map) {
-			this.featureGroup.removeFrom(this.map.privGetMap());
+			this.markerGroup.removeFrom(this.map.privGetMap());
 			this.polylineGroup.removeFrom(this.map.privGetMap());
 		}
 		this.map = map;
@@ -296,7 +246,7 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 		var oBounds;
 
 		if (this.map) {
-			oBounds = this.featureGroup.getBounds();
+			oBounds = this.markerGroup.getBounds();
 			if (oBounds.isValid()) {
 				this.map.privGetMap().fitBounds(oBounds, {
 					padding: [10, 10] // eslint-disable-line array-element-newline
@@ -305,53 +255,24 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 		}
 	},
 	privGetPopupContent: function (oLeafletMarker) {
-		var oFeatureGroup = this.featureGroup, // event.target === that.featuregroup
+		var oMarkerGroup = this.markerGroup, // event.target === that.markerGroup
 			oMarker, aMarkers, oPreviousLeafletMarker, oPreviousMarker,	sContent, iIndex;
 
 		oMarker = {
 			title: oLeafletMarker.getTooltip().getContent(), // title
 			position: MapProxy.Leaflet.leaflet2position(oLeafletMarker.getLatLng())
 		};
-		aMarkers = oFeatureGroup.getLayers();
+		aMarkers = oMarkerGroup.getLayers();
 		iIndex = aMarkers.indexOf(oLeafletMarker);
 		if (iIndex >= 1) { // not the first one?
 			oPreviousLeafletMarker = aMarkers[iIndex - 1];
 			oPreviousMarker = {
-				title: oPreviousLeafletMarker.getTooltip().getContent(), // title
+				title: oPreviousLeafletMarker.getTooltip().getContent(),
 				position: MapProxy.Leaflet.leaflet2position(oPreviousLeafletMarker.getLatLng())
 			};
 		}
-		//sContent = this.privGetInfoWindowContent2(oMarker, oPreviousMarker);
 		sContent = this.options.onGetInfoWindowContent ? this.options.onGetInfoWindowContent(oMarker, oPreviousMarker) : "";
 		return sContent;
 	}
-	/*
-	privGetInfoWindowContent2: function (marker, previousMarker) {
-		var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
-			sContent, oPosition1, oPosition2, iAngle, iDistance, sDirection;
-
-		sContent = marker.title + "=" + marker.position.toFormattedString(this.options.positionFormat); //TTT TODO
-
-		if (previousMarker) {
-			oPosition1 = previousMarker.position;
-			oPosition2 = marker.position;
-			iAngle = Math.round(LatLng.prototype.bearingTo.call(oPosition1, oPosition2));
-			iDistance = Math.round(LatLng.prototype.distanceTo.call(oPosition1, oPosition2));
-			sDirection = aDirections[Math.round(iAngle / (360 / aDirections.length)) % aDirections.length];
-			sContent += "<br>" + sDirection + ": " + iAngle + "° " + iDistance + "m";
-		}
-		return sContent;
-	}
-	*/
-	/*
-	, deleteFeatureGroup: function () {
-		this.deleteMarkers();
-		this.polyLine = null;
-		if (this.infoWindow) {
-			this.infoWindow.close();
-			this.infoWindow = null;
-		}
-	}
-	*/
 };
 // end

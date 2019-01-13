@@ -11,7 +11,8 @@ var gDebug,
 	gcFiddle = {
 		config: {
 			debug: 0,
-			category: "test", // test, tofind, found, archived, saved
+			categoryList: "test,saved", // e.g. "test,tofind,found,archived,saved"
+			category: "test", // one of test, tofind, found, archived, saved
 			example: "GCNEW1", // GCNEW1, GCTEST1, GCJVT3
 			showInput: true,
 			showOutput: true,
@@ -24,7 +25,7 @@ var gDebug,
 			variableType: "number", // number, text, range
 			positionFormat: "", // position output format: "", dmm, dms, dd
 			leafletMapboxKey: "", // mapbox access token (for leaflet maps, currently unused)
-			mapType: "simple", // simple, google, leaflet, openlayers
+			mapType: "leaflet", // simple, google, leaflet, openlayers, none
 			googleKey: "", // Google API key
 			zoom: 15, // default zoom level
 			leafletUrl: "https://unpkg.com/leaflet@1.3.1/dist/leaflet.js",
@@ -243,6 +244,36 @@ var gDebug,
 			};
 
 			gcFiddle.fnSetSelectOptions(document.getElementById("waypointSelect"), gcFiddle.fnIsWaypoint, fnTextFormat);
+		},
+
+		fnSetCategoryList: function () {
+			var select = document.getElementById("categorySelect"),
+				aCategories = gcFiddle.config.categoryList.split(","),
+				i = 0,
+				sId, option, selectedValue;
+
+			for (i = 0; i < aCategories.length; i += 1) {
+				sId = aCategories[i];
+				if (i >= select.length) {
+					option = document.createElement("option");
+					option.value = sId;
+					option.title = Utils.stringCapitalize(sId);
+					option.text = option.title;
+					select.add(option);
+				} else {
+					option = select.options[i];
+					option.value = sId;
+					option.title = Utils.stringCapitalize(sId);
+					option.text = option.title;
+				}
+				if (!selectedValue || option.value === gcFiddle.config.category) {
+					selectedValue = option.value;
+				}
+			}
+			this.fnRemoveAdditionalSelectOptions(select, i);
+			if (selectedValue) {
+				select.value = selectedValue;
+			}
 		},
 
 		fnSetExampleList: function () {
@@ -554,9 +585,7 @@ var gDebug,
 
 			gcFiddle.inputStack = new InputStack();
 
-			gcFiddle.maFa = new MarkerFactory({
-				positionFormat: gcFiddle.config.positionFormat
-			});
+			gcFiddle.maFa = new MarkerFactory();
 
 			gcFiddle.commonEventHandler = new CommonEventHandler();
 
@@ -575,6 +604,8 @@ var gDebug,
 				oConfig.mapType = "none";
 			}
 			Utils.setHidden("mapCanvas-" + oConfig.mapType, !oConfig.showMap);
+
+			this.fnSetCategoryList();
 
 			if (oConfig.example) {
 				document.getElementById("exampleSelect").value = oConfig.example;

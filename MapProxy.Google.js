@@ -37,13 +37,15 @@ MapProxy.Google.Map.prototype = {
 			google.maps.event.addListener(that.map, "zoom_changed", function () {
 				var iFitBoundsZoom = that.fitBoundsZoom;
 
-				if (iFitBoundsZoom && that.map.getZoom() !== iFitBoundsZoom) {
+				if (iFitBoundsZoom && that.map.getZoom() !== iFitBoundsZoom) { // for one waypoint we reduce zoom level
 					that.fitBoundsZoom = 0; // avoid recursive call!
 					that.map.setZoom(iFitBoundsZoom);
 				}
 			});
 
-			that.featureGroup = new MapProxy.Google.FeatureGroup({});
+			that.featureGroup = new MapProxy.Google.FeatureGroup({
+				onGetInfoWindowContent: options.onGetInfoWindowContent
+			});
 
 			if (that.options.onload) {
 				that.options.onload(that);
@@ -53,9 +55,6 @@ MapProxy.Google.Map.prototype = {
 	getFeatureGroup: function () {
 		return this.featureGroup;
 	},
-	setZoom: function (zoom) {
-		this.map.setZoom(zoom);
-	},
 	setCenter: function (position) {
 		this.map.setCenter(MapProxy.Google.position2google(position));
 	},
@@ -64,7 +63,7 @@ MapProxy.Google.Map.prototype = {
 			that = this;
 
 		if (oBounds.getSouthWest()) { // Google maps available? (with API key)
-			if (String(oBounds.getSouthWest()) === String(oBounds.getNorthEast)) { // only one waypoint
+			if (String(oBounds.getSouthWest()) === String(oBounds.getNorthEast())) { // only one waypoint
 				this.fitBoundsZoom = that.options.zoom; // limit zoom level
 			}
 		}
@@ -112,11 +111,10 @@ MapProxy.Google.FeatureGroup.prototype = {
 		};
 
 		this.options = Utils.objectAssign({	}, options);
+		this.aMarkerPool = [];
 		this.aMarkers = [];
 		this.polyLine = new MapProxy.Google.Polyline(oPolyLineOptions);
-		this.infoWindow = new MapProxy.Google.InfoWindow({
-			onGetInfoWindowContent: this.testClosure1()
-		});
+		this.infoWindow = new MapProxy.Google.InfoWindow();
 	},
 	addMarkers: function (aList) {
 		var aMarkers = this.aMarkers,
@@ -127,21 +125,22 @@ MapProxy.Google.FeatureGroup.prototype = {
 			oItem = aList[i];
 			oPosition = oItem.position;
 			aPath.push(oPosition);
-			if (i >= aMarkers.length) {
-				oMarkerOptions = Utils.objectAssign(oItem, {
-					infoWindow: this.infoWindow
-				}, oItem);
-				//oMarkerOptions.infoWindow = this.infoWindow;
+			if (!this.aMarkerPool[i]) {
+				oMarkerOptions = oItem;
 				oMarker = new MapProxy.Google.Marker(oMarkerOptions);
-				aMarkers.push(oMarker);
+				this.aMarkerPool[i] = oMarker;
 			} else {
-				oMarker = aMarkers[i];
+				oMarker = this.aMarkerPool[i];
 				oMarker.setLabel(oItem.label);
 				oMarker.setTitle(oItem.title);
 				oMarker.setPosition(oPosition);
 				if (this.infoWindow && this.infoWindow.getAnchor() === oMarker) {
-					this.infoWindow.setContent(oMarker);
+					this.infoWindow.setContent(this.privGetPopupContent(oMarker));
 				}
+			}
+
+			if (i >= aMarkers.length) {
+				aMarkers.push(oMarker);
 			}
 		}
 
@@ -150,14 +149,13 @@ MapProxy.Google.FeatureGroup.prototype = {
 		}
 	},
 	deleteMarkers: function () {
-		var aMarkers = this.aMarkers,
-			i;
+		if (this.infoWindow) {
+			this.infoWindow.close();
+		}
 
 		this.setMap(null);
-		for (i = 0; i < aMarkers.length; i += 1) {
-			aMarkers[i] = null;
-		}
 		this.aMarkers = [];
+
 		if (this.polyLine) {
 			this.polyLine.setMap(null);
 		}
@@ -190,60 +188,25 @@ MapProxy.Google.FeatureGroup.prototype = {
 			oMarker.setMap(map);
 		}
 	},
+	privGetPopupContent: function (oMarker) {
+		var oSimpleMarker, aMarkers, oPreviousMarker, oPreviousSimpleMarker, sContent, iIndex;
 
-	testClosure1: function () {
-		var that = this,
-			privGetInfoWindowContent = function (marker) {
-				var oSimpleMarker,
-					aMarkers = that.aMarkers,
-					oPreviousMarker, oPreviousSimpleMarker, sContent, iIndex,
-					oGoogleMarker = marker.marker;
-
-				oGoogleMarker.getTitle();
-				oSimpleMarker = {
-					title: oGoogleMarker.getTitle(), // title
-					position: MapProxy.Google.google2position(oGoogleMarker.getPosition())
-				};
-				iIndex = aMarkers.indexOf(marker);
-				if (iIndex >= 1) { // not the first one?
-					oPreviousMarker = aMarkers[iIndex - 1];
-					oPreviousSimpleMarker = {
-						title: oPreviousMarker.getTitle(), // title
-						position: oPreviousMarker.getPosition()
-					};
-				}
-				sContent = that.privGetInfoWindowContent2(oSimpleMarker, oPreviousSimpleMarker);
-				return sContent;
+		oSimpleMarker = {
+			title: oMarker.getTitle(), // title
+			position: oMarker.getPosition()
+		};
+		aMarkers = this.aMarkers;
+		iIndex = aMarkers.indexOf(oMarker);
+		if (iIndex >= 1) { // not the first one?
+			oPreviousMarker = aMarkers[iIndex - 1];
+			oPreviousSimpleMarker = {
+				title: oPreviousMarker.getTitle(),
+				position: oPreviousMarker.getPosition()
 			};
-
-		return privGetInfoWindowContent;
-	},
-	privGetInfoWindowContent2: function (marker, previousMarker) {
-		var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
-			sContent, oPosition1, oPosition2, iAngle, iDistance, sDirection;
-
-		sContent = marker.title + "=" + marker.position.toFormattedString(this.options.positionFormat); //TTT TODO
-
-		if (previousMarker) {
-			oPosition1 = previousMarker.position;
-			oPosition2 = marker.position;
-			iAngle = Math.round(LatLng.prototype.bearingTo.call(oPosition1, oPosition2));
-			iDistance = Math.round(LatLng.prototype.distanceTo.call(oPosition1, oPosition2));
-			sDirection = aDirections[Math.round(iAngle / (360 / aDirections.length)) % aDirections.length];
-			sContent += "<br>" + sDirection + ": " + iAngle + "° " + iDistance + "m";
 		}
+		sContent = this.options.onGetInfoWindowContent ? this.options.onGetInfoWindowContent(oSimpleMarker, oPreviousSimpleMarker) : "";
 		return sContent;
 	}
-	/*
-	, deleteFeatureGroup: function () {
-		this.deleteMarkers();
-		this.polyLine = null;
-		if (this.infoWindow) {
-			this.infoWindow.close();
-			this.infoWindow = null;
-		}
-	}
-	*/
 };
 
 
@@ -269,11 +232,12 @@ MapProxy.Google.Marker.prototype = {
 	},
 
 	fnMarkerClick: function () {
-		var oInfoWindow = this.options.infoWindow;
+		var oFeatureGroup = this.map.getFeatureGroup(),
+			oInfoWindow = oFeatureGroup.infoWindow;
 
 		if (oInfoWindow) {
 			if (oInfoWindow.getAnchor() !== this) {
-				oInfoWindow.setContent(this);
+				oInfoWindow.setContent(oFeatureGroup.privGetPopupContent(this));
 				oInfoWindow.open(this.map, this);
 			} else {
 				oInfoWindow.close();
@@ -282,10 +246,11 @@ MapProxy.Google.Marker.prototype = {
 	},
 
 	fnMarkerDrag: function () {
-		var oInfoWindow = this.options.infoWindow;
+		var oFeatureGroup = this.map.getFeatureGroup(),
+			oInfoWindow = oFeatureGroup.infoWindow;
 
 		if (oInfoWindow && oInfoWindow.getAnchor() === this) {
-			oInfoWindow.setContent(this);
+			oInfoWindow.setContent(oFeatureGroup.privGetPopupContent(this));
 		}
 	},
 
@@ -303,14 +268,8 @@ MapProxy.Google.Marker.prototype = {
 	setTitle: function (title) {
 		this.marker.setTitle(title);
 	},
-	getLabel: function () {
-		return this.marker.getLabel();
-	},
 	setLabel: function (label) {
 		this.marker.setLabel(label);
-	},
-	getMap: function () {
-		return this.map;
 	},
 	setMap: function (map) {
 		this.map = map;
@@ -334,11 +293,6 @@ MapProxy.Google.Polyline.prototype = {
 	setPath: function (path) {
 		this.polyline.setPath(path);
 	},
-	/*
-	getMap: function () {
-		return this.map;
-	},
-	*/
 	setMap: function (map) {
 		this.map = map;
 		this.polyline.setMap(map ? map.privGetMap() : null);
@@ -355,9 +309,7 @@ MapProxy.Google.InfoWindow.prototype = {
 		this.options = Utils.objectAssign({}, options);
 		this.infoWindow = new google.maps.InfoWindow();
 	},
-	setContent: function (marker) {
-		var sContent = this.options.onGetInfoWindowContent ? this.options.onGetInfoWindowContent(marker) : "";
-
+	setContent: function (sContent) {
 		this.infoWindow.setContent(sContent);
 	},
 	getAnchor: function () {

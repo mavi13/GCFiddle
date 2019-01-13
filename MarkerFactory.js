@@ -17,7 +17,6 @@ MarkerFactory.prototype = {
 		if (mapProxy && mapProxy.getMap()) {
 			this.mapProxy = mapProxy;
 			this.deleteMarkers();
-			//this.fg = mapProxy.createFeatureGroup();
 			this.setMarkers(aMarkerOptions);
 		} else {
 			this.mapProxy = null;
@@ -77,24 +76,5 @@ MarkerFactory.prototype = {
 			mapProxy.getMap().setCenter(marker.position);
 		}
 	}
-
-	/*
-	privGetInfoWindowContent2: function (marker, previousMarker) {
-		var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
-			sContent, oPosition1, oPosition2, iAngle, iDistance, sDirection;
-
-		sContent = marker.title + "=" + marker.position.toFormattedString(this.options.positionFormat); //TTT TODO
-
-		if (previousMarker) {
-			oPosition1 = previousMarker.position;
-			oPosition2 = marker.position;
-			iAngle = Math.round(LatLng.prototype.bearingTo.call(oPosition1, oPosition2));
-			iDistance = Math.round(LatLng.prototype.distanceTo.call(oPosition1, oPosition2));
-			sDirection = aDirections[Math.round(iAngle / (360 / aDirections.length)) % aDirections.length];
-			sContent += "<br>" + sDirection + ": " + iAngle + "° " + iDistance + "m";
-		}
-		return sContent;
-	}
-	*/
 };
 // end
