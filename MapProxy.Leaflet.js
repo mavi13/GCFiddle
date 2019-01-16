@@ -176,39 +176,29 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 	},
 
 	addMarkers: function (aList) {
-		var	aPath = [],
-			i, oItem, oMarker, oPosition, aLayers, oPopup;
+		var aMarkerPool = this.aMarkerPool,
+			markerGroup = this.markerGroup,
+			oPopup = markerGroup.getPopup(),
+			aLayers = markerGroup.getLayers(),
+			aPath = [],
+			i, oMarkerOptions, oMarker;
 
-		oPopup = this.markerGroup.getPopup();
-		aLayers = this.markerGroup.getLayers();
 		for (i = 0; i < aList.length; i += 1) {
-			oItem = aList[i];
-			oPosition = MapProxy.Leaflet.position2leaflet(oItem.position);
-			aPath.push(oPosition);
-			if (!this.aMarkerPool[i]) {
-				oMarker = new L.Marker(oPosition, {
-					draggable: true,
-					label: oItem.label,
-					icon: new L.DivIcon({
-						html: oItem.label,
-						iconSize: [16, 16] // eslint-disable-line array-element-newline
-					})
-				});
-				oMarker.bindTooltip(oItem.title);
-				this.aMarkerPool[i] = oMarker;
+			oMarkerOptions = aList[i];
+			aPath.push(oMarkerOptions.position);
+			if (!aMarkerPool[i]) {
+				oMarker = new MapProxy.Leaflet.Marker(oMarkerOptions);
+				aMarkerPool[i] = oMarker;
 			} else {
-				oMarker = this.aMarkerPool[i];
-				oMarker.options.label = oItem.label;
-				oMarker.getTooltip().setContent(oItem.title);
-				oMarker.setLatLng(oPosition);
-				if (oPopup && oPopup.isOpen() && this.markerGroup.getLayerId(oMarker) === this.iPopupSourceId) {
-					oPopup.setLatLng(oPosition);
+				oMarker = aMarkerPool[i];
+				oMarker.setLabel(oMarkerOptions.label).setTitle(oMarkerOptions.title).setPosition(oMarkerOptions.position);
+				if (oPopup && oPopup.isOpen() && this.markerGroup.getLayerId(oMarker.marker) === this.iPopupSourceId) {
+					oPopup.setLatLng(MapProxy.Leaflet.position2leaflet(oMarkerOptions.position));
 					oPopup.setContent(this.privGetPopupContent(oMarker));
 				}
 			}
-
 			if (i >= aLayers.length) {
-				oMarker.addTo(this.markerGroup);
+				oMarker.marker.addTo(markerGroup);
 			}
 		}
 		this.privSetPolyline(aPath);
@@ -255,24 +245,90 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 		}
 	},
 	privGetPopupContent: function (oLeafletMarker) {
-		var oMarkerGroup = this.markerGroup, // event.target === that.markerGroup
-			oMarker, aMarkers, oPreviousLeafletMarker, oPreviousMarker,	sContent, iIndex;
+		var aMarkerPool = this.aMarkerPool,
+			markerGroup = this.markerGroup,
+			aLayers = markerGroup.getLayers(),
+			oMarker, oPreviousMarker, sContent, iIndex;
 
-		oMarker = {
-			title: oLeafletMarker.getTooltip().getContent(), // title
-			position: MapProxy.Leaflet.leaflet2position(oLeafletMarker.getLatLng())
-		};
-		aMarkers = oMarkerGroup.getLayers();
-		iIndex = aMarkers.indexOf(oLeafletMarker);
-		if (iIndex >= 1) { // not the first one?
-			oPreviousLeafletMarker = aMarkers[iIndex - 1];
-			oPreviousMarker = {
-				title: oPreviousLeafletMarker.getTooltip().getContent(),
-				position: MapProxy.Leaflet.leaflet2position(oPreviousLeafletMarker.getLatLng())
-			};
+		iIndex = aLayers.indexOf(oLeafletMarker);
+		if (iIndex >= 0 && iIndex < aMarkerPool.length) { // we assume same index in markerGroup and markerPool
+			oMarker = aMarkerPool[iIndex];
+			if (iIndex >= 1) { // not the first one?
+				oPreviousMarker = aMarkerPool[iIndex - 1];
+			}
+			sContent = this.options.onGetInfoWindowContent ? this.options.onGetInfoWindowContent(oMarker, oPreviousMarker) : "";
+		} else {
+			window.console.error("privGetPopupContent: wrong index: " + iIndex);
 		}
-		sContent = this.options.onGetInfoWindowContent ? this.options.onGetInfoWindowContent(oMarker, oPreviousMarker) : "";
 		return sContent;
 	}
+};
+
+
+MapProxy.Leaflet.Marker = function (options) {
+	this.init(options);
+};
+
+MapProxy.Leaflet.Marker.prototype = {
+	init: function (options) {
+		var oMarkerOptions;
+
+		this.options = Utils.objectAssign({	}, options);
+		oMarkerOptions = this.options;
+		this.marker = new L.Marker(MapProxy.Leaflet.position2leaflet(oMarkerOptions.position), {
+			draggable: true,
+			label: oMarkerOptions.label,
+			title: oMarkerOptions.title,
+			icon: new L.DivIcon({
+				html: oMarkerOptions.label,
+				iconSize: [16, 16] // eslint-disable-line array-element-newline
+			})
+		});
+		this.marker.on("dragend", this.onMarkerDragend.bind(this));
+	},
+
+	onMarkerDragend: function (/* event */) {
+		this.getPosition(); // update position (to detect change in setPosition)
+	},
+
+	getPosition: function () {
+		var oPos = this.marker.getLatLng();
+
+		if (oPos) { // without API key we won't get a position
+			this.options.position.setLatLng(oPos.lat, oPos.lng); // update position; MapProxy.Leaflet.leaflet2position(oPos)
+		}
+		return this.options.position;
+	},
+	setPosition: function (position) {
+		if (String(this.options.position) !== String(position)) {
+			this.options.position = position;
+			this.marker.setLatLng(MapProxy.Leaflet.position2leaflet(position));
+		}
+		return this;
+	},
+	getTitle: function () {
+		return this.options.title;
+	},
+	setTitle: function (title) {
+		if (this.options.title !== title) {
+			this.options.title = title;
+			this.marker.options.title = title;
+		}
+		return this;
+	},
+	setLabel: function (label) {
+		if (this.options.label !== label) {
+			this.options.label = label;
+			this.marker.options.label = label;
+		}
+		return this;
+	}
+	/*
+	setMap: function (map) {
+		this.map = map;
+		this.marker.setMap(map ? map.privGetMap() : null);
+		return this;
+	}
+	*/
 };
 // end

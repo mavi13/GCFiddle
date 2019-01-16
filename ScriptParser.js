@@ -316,7 +316,7 @@ ScriptParser.prototype = {
 
 		// sort of suffix function
 		symbol("formatter", null, 3, function (left) {
-			var oFormatterToken = tokens[iIndex - 1]; //fast hack
+			var oFormatterToken = tokens[iIndex - 1]; // fast hack
 
 			return {
 				type: "formatter",
@@ -422,7 +422,6 @@ ScriptParser.prototype = {
 							}
 						}
 					}
-					//window.console.warn("function " + name + " expects " + oFunction.length + " parameters but called with " + aArgs.length);
 					throw new ScriptParser.ErrorObject("Wrong number of arguments for function", name, iPos);
 				}
 			},
@@ -471,7 +470,7 @@ ScriptParser.prototype = {
 							oArgs[node.args[i].value] = arguments[i];
 						}
 						sValue = parseNode(node.value);
-						//oArgs = {}; //do not reset here!
+						// do not reset oArgs here!
 						return sValue;
 					};
 				} else if (node.type === "formatter") {
@@ -632,7 +631,11 @@ ScriptParser.prototype = {
 						oPosition3,	sValue;
 
 					oPosition3 = LatLng.prototype.intersection(oPosition1, angle1, oPosition2, angle2);
-					sValue = oPosition3.toFormattedString();
+					if (oPosition3) {
+						sValue = oPosition3.toFormattedString();
+					} else {
+						sValue = String(sValue); // "undefined"
+					}
 					return sValue;
 				},
 
@@ -667,13 +670,13 @@ ScriptParser.prototype = {
 					return sValue;
 				},
 
-				// format(w1, fmt): format waypoint w1 with format "dmm", "dms", or "dd"
+				// format(w1, fmt): format waypoint w1 with format "", "dmm", "dms", "dd", "dmmc", "dmsc", "ddc"
 				format: function (w1, format) {
 					var oPosition = new LatLng().parse(w1),
 						sValue;
 
 					sValue = oPosition.toFormattedString(format, true);
-					if (sValue === undefined) { // format not "dmm", "dms", "dd"
+					if (sValue === undefined) {
 						throw new ScriptParser.ErrorObject("Unknown format", format, this.pos);
 					}
 					return sValue;

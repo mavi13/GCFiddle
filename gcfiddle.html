@@ -68,8 +68,22 @@
 			</select>
 		</legend>
 		<div id="waypointArea" class="area">
-			<label id="waypointLabel" for="waypointInput" class="label" title="Waypoint Name"></label>
-			<input id="waypointInput" value="" size="26" type="text" placeholder="value">
+			<div class="area">
+				<label id="waypointLabel" for="waypointInput" class="label" title="Waypoint Name"></label>
+				<input id="waypointInput" value="" size="26" type="text" placeholder="value">
+			</div>
+			<div class="area">
+				<label for="waypointViewSelect" title="Waypoint View">View</label>
+				<select id="waypointViewSelect" title="Waypoint Format">
+					<option value="" selected="selected" title="as input">Automatic</option>
+					<option value="dmm" title="deg-min.min">dmm</option>
+					<option value="dms" title="deg-min-sec">dms</option>
+					<option value="dd" title="decimal degrees">dd</option>
+					<option value="dmmc" title="dmm with comment">dmmc</option>
+					<option value="dmsc" title="dms with comment">dmsc</option>
+					<option value="ddc" title="dd with comment">ddc</option>
+				</select>
+			</div>
 		</div>
 	</fieldset>
 	<fieldset class="flexBox clearLeft" id="mapArea">

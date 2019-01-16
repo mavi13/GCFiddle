@@ -106,47 +106,40 @@ MapProxy.Google.FeatureGroup.prototype = {
 	init: function (options) {
 		var oPolyLineOptions = {
 			strokeColor: "red",
-			strokeOpacity: 0.8,
-			strokeWidth: 2
+			strokeOpacity: 1,
+			strokeWeight: 1.5
 		};
 
 		this.options = Utils.objectAssign({	}, options);
-		this.aMarkerPool = [];
-		this.aMarkers = [];
+		this.aMarkerPool = []; // pool of created markers
+		this.aMarkers = []; // visible markers
 		this.polyLine = new MapProxy.Google.Polyline(oPolyLineOptions);
 		this.infoWindow = new MapProxy.Google.InfoWindow();
 	},
 	addMarkers: function (aList) {
-		var aMarkers = this.aMarkers,
+		var aMarkerPool = this.aMarkerPool,
+			aMarkers = this.aMarkers,
 			aPath = [],
-			oMarkerOptions,	i, oItem, oPosition, oMarker;
+			i, oMarkerOptions, oMarker;
 
 		for (i = 0; i < aList.length; i += 1) {
-			oItem = aList[i];
-			oPosition = oItem.position;
-			aPath.push(oPosition);
-			if (!this.aMarkerPool[i]) {
-				oMarkerOptions = oItem;
+			oMarkerOptions = aList[i];
+			aPath.push(oMarkerOptions.position);
+			if (!aMarkerPool[i]) {
 				oMarker = new MapProxy.Google.Marker(oMarkerOptions);
-				this.aMarkerPool[i] = oMarker;
+				aMarkerPool[i] = oMarker;
 			} else {
-				oMarker = this.aMarkerPool[i];
-				oMarker.setLabel(oItem.label);
-				oMarker.setTitle(oItem.title);
-				oMarker.setPosition(oPosition);
+				oMarker = aMarkerPool[i];
+				oMarker.setLabel(oMarkerOptions.label).setTitle(oMarkerOptions.title).setPosition(oMarkerOptions.position);
 				if (this.infoWindow && this.infoWindow.getAnchor() === oMarker) {
 					this.infoWindow.setContent(this.privGetPopupContent(oMarker));
 				}
 			}
-
 			if (i >= aMarkers.length) {
 				aMarkers.push(oMarker);
 			}
 		}
-
-		if (this.polyLine) {
-			this.polyLine.setPath(aPath);
-		}
+		this.polyLine.setPath(aPath);
 	},
 	deleteMarkers: function () {
 		if (this.infoWindow) {
@@ -189,22 +182,14 @@ MapProxy.Google.FeatureGroup.prototype = {
 		}
 	},
 	privGetPopupContent: function (oMarker) {
-		var oSimpleMarker, aMarkers, oPreviousMarker, oPreviousSimpleMarker, sContent, iIndex;
+		var aMarkers, oPreviousMarker, sContent, iIndex;
 
-		oSimpleMarker = {
-			title: oMarker.getTitle(), // title
-			position: oMarker.getPosition()
-		};
 		aMarkers = this.aMarkers;
 		iIndex = aMarkers.indexOf(oMarker);
 		if (iIndex >= 1) { // not the first one?
 			oPreviousMarker = aMarkers[iIndex - 1];
-			oPreviousSimpleMarker = {
-				title: oPreviousMarker.getTitle(),
-				position: oPreviousMarker.getPosition()
-			};
 		}
-		sContent = this.options.onGetInfoWindowContent ? this.options.onGetInfoWindowContent(oSimpleMarker, oPreviousSimpleMarker) : "";
+		sContent = this.options.onGetInfoWindowContent ? this.options.onGetInfoWindowContent(oMarker, oPreviousMarker) : "";
 		return sContent;
 	}
 };
@@ -229,6 +214,7 @@ MapProxy.Google.Marker.prototype = {
 		});
 		google.maps.event.addListener(this.marker, "click", this.fnMarkerClick.bind(this)); // is it ok to use bind?
 		google.maps.event.addListener(this.marker, "drag", this.fnMarkerDrag.bind(this));
+		google.maps.event.addListener(this.marker, "dragend", this.fnMarkerDragEnd.bind(this));
 	},
 
 	fnMarkerClick: function () {
@@ -254,26 +240,46 @@ MapProxy.Google.Marker.prototype = {
 		}
 	},
 
+	fnMarkerDragEnd: function () {
+		this.getPosition(); // will update position (to detect change in setPosition)
+	},
+
 	getPosition: function () {
 		var oPos = this.marker.getPosition();
 
-		return oPos ? MapProxy.Google.google2position(oPos) : this.options.position; // if no API key, retrun initial position
+		if (oPos) { // without API key we won't get a position
+			this.options.position.setLatLng(oPos.lat(), oPos.lng()); // update position; MapProxy.Google.google2position(oPos)
+		}
+		return this.options.position;
 	},
 	setPosition: function (position) {
-		this.marker.setPosition(MapProxy.Google.position2google(position));
+		if (String(this.options.position) !== String(position)) {
+			this.options.position = position;
+			this.marker.setPosition(MapProxy.Google.position2google(position));
+		}
+		return this;
 	},
 	getTitle: function () {
-		return this.marker.getTitle();
+		return this.options.title;
 	},
 	setTitle: function (title) {
-		this.marker.setTitle(title);
+		if (this.options.title !== title) {
+			this.options.title = title;
+			this.marker.setTitle(title);
+		}
+		return this;
 	},
 	setLabel: function (label) {
-		this.marker.setLabel(label);
+		if (this.options.label !== label) {
+			this.options.label = label;
+			this.marker.setLabel(label);
+		}
+		return this;
 	},
 	setMap: function (map) {
 		this.map = map;
 		this.marker.setMap(map ? map.privGetMap() : null);
+		return this;
 	},
 	privGetMarker: function () {
 		return this.marker;

@@ -141,13 +141,19 @@ MapProxy.OpenLayers.Map.prototype = {
 				autoActivate: true,
 				onDrag: function (internalMarker) {
 					var oMarker = that.privGetRegisteredMarker(internalMarker.id),
-						oPosition = oMarker.getPosition(),
-						oInfoWindow = oMarker.options.infoWindow;
+						oInfoWindow = oMarker.options.infoWindow,
+						oPosition;
 
 					if (oInfoWindow && oInfoWindow.getAnchor() === oMarker) {
+						oPosition = oMarker.getPosition(); // update position
 						oInfoWindow.setContent(that.getFeatureGroup().privGetPopupContent(oMarker));
 						oInfoWindow.privSetPosition(oPosition);
 					}
+				},
+				onComplete: function (internalMarker) { // on dragend
+					var oMarker = that.privGetRegisteredMarker(internalMarker.id);
+
+					oMarker.getPosition(); // update position (to detect change in setPosition)
 				}
 			}));
 		}
@@ -309,22 +315,14 @@ MapProxy.OpenLayers.FeatureGroup.prototype = {
 		}
 	},
 	privGetPopupContent: function (oMarker) {
-		var oSimpleMarker, aMarkers, oPreviousMarker, oPreviousSimpleMarker, sContent, iIndex;
+		var aMarkers, oPreviousMarker, sContent, iIndex;
 
-		oSimpleMarker = {
-			title: oMarker.getTitle(),
-			position: oMarker.getPosition()
-		};
 		aMarkers = this.aMarkers;
 		iIndex = aMarkers.indexOf(oMarker);
 		if (iIndex >= 1) { // not the first one?
 			oPreviousMarker = aMarkers[iIndex - 1];
-			oPreviousSimpleMarker = {
-				title: oPreviousMarker.getTitle(),
-				position: oPreviousMarker.getPosition()
-			};
 		}
-		sContent = this.options.onGetInfoWindowContent ? this.options.onGetInfoWindowContent(oSimpleMarker, oPreviousSimpleMarker) : "";
+		sContent = this.options.onGetInfoWindowContent ? this.options.onGetInfoWindowContent(oMarker, oPreviousMarker) : "";
 		return sContent;
 	}
 };
@@ -336,58 +334,77 @@ MapProxy.OpenLayers.Marker = function (options) {
 
 MapProxy.OpenLayers.Marker.prototype = {
 	init: function (options) {
-		var oPosition, oTransformedPosition;
+		var oMarkerOptions, oTransformedPosition;
 
 		this.options = Utils.objectAssign({	}, options);
-		oPosition = this.options.position;
-		oTransformedPosition = MapProxy.OpenLayers.position2openlayers(oPosition); //new OpenLayers.LonLat(oPosition.lng, oPosition.lat).transform(new OpenLayers.Projection("EPSG:4326"), new OpenLayers.Projection("EPSG:900913"));
+		oMarkerOptions = this.options;
+
+		oTransformedPosition = MapProxy.OpenLayers.position2openlayers(oMarkerOptions.position);
 
 		this.marker = new OpenLayers.Feature.Vector(
 			new OpenLayers.Geometry.Point(oTransformedPosition.lon, oTransformedPosition.lat),
+			oMarkerOptions //TTT attributes
+			/*
 			{ // attributes
-				position: oPosition,
+				position: oMarkerOptions.oPosition, //TTT
 				title: this.options.title,
 				label: this.options.label
 			}
+			*/
 		);
 		this.map = options.map;
 		if (this.map) {
 			this.map.registeredMarker(this);
 		}
 	},
+
+	getPosition: function () {
+		var oPoint = this.marker.geometry,
+			oPos = new OpenLayers.LonLat(oPoint.x, oPoint.y).transform(MapProxy.OpenLayers.oProjectionEPSG900913, MapProxy.OpenLayers.oProjectionEPSG4326); // transformed position;  MapProxy.OpenLayers.openlayers2position(oPos)
+
+		this.options.position.setLatLng(oPos.lat, oPos.lon); // update position
+		return this.options.position;
+	},
+	setPosition: function (position) {
+		var oLonLat, oInfoWindow, oPoint;
+
+		if (String(this.options.position) !== String(position)) {
+			this.options.position = position;
+			oLonLat = MapProxy.OpenLayers.position2openlayers(position);
+			if (this.marker.layer) { // marker visible on layer?
+				this.marker.move(oLonLat);
+			} else {
+				oPoint = this.marker.geometry;
+				oPoint.move(oLonLat.lon - oPoint.x, oLonLat.lat - oPoint.y);
+			}
+			oInfoWindow = this.options.infoWindow;
+			if (oInfoWindow && oInfoWindow.getAnchor() === this) {
+				oInfoWindow.privSetPosition(position);
+			}
+		}
+		return this;
+	},
 	getTitle: function () {
-		return this.marker.attributes.title;
+		return this.options.title; // or: this.marker.attributes.title;
 	},
 	setTitle: function (title) {
-		this.marker.attributes.title = title;
+		if (this.options.title !== title) {
+			this.options.title = title;
+			this.marker.attributes.title = title;
+		}
+		return this;
 	},
+	/*
 	getLabel: function () {
 		return this.marker.attributes.label;
 	},
+	*/
 	setLabel: function (label) {
-		this.marker.attributes.label = label;
-	},
-	getPosition: function () {
-		var oPoint = this.marker.geometry,
-			oPos;
-
-		oPos = new OpenLayers.LonLat(oPoint.x, oPoint.y); // transformed position
-		return MapProxy.OpenLayers.openlayers2position(oPos);
-	},
-	setPosition: function (position) {
-		var oLonLat = MapProxy.OpenLayers.position2openlayers(position),
-			oInfoWindow = this.options.infoWindow,
-			oPoint;
-
-		if (this.marker.layer) { // marker visible on layer?
-			this.marker.move(oLonLat);
-		} else {
-			oPoint = this.marker.geometry;
-			oPoint.move(oLonLat.lon - oPoint.x, oLonLat.lat - oPoint.y);
+		if (this.options.label !== label) {
+			this.options.label = label;
+			this.marker.attributes.label = label;
 		}
-		if (oInfoWindow && oInfoWindow.getAnchor() === this) {
-			oInfoWindow.privSetPosition(position);
-		}
+		return this;
 	},
 	getMap: function () {
 		return this.map;
@@ -409,6 +426,7 @@ MapProxy.OpenLayers.Marker.prototype = {
 			}
 		}
 		this.map = map;
+		return this;
 	},
 	privGetMarker: function () {
 		return this.marker;

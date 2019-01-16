@@ -69,6 +69,15 @@ GCFiddle Links:
    Changed waypoints are marked with "[c]".
 - Waypoints are variables that begin with a dollar sign "$": e.g. `$W1`.
 
+- The waypoint format can be changed. This affects the hover popup for the waypoint input field and the marker popups on the map. Usually waypoints are output in the same format as they were defined. Possible formats:
+  - "" (Automatic, as input)
+  - dmm (deg-min.min), e.g. `N 49° 16.130 E 008° 40.453`
+  - dms (deg-min-sec), e.g. `N 49° 16' 07.80" E 008° 40' 27.18"`
+  - dd (decimal degrees), e.g. `N 49.26883° E 008.67422°`
+  - dmmc (deg-min.min with comment), e.g. `N 49° 16.130 E 008° 40.453!comment1`
+  - dmsc (deg-min-sec with comment)
+  - ddc (decimal degrees with comment)
+
 ### Map box
 
 - To show waypoints on a map.
@@ -244,7 +253,7 @@ URL parameters override settings in file `gcconfig.js` or `gcfiddle.js`.
 - `showConsole=false`: Show console box (for debugging messages)
 - `variableType=number`: Set general type of variables in the variable box to `number`, `text` or `range`
   - If a variable is not a number, `text` is used
-- `positionFormat=""`: Set position output format: `(empty string)`, `dmm`, `dms`, `dd`
+- `waypointFormat=""`: Set waypoint output format: `(empty string)`, `dmm`, `dms`, `dd`,  `dmmc`, `dmsc`, `ddc`
 - `mapType=leaflet`: Set type of map to `leaflet`, `openlayers`, `google`, `simple` or `none`.
   - For map type `google`, an API key must be set with parameter `googleKey`
 - `googleKey=""`: Set [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key)
@@ -267,6 +276,7 @@ URL parameters override settings in file `gcconfig.js` or `gcfiddle.js`.
 
 QUnit test [GCFiddle.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/GCFiddle.qunit.html) runs:
 
+- [LatLng.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/LatLng.qunit.html)
 - [Preprocessor.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/Preprocessor.qunit.html)
 - [ScriptParser.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/ScriptParser.qunit.html)
 

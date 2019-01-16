@@ -253,7 +253,7 @@ if (!window.localStorage) { // for IE8 it is only available if page is hosted on
 }
 
 // for old IE8
-(function () { // adaptHiddenProterties
+(function () { // adaptHiddenProperties
 	var aElements = document.getElementsByTagName("*"), // >= IE 5.5 or IE 6
 		i, oElem;
 

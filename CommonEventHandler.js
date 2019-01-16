@@ -76,14 +76,31 @@ CommonEventHandler.prototype = {
 		this.onVarSelectChange();
 	},
 
+	onWaypointViewSelectChange: function () {
+		gcFiddle.config.waypointFormat = document.getElementById("waypointViewSelect").value;
+		this.onWaypointSelectChange(null); // title
+	},
+
+	fnCenterMapOnWaypoint: function (sTitle2Find) {
+		var aMarkers = gcFiddle.maFa.getMarkers(),
+			i, oMarker;
+
+		for (i = 0; i < aMarkers.length; i += 1) {
+			oMarker = aMarkers[i];
+			if (oMarker && sTitle2Find === oMarker.title) {
+				gcFiddle.maFa.setCenter(oMarker);
+				break;
+			}
+		}
+	},
+
 	onWaypointSelectChange: function (event) {
 		var variables = gcFiddle.variables,
 			waypointSelect = document.getElementById("waypointSelect"),
 			waypointLabel = document.getElementById("waypointLabel"),
 			waypointInput = document.getElementById("waypointInput"),
 			sPar = waypointSelect.value,
-			aMarkers = gcFiddle.maFa.getMarkers(),
-			sValue,	oMarker, i, oPos, sError,
+			sValue,	oPos, sError,
 			fnAddClass = function (element, sClassName) {
 				var aClasses = element.className.split(" ");
 
@@ -97,29 +114,20 @@ CommonEventHandler.prototype = {
 				element.className = element.className.replace(regExp, "");
 			};
 
-		if (event) { // only if user selected, center to selected waypoint
-			for (i = 0; i < aMarkers.length; i += 1) {
-				oMarker = aMarkers[i];
-				if (oMarker && sPar === oMarker.title) {
-					gcFiddle.maFa.setCenter(oMarker);
-					break;
-				}
-			}
-		}
-
 		if (!sPar) {
 			sPar = "";
 			sValue = sPar;
 		} else {
 			sValue = variables[sPar];
 		}
+
 		waypointLabel.innerText = sPar;
 		waypointLabel.title = sPar;
 
 		waypointInput.value = sValue;
 		oPos = new LatLng().parse(sValue);
 		sError = oPos.getError();
-		waypointInput.title = sError || oPos.toFormattedString(gcFiddle.config.positionFormat);
+		waypointInput.title = sError || oPos.toFormattedString(gcFiddle.config.waypointFormat);
 		if (sError) {
 			fnAddClass(waypointInput, "invalid");
 		} else {
@@ -128,6 +136,10 @@ CommonEventHandler.prototype = {
 
 		waypointSelect.title = (waypointSelect.selectedIndex >= 0) ? waypointSelect.options[waypointSelect.selectedIndex].title : "";
 		document.getElementById("waypointLegend").textContent = "Waypoints (" + waypointSelect.length + ")";
+
+		if (event) { // only if user selected, center to selected waypoint
+			this.fnCenterMapOnWaypoint(sPar);
+		}
 	},
 
 	onVarInputChange: function () {
@@ -150,7 +162,7 @@ CommonEventHandler.prototype = {
 			this.onVarSelectChange(); // title change?
 			gcFiddle.fnSetWaypointSelectOptions();
 			gcFiddle.fnSetMarkers(variables);
-			this.onWaypointSelectChange();
+			this.onWaypointSelectChange(null);
 		}
 	},
 
@@ -387,7 +399,7 @@ CommonEventHandler.prototype = {
 					title: "W" + sLabel
 				};
 
-			window.console.log("Location: " + oMarker.position.toFormattedString(gcFiddle.config.positionFormat));
+			window.console.log("Location: " + oMarker.position.toFormattedString(gcFiddle.config.waypointFormat));
 			gcFiddle.maFa.addMarkers([oMarker]);
 			that.onFitBoundsButtonClick();
 		}
@@ -473,15 +485,15 @@ CommonEventHandler.prototype = {
 
 			fnGetInfoWindowContent = function (marker, previousMarker) {
 				var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
-					sContent, oPosition1, oPosition2, iAngle, iDistance, sDirection;
+					sContent, oPosition0, oPosition, iAngle, iDistance, sDirection;
 
-				sContent = marker.title + "=" + marker.position.toFormattedString(gcFiddle.config.positionFormat);
+				oPosition = marker.getPosition();
+				sContent = marker.getTitle() + "=" + oPosition.toFormattedString(gcFiddle.config.waypointFormat);
 
 				if (previousMarker) {
-					oPosition1 = previousMarker.position;
-					oPosition2 = marker.position;
-					iAngle = Math.round(LatLng.prototype.bearingTo.call(oPosition1, oPosition2));
-					iDistance = Math.round(LatLng.prototype.distanceTo.call(oPosition1, oPosition2));
+					oPosition0 = previousMarker.getPosition();
+					iAngle = Math.round(oPosition0.bearingTo(oPosition));
+					iDistance = Math.round(oPosition0.distanceTo(oPosition));
 					sDirection = aDirections[Math.round(iAngle / (360 / aDirections.length)) % aDirections.length];
 					sContent += "<br>" + sDirection + ": " + iAngle + "° " + iDistance + "m";
 				}

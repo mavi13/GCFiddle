@@ -50,10 +50,5 @@ MapProxy.prototype = {
 	createMap: function (options) {
 		return new MapProxy[this.mapClass].Map(options);
 	}
-	/*
-	createFeatureGroup: function (options) {
-		return new MapProxy[this.mapClass].FeatureGroup(options);
-	}
-	*/
 };
 // end

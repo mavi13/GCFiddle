@@ -193,6 +193,11 @@ assert($M3, "N 49.26927° E 008.67735°")
 assert(format(midpoint($W2, $W0), "dd"), $M3)
 assert(format($M3, "dmm"), "N 49° 16.156 E 008° 40.641")
 assert(format($M3, "dms"), "N 49° 16' 09.37\" E 008° 40' 38.46\"")
+# Format waypoint with comment (dmsc)
+$X1=format([midpoint($M3, $M1) "!mid4"], "")
+assert($X1, "N 49° 16.087 E 008° 40.628!mid4")
+assert(format($X1, "dmsc"), "N 49° 16' 05.22\" E 008° 40' 37.68\"!mid4")
+assert(format($X1, "dms"), "N 49° 16' 05.22\" E 008° 40' 37.68\"")
 
 #ct(n): Crosstotal of number
 assert(ct(1234567890), 45)

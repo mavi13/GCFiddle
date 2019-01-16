@@ -23,7 +23,7 @@ var gDebug,
 			showLogs: false,
 			showConsole: false, // for debugging
 			variableType: "number", // number, text, range
-			positionFormat: "", // position output format: "", dmm, dms, dd
+			waypointFormat: "", // waypoint output format: "", dmm, dms, dd, dmmc, dmsc, ddc
 			leafletMapboxKey: "", // mapbox access token (for leaflet maps, currently unused)
 			mapType: "leaflet", // simple, google, leaflet, openlayers, none
 			googleKey: "", // Google API key
@@ -171,9 +171,9 @@ var gDebug,
 				if (variables.hasOwnProperty(sPar) && gcFiddle.fnIsWaypoint(sPar)) {
 					oPosition = new LatLng().parse(String(variables[sPar]));
 					oSettings = {
-						position: oPosition,
+						position: oPosition, // position and comment
 						label: Utils.strZeroFormat(String(i), 2),
-						title: sPar + oPosition.getComment()
+						title: sPar // + ((sComment) ? "<br>" + sComment : "")
 					};
 					aMarkerOptions.push(oSettings);
 					i += 1;
@@ -237,6 +237,12 @@ var gDebug,
 
 		fnSetWaypointSelectOptions: function () {
 			var fnTextFormat = function (parameter, value) {
+				var iIndex;
+
+				iIndex = value.indexOf("!"); // appended comment?
+				if (iIndex >= 0) {
+					value = value.substring(0, iIndex);
+				}
 				value = String(value).replace(/(N|S|E|W)\s*(\d+)°?\s*/g, "");
 
 				parameter = parameter.substring(1, 4);
@@ -443,14 +449,14 @@ var gDebug,
 				mInfo.script = "";
 				for (iWp = 0; iWp < aWpt.length; iWp += 1) {
 					oWpt = aWpt[iWp];
-					mInfo.script += "$W" + iWp + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(gcFiddle.config.positionFormat) + '" # ' + oWpt.name + ", " + oWpt.cmt + "\n";
+					mInfo.script += "$W" + iWp + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(gcFiddle.config.waypointFormat) + '" # ' + oWpt.name + ", " + oWpt.cmt + "\n";
 				}
 			} else if (oJson.gpx && oJson.gpx.trk && oJson.gpx.trk.trkseg && oJson.gpx.trk.trkseg.trkpt && oJson.gpx.trk.trkseg.trkpt.length) {
 				aWpt = oJson.gpx.trk.trkseg.trkpt;
 				mInfo.script = "";
 				for (iWp = 0; iWp < aWpt.length; iWp += 1) {
 					oWpt = aWpt[iWp];
-					mInfo.script += "$W" + iWp + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(gcFiddle.config.positionFormat) + '" # ' + oWpt.ele + ", " + oWpt.time + "\n";
+					mInfo.script += "$W" + iWp + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(gcFiddle.config.waypointFormat) + '" # ' + oWpt.ele + ", " + oWpt.time + "\n";
 				}
 			}
 			return mInfo;
@@ -591,6 +597,10 @@ var gDebug,
 
 			if (oConfig.variableType) {
 				document.getElementById("varViewSelect").value = oConfig.variableType;
+			}
+
+			if (oConfig.waypointFormat) {
+				document.getElementById("waypointViewSelect").value = oConfig.waypointFormat;
 			}
 
 			Utils.setHidden("inputArea", !oConfig.showInput);

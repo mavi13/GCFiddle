@@ -1,6 +1,6 @@
 // LatLng.js - LatLng...
 //
-// based on: http://www.movable-type.co.uk/scripts/latlong.html
+// based on: http://www.movable-type.co.uk/scripts/latlong.html, https://github.com/chrisveness/geodesy
 // Latitude/longitude spherical geodesy tools, (c) Chris Veness 2002-2016
 //
 /* globals Utils */
@@ -11,11 +11,47 @@ function LatLng(lat, lng) {
 	this.init(lat, lng);
 }
 
+/*
+LatLng.formatList = [
+	"",
+	"dmm",
+	"dms",
+	"dd",
+	"dmmc",
+	"dmsc",
+	"ddc"
+];
+*/
+
 LatLng.prototype = {
 	init: function (lat, lng) {
+		this.setLatLng(lat, lng);
+		// other properties: format, comment, error
+	},
+	setLatLng: function (lat, lng) {
 		this.lat = Number(lat);
 		this.lng = Number(lng);
-		// other properties: format, comment, error
+		return this;
+	},
+	getComment: function () {
+		return (this.comment !== undefined) ? this.comment : "";
+	},
+	setComment: function (sComment) {
+		this.comment = sComment;
+		return this;
+	},
+	getFormat: function () {
+		return this.format;
+	},
+	setFormat: function (sFormat) {
+		this.format = sFormat;
+		return this;
+	},
+	getError: function () {
+		return this.error;
+	},
+	toString: function () {
+		return String(Object.values(this));
 	},
 	distanceTo: function (point) {
 		var radius = 6371e3,
@@ -45,7 +81,7 @@ LatLng.prototype = {
 		return (Utils.toDegrees(theta) + 360) % 360;
 	},
 	destinationPoint: function (distance, bearing) {
-		var radius = 6371e3, // see http://williams.best.vwh.net/avform.htm#LL
+		var radius = 6371e3, // see http://www.edwilliams.org/avform.htm#LL (former: http://williams.best.vwh.net/avform.htm#LL)
 			delta = Number(distance) / radius, // angular distance in radians
 			theta = Utils.toRadians(Number(bearing)),
 
@@ -67,8 +103,8 @@ LatLng.prototype = {
 
 		return new LatLng(Utils.toDegrees(phi2), (Utils.toDegrees(lambda2) + 540) % 360 - 180); // normalise to −180..+180°
 	},
-	intersection: function (p1, bearing1, p2, bearing2) { // no this used
-		// see http://williams.best.vwh.net/avform.htm#Intersection
+	intersection: function (p1, bearing1, p2, bearing2, bSuppressWarnings) { // no "this" used
+		// see http://www.edwilliams.org/avform.htm#Intersection (former: http://williams.best.vwh.net/avform.htm#Intersection)
 		var phi1 = Utils.toRadians(p1.lat),
 			lambda1 = Utils.toRadians(p1.lng),
 			phi2 = Utils.toRadians(p2.lat),
@@ -83,6 +119,9 @@ LatLng.prototype = {
 			+ Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltalambda / 2) * Math.sin(deltalambda / 2)));
 
 		if (delta12 === 0) {
+			if (!bSuppressWarnings) {
+				window.console.warn("intersection: delta12=" + delta12);
+			}
 			return null;
 		}
 
@@ -100,9 +139,15 @@ LatLng.prototype = {
 		alpha2 = (theta21 - theta23 + Math.PI) % (2 * Math.PI) - Math.PI; // angle 1-2-3
 
 		if (Math.sin(alpha1) === 0 && Math.sin(alpha2) === 0) { // infinite intersections
+			if (!bSuppressWarnings) {
+				window.console.warn("intersection: infinite intersections");
+			}
 			return null;
 		}
 		if (Math.sin(alpha1) * Math.sin(alpha2) < 0) { // ambiguous intersection
+			if (!bSuppressWarnings) {
+				window.console.warn("intersection: ambiguous intersections");
+			}
 			return null;
 		}
 
@@ -130,28 +175,13 @@ LatLng.prototype = {
 
 		return new LatLng(Utils.toDegrees(phi3), (Utils.toDegrees(lambda3) + 540) % 360 - 180); // normalise to −180..+180°
 	},
-	getComment: function () {
-		return (this.comment !== undefined) ? this.comment : "";
-	},
-	setComment: function (sComment) {
-		this.comment = sComment;
-	},
-	getFormat: function () {
-		return this.format;
-	},
-	setFormat: function (sFormat) {
-		this.format = sFormat;
-	},
-	getError: function () {
-		return this.error;
-	},
-	parse: function (coord) {
+	parse: function (coord, bSuppressWarnings) {
 		var lat = 0,
 			lng = 0,
 			sFormat, iCommentIndex, aParts, bParseOk;
 
 		function dmm2position() {
-			aParts = coord.match(/^\s*(N|S)\s*(\d+)°?\s*(\d+\.\d+)\s*(E|W)\s*(\d+)°?\s*(\d+\.\d+)/); // dmm
+			aParts = coord.match(/^\s*(N|S)\s*(\d+)\s*[° ]\s*(\d+\.\d+)\s*(E|W)\s*(\d+)\s*[° ]\s*(\d+\.\d+)/); // dmm
 			if (aParts && aParts.length === 7) {
 				lat = parseInt(aParts[2], 10) + parseFloat(aParts[3]) / 60;
 				lng = parseInt(aParts[5], 10) + parseFloat(aParts[6]) / 60;
@@ -168,7 +198,7 @@ LatLng.prototype = {
 		}
 
 		function dms2position() {
-			aParts = coord.match(/^\s*(N|S)\s*(\d+)°?\s*(\d+)'\s*(\d+\.?\d*)"\s*(E|W)\s*(\d+)°?\s*(\d+)'\s*(\d+\.?\d*)"/);
+			aParts = coord.match(/^\s*(N|S)\s*(\d+)\s*[° ]\s*(\d+)\s*'\s*(\d+\.?\d*)\s*"\s*(E|W)\s*(\d+)\s*[° ]\s*(\d+)\s*'\s*(\d+\.?\d*)\s*"/);
 			if (aParts && aParts.length === 9) {
 				lat = parseInt(aParts[2], 10) + parseFloat(aParts[3]) / 60 + parseFloat(aParts[4]) / 3600;
 				lng = parseInt(aParts[6], 10) + parseFloat(aParts[7]) / 60 + parseFloat(aParts[8]) / 3600;
@@ -185,7 +215,7 @@ LatLng.prototype = {
 		}
 
 		function dd2position() {
-			aParts = coord.match(/^\s*(N|S)\s*(\d+\.\d+)°?\s*(E|W)\s*(\d+\.\d+)°?$/);
+			aParts = coord.match(/^\s*(N|S)\s*(\d+\.\d+)\s*[° ]\s*(E|W)\s*(\d+\.\d+)\s*°?/);
 			if (aParts && aParts.length === 5) {
 				lat = parseFloat(aParts[2]);
 				lng = parseFloat(aParts[4]);
@@ -203,22 +233,30 @@ LatLng.prototype = {
 
 		iCommentIndex = coord.indexOf("!");
 		if (iCommentIndex >= 0) {
-			this.comment = coord.substr(iCommentIndex);
+			this.comment = coord.substr(iCommentIndex + 1);
 			coord = coord.substr(0, iCommentIndex);
-		} else if (this.comment !== undefined) {
-			this.comment = "";
+		} else if (this.comment !== undefined) { // comment was set?
+			delete this.comment;
 		}
 
 		bParseOk = dmm2position() || dms2position() || dd2position();
 		this.lat = lat;
 		this.lng = lng;
 		if (sFormat) {
-			this.format = sFormat;
+			this.format = sFormat + ((this.comment) ? "c" : "");
 		}
+		delete this.error;
 		if (!bParseOk && coord !== "") {
 			this.error = "Cannot parse " + coord;
-			window.console.warn("parse2position: Cannot parse '" + coord + "'");
+			if (!bSuppressWarnings) {
+				window.console.warn("parse2position: Cannot parse '" + coord + "'");
+			}
 		}
+		return this;
+	},
+	toFixed: function (iDigits) {
+		this.lat = this.lat.toFixed(iDigits);
+		this.lng = this.lng.toFixed(iDigits);
 		return this;
 	},
 	toFormattedString: function (format, bSuppressWarnings) {
@@ -286,6 +324,7 @@ LatLng.prototype = {
 			sValue = position2dd(this);
 			break;
 		default:
+			sValue = undefined; // undefined means unknown format
 			if (!bSuppressWarnings) {
 				window.console.warn("position2string: Unknown format", format);
 			}
