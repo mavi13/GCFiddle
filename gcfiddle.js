@@ -54,7 +54,6 @@ var gDebug,
 		},
 		commonEventHandler: null,
 		pendingScripts: [],
-		localStorage: window.localStorage,
 
 		// see: https://stackoverflow.com/questions/805107/creating-multiline-strings-in-javascript?rq=1
 		fnHereDoc: function (fn) {
@@ -593,7 +592,7 @@ var gDebug,
 
 			gcFiddle.maFa = new MarkerFactory();
 
-			gcFiddle.commonEventHandler = new CommonEventHandler();
+			gcFiddle.commonEventHandler = new CommonEventHandler().attach();
 
 			if (oConfig.variableType) {
 				document.getElementById("varViewSelect").value = oConfig.variableType;
@@ -646,12 +645,9 @@ var gDebug,
 				Array.prototype.forEach = null; // eslint-disable-line no-extend-native
 			}
 
-			if ((!window.console || !Array.prototype.forEach || !Object.create) && typeof Polyfills === "undefined") { // need Polyfill?, load module on demand
+			if ((!window.console || !Array.prototype.forEach || !Object.create || !Utils.localStorage) && typeof Polyfills === "undefined") { // need Polyfill?, load module on demand
 				Utils.loadScript(sUrl, function () {
 					window.console.log(sUrl + " loaded");
-					if (!gcFiddle.localStorage && window.myLocalStorage) {
-						gcFiddle.localStorage = window.myLocalStorage;
-					}
 					gcFiddle.fnDoStart();
 				});
 			} else {

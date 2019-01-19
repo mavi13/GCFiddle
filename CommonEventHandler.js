@@ -10,34 +10,40 @@ function CommonEventHandler(options) {
 
 CommonEventHandler.prototype = {
 	init: function (/* options */) {
-		this.attach();
+		// empty
+	},
+
+	fnCommonEventHandler: function (event) {
+		var oTarget = event.target,
+			sId = (oTarget) ? oTarget.getAttribute("id") : oTarget,
+			sType, sHandler;
+
+		if (sId) {
+			sType = event.type; // click or change
+			sHandler = "on" + Utils.stringCapitalize(sId) + Utils.stringCapitalize(sType);
+			if (gDebug) {
+				gDebug.log("DEBUG: fnCommonEventHandler: sHandler=" + sHandler);
+			}
+			if (sHandler in this) {
+				this[sHandler](event);
+			} else if (!Utils.stringEndsWith(sHandler, "SelectClick") && !Utils.stringEndsWith(sHandler, "InputClick")) { // do not print all messages
+				window.console.log("Event handler not found: " + sHandler);
+			}
+		} else if (gDebug) {
+			gDebug.log("DEBUG: Event handler for " + event.type + " unknown target " + oTarget);
+		}
 	},
 
 	attach: function () {
-		var that = this,
-			fnCommonEventHandler = function (event) {
-				var oTarget = event.target,
-					sId = (oTarget) ? oTarget.getAttribute("id") : oTarget,
-					sType, sHandler;
+		document.addEventListener("click", this.fnCommonEventHandler.bind(this), false);
+		document.addEventListener("change", this.fnCommonEventHandler.bind(this), false);
+		return this;
+	},
 
-				if (sId) {
-					sType = event.type; // click or change
-					sHandler = "on" + Utils.stringCapitalize(sId) + Utils.stringCapitalize(sType);
-					if (gDebug) {
-						gDebug.log("DEBUG: fnCommonEventHandler: sHandler=" + sHandler);
-					}
-					if (sHandler in that) {
-						that[sHandler](event);
-					} else if (!Utils.stringEndsWith(sHandler, "SelectClick") && !Utils.stringEndsWith(sHandler, "InputClick")) { // do not print all messages
-						window.console.log("Event handler not found: " + sHandler);
-					}
-				} else if (gDebug) {
-					gDebug.log("DEBUG: Event handler for " + event.type + " unknown target " + oTarget);
-				}
-			};
-
-		document.addEventListener("click", fnCommonEventHandler, false);
-		document.addEventListener("change", fnCommonEventHandler, false);
+	detach: function () {
+		document.removeEventListener("click", this.fnCommonEventHandler.bind(this));
+		document.removeEventListener("change", this.fnCommonEventHandler.bind(this));
+		return this;
 	},
 
 	onVarSelectChange: function () {
@@ -207,7 +213,7 @@ CommonEventHandler.prototype = {
 			waypointSelect.selectedIndex = waypointSelect.options.length - 1; // select last waypoint
 		}
 		this.onWaypointSelectChange(null); // do not center on wp
-		gcFiddle.maFa.fitBounds();
+	//TTT do we need this? Already done in fnSetMarkers?	gcFiddle.maFa.fitBounds();
 	},
 
 	onUndoButtonClick: function () {
@@ -306,7 +312,7 @@ CommonEventHandler.prototype = {
 				that.onExampleSelectChange();
 			},
 			fnLoadCategoryLocalStorage = function () {
-				var	oStorage = gcFiddle.localStorage,
+				var	oStorage = Utils.localStorage,
 					oExamples,
 					i, sKey, sItem;
 
@@ -388,8 +394,6 @@ CommonEventHandler.prototype = {
 	},
 
 	onLocationButtonClick: function () {
-		var that = this;
-
 		function showPosition(position) {
 			var iLastMarker = gcFiddle.maFa.getMarkers().length,
 				sLabel = Utils.strZeroFormat(String(iLastMarker), 2),
@@ -401,7 +405,7 @@ CommonEventHandler.prototype = {
 
 			window.console.log("Location: " + oMarker.position.toFormattedString(gcFiddle.config.waypointFormat));
 			gcFiddle.maFa.addMarkers([oMarker]);
-			that.onFitBoundsButtonClick();
+			// already done in addMarkers; that.onFitBoundsButtonClick();
 		}
 
 		function showError(error) {
@@ -485,16 +489,18 @@ CommonEventHandler.prototype = {
 
 			fnGetInfoWindowContent = function (marker, previousMarker) {
 				var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
-					sContent, oPosition0, oPosition, iAngle, iDistance, sDirection;
+					sContent, oPosition0, oPosition, fAngle, iAngle, fDistance, iDistance, sDirection;
 
 				oPosition = marker.getPosition();
 				sContent = marker.getTitle() + "=" + oPosition.toFormattedString(gcFiddle.config.waypointFormat);
 
 				if (previousMarker) {
 					oPosition0 = previousMarker.getPosition();
-					iAngle = Math.round(oPosition0.bearingTo(oPosition));
-					iDistance = Math.round(oPosition0.distanceTo(oPosition));
-					sDirection = aDirections[Math.round(iAngle / (360 / aDirections.length)) % aDirections.length];
+					fAngle = oPosition0.bearingTo(oPosition);
+					iAngle = Math.round(fAngle);
+					fDistance = oPosition0.distanceTo(oPosition);
+					iDistance = Math.round(fDistance);
+					sDirection = aDirections[Math.round(fAngle / (360 / aDirections.length)) % aDirections.length];
 					sContent += "<br>" + sDirection + ": " + iAngle + "° " + iDistance + "m";
 				}
 				return sContent;
@@ -623,7 +629,7 @@ CommonEventHandler.prototype = {
 		}
 
 		oExample = gcFiddle.fnAddExample(sInput, sCategory, oselectedExample || gcFiddle.emptyExample.draft);
-		gcFiddle.localStorage.setItem(oExample.key, sInput);
+		Utils.localStorage.setItem(oExample.key, sInput);
 
 		if (gcFiddle.config.testIndexedDb) {
 			fnTestIndexedDb(oExample);
@@ -665,7 +671,7 @@ CommonEventHandler.prototype = {
 			return;
 		}
 		window.console.log("Deleting " + sExample);
-		gcFiddle.localStorage.removeItem(sExample);
+		Utils.localStorage.removeItem(sExample);
 
 		if (oSavedList) {
 			if (oSavedList[sExample]) {

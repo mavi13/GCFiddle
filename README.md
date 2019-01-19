@@ -274,7 +274,7 @@ URL parameters override settings in file `gcconfig.js` or `gcfiddle.js`.
 
 ## Developing, Testing
 
-QUnit test [GCFiddle.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/GCFiddle.qunit.html) runs:
+QUnit test [testsuite.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/testsuite.qunit.html) runs:
 
 - [LatLng.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/LatLng.qunit.html)
 - [Preprocessor.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/Preprocessor.qunit.html)

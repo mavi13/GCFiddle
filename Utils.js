@@ -127,6 +127,17 @@ var Utils = {
 			}
 		}
 		return oChanged;
+	},
+	localStorage: null,
+	initLocalStorage: function () {
+		try {
+			Utils.localStorage = window.localStorage; // due to a bug in Edge this will throw an error when hosting locally (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8816771/)
+		} catch (e) {
+			window.console.warn("initLocalStorage: " + e);
+		}
 	}
 };
+
+Utils.initLocalStorage();
+
 // end

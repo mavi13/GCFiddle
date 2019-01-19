@@ -240,23 +240,22 @@ MapProxy.OpenLayers.FeatureGroup.prototype = {
 		//OpenLayers.Geometry.Collection() //CHECK
 		var aMarkers = this.aMarkers,
 			aPath = [],
-			oMarkerOptions, i, oItem, oPosition, oMarker;
+			i, oItem, oPosition, oMarkerOptions, oMarker;
 
 		for (i = 0; i < aList.length; i += 1) {
 			oItem = aList[i];
-			oPosition = oItem.position;
+			oPosition = oItem.position.clone();
 			aPath.push(oPosition);
 			if (!this.aMarkerPool[i]) {
-				oMarkerOptions = Utils.objectAssign(oItem, {
+				oMarkerOptions = Utils.objectAssign({}, oItem, {
+					position: oPosition,
 					infoWindow: this.infoWindow
-				}, oItem);
+				});
 				oMarker = new MapProxy.OpenLayers.Marker(oMarkerOptions);
 				this.aMarkerPool[i] = oMarker;
 			} else {
 				oMarker = this.aMarkerPool[i];
-				oMarker.setLabel(oItem.label);
-				oMarker.setTitle(oItem.title);
-				oMarker.setPosition(oPosition);
+				oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oItem.position);
 				if (this.infoWindow && this.infoWindow.getAnchor() === oMarker) {
 					this.infoWindow.setContent(this.privGetPopupContent(oMarker));
 				}
@@ -369,7 +368,7 @@ MapProxy.OpenLayers.Marker.prototype = {
 		var oLonLat, oInfoWindow, oPoint;
 
 		if (String(this.options.position) !== String(position)) {
-			this.options.position = position;
+			this.options.position = position.clone();
 			oLonLat = MapProxy.OpenLayers.position2openlayers(position);
 			if (this.marker.layer) { // marker visible on layer?
 				this.marker.move(oLonLat);
@@ -449,7 +448,7 @@ MapProxy.OpenLayers.Polyline.prototype = {
 			// strokeOpacity: 0.8,
 			// strokeWidth: 2
 		}, options);
-		this.polyline = new OpenLayers.Geometry.LineString(this.options);
+		this.polyline = new OpenLayers.Geometry.LineString(this.options); // cannot remove last 2 points from it
 		this.map = options.map;
 		this.aPointPool = [];
 	},
@@ -470,9 +469,13 @@ MapProxy.OpenLayers.Polyline.prototype = {
 				this.polyline.addPoint(oPoint);
 			}
 		}
+		// remove additional points
 		for (i = this.polyline.components.length - 1; i >= aList.length; i -= 1) {
 			oPoint = this.polyline.components[i];
-			this.polyline.removePoint(oPoint);
+			this.polyline.removePoint(oPoint); // cannot remove last 2 points!
+		}
+		if (this.polyline.components.length > aList.length) { // more points left?
+			this.polyline.components.length = aList.length; // throw them away
 		}
 		if (this.map) {
 			this.map.privGetMap().getLayersByName("Lines")[0].redraw();

@@ -43,6 +43,23 @@ QUnit.test("Properties", function (assert) {
 	assert.strictEqual(String(oPos), "49.26883,8.67422,comment1,error1,dms", "toString");
 });
 
+QUnit.test("Clone", function (assert) {
+	var oPos1 = new LatLng().setLatLng(49, 8).setComment("c1").setFormat("dmsc"),
+		oPos2;
+
+	oPos1.error = "e1";
+	assert.strictEqual(String(oPos1), "49,8,c1,dmsc,e1", "pos1");
+
+	oPos2 = oPos1.clone();
+	assert.strictEqual(String(oPos2), "49,8,c1,dmsc,e1", "cloned pos2");
+
+	oPos2.setLatLng(49.2, 8.2).setComment("c2").setFormat("ddc");
+	oPos2.error = "e2";
+	assert.strictEqual(String(oPos2), "49.2,8.2,c2,ddc,e2", "cloned pos2 modified");
+
+	assert.strictEqual(String(oPos1), "49,8,c1,dmsc,e1", "original pos1 unchanged");
+});
+
 
 QUnit.module("LatLng Parse, Format", {
 	before: function () {
@@ -391,8 +408,8 @@ QUnit.test("distanceTo", function (assert) {
 
 	assert.strictEqual(w[0].distanceTo(w[0]), 0, "w0,w0");
 
-	assert.strictEqual(w[0].distanceTo(w[1]), dist.dist01, "w0,w1");
-	assert.strictEqual(w[1].distanceTo(w[0]), dist.dist01, "w1,w0");
+	assert.strictEqual(w[0].distanceTo(w[1]).toFixed(11), dist.dist01.toFixed(11), "w0,w1"); // toFixed needed for IE
+	assert.strictEqual(w[1].distanceTo(w[0]).toFixed(11), dist.dist01.toFixed(11), "w1,w0");
 
 	assert.strictEqual(w[0].distanceTo(w[2]), dist.dist02, "w0,w2");
 	assert.strictEqual(w[2].distanceTo(w[0]), dist.dist02, "w2,w0");
@@ -408,11 +425,11 @@ QUnit.test("bearingTo", function (assert) {
 
 	assert.strictEqual(w[0].bearingTo(w[0]), 0, "w0,w0");
 
-	assert.strictEqual(w[0].bearingTo(w[1]), bear.bear01, "w0,w1");
-	assert.strictEqual(w[1].bearingTo(w[0]), bear.bear10, "w1,w0");
+	assert.strictEqual(w[0].bearingTo(w[1]).toFixed(9), bear.bear01.toFixed(9), "w0,w1"); // toFixed needed for IE
+	assert.strictEqual(w[1].bearingTo(w[0]).toFixed(9), bear.bear10.toFixed(9), "w1,w0");
 
-	assert.strictEqual(w[0].bearingTo(w[2]), bear.bear02, "w0,w2");
-	assert.strictEqual(w[2].bearingTo(w[0]), bear.bear20, "w2,w0");
+	assert.strictEqual(w[0].bearingTo(w[2]).toFixed(9), bear.bear02.toFixed(9), "w0,w2");
+	assert.strictEqual(w[2].bearingTo(w[0]).toFixed(9), bear.bear20.toFixed(9), "w2,w0");
 
 	assert.strictEqual(w[1].bearingTo(w[2]), bear.bear12, "w1,w2");
 	assert.strictEqual(w[2].bearingTo(w[1]), bear.bear21, "w2,w1");

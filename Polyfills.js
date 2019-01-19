@@ -1,5 +1,6 @@
-// Polyfills.js - Some Polyfills for old Browsers, e.g. IE8
+// Polyfills.js - Some Polyfills for old browsers, e.g. IE8
 //
+/* globals Utils */
 
 "use strict";
 
@@ -47,43 +48,124 @@ if (!document.getElementsByClassName) {
 	};
 }
 
+
+/*
+if (!Function.prototype.bind) { // for old IE8
+	// https://gist.github.com/dsingleton/1312328#file-function-bind-js (or: https://gist.github.com/Daniel-Hug/5682738)
+	Function.prototype.bind = function (b) { // eslint-disable-line no-extend-native
+		var a = Array.prototype.slice,
+			f = a.call(arguments, 1),
+			e = this,
+			MyClass = function () { },
+			d = function () {
+				return e.apply(this instanceof MyClass ? this : b || window, f.concat(a.call(arguments)));
+			};
+
+		if (typeof this !== "function") {
+			throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
+		}
+		MyClass.prototype = this.prototype;
+		d.prototype = new MyClass();
+		return d;
+	};
+}
+*/
+
+if (!Function.prototype.bind) {
+	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
+	// Does not work with `new funcA.bind(thisArg, args)`
+	(function () {
+		var ArrayPrototypeSlice = Array.prototype.slice;
+
+		Function.prototype.bind = function (/* otherThis */) { // eslint-disable-line no-extend-native
+			var that = this,
+				thatArg = arguments[0],
+				args = ArrayPrototypeSlice.call(arguments, 1),
+				argLen = args.length;
+
+			if (typeof that !== "function") {
+				// closest thing possible to the ECMAScript 5
+				// internal IsCallable function
+				throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
+			}
+			return function () {
+				args.length = argLen;
+				args.push.apply(args, arguments);
+				return that.apply(thatArg, args);
+			};
+		};
+	}());
+}
+
+
 if (!document.addEventListener) {
 	if (document.attachEvent) {
-		document.addEventListener = function (sEvent, fnHandler) {
-			var fnFindCaret = function (event) {
-					var oRange, oRange2;
+		(function () {
+			var eventListeners = [];
 
-					if (document.selection) {
-						event.target.focus();
-						oRange = document.selection.createRange();
-						oRange2 = oRange.duplicate();
-						oRange2.moveToElementText(event.target);
-						oRange2.setEndPoint("EndToEnd", oRange);
-						event.target.selectionStart = oRange2.text.length - oRange.text.length;
-						event.target.selectionEnd = event.target.selectionStart + oRange.text.length;
-					}
-				},
-				fnOnEvent = function (event) {
-					event = event || window.event;
-					event.target = event.target || event.srcElement;
-					if (event.type === "click" && event.target && event.target.tagName === "TEXTAREA") {
-						fnFindCaret(event);
-					}
-					fnHandler(event);
-					return false;
-				},
-				aElements, i;
+			document.addEventListener = function (sEvent, fnHandler) {
+				var fnFindCaret = function (event) {
+						var oRange, oRange2;
 
-			// The change event is not bubbled and fired on document for old IE8. So attach it to every select tag
-			if (sEvent === "change") {
-				aElements = document.getElementsByTagName("select");
-				for (i = 0; i < aElements.length; i += 1) {
-					aElements[i].attachEvent("on" + sEvent, fnOnEvent);
+						if (document.selection) {
+							event.target.focus();
+							oRange = document.selection.createRange();
+							oRange2 = oRange.duplicate();
+							oRange2.moveToElementText(event.target);
+							oRange2.setEndPoint("EndToEnd", oRange);
+							event.target.selectionStart = oRange2.text.length - oRange.text.length;
+							event.target.selectionEnd = event.target.selectionStart + oRange.text.length;
+						}
+					},
+					fnOnEvent = function (event) {
+						event = event || window.event;
+						event.target = event.target || event.srcElement;
+						if (event.type === "click" && event.target && event.target.tagName === "TEXTAREA") {
+							fnFindCaret(event);
+						}
+						fnHandler(event);
+						return false;
+					},
+					aElements, i;
+
+				// The change event is not bubbled and fired on document for old IE8. So attach it to every select tag
+				if (sEvent === "change") {
+					aElements = document.getElementsByTagName("select");
+					for (i = 0; i < aElements.length; i += 1) {
+						aElements[i].attachEvent("on" + sEvent, fnOnEvent);
+						eventListeners.push({ //TTT does this work?
+							object: this,
+							sEvent: sEvent,
+							fnHandler: fnHandler,
+							fnOnEvent: fnOnEvent
+						});
+					}
+				} else { // e.g. "Click"
+					document.attachEvent("on" + sEvent, fnOnEvent);
+					eventListeners.push({
+						object: this,
+						sEvent: sEvent,
+						fnHandler: fnHandler,
+						fnOnEvent: fnOnEvent
+					});
 				}
-			} else { // e.g. "Click"
-				document.attachEvent("on" + sEvent, fnOnEvent);
-			}
-		};
+			};
+
+			document.removeEventListener = function (sEvent, fnHandler) {
+				var counter = 0,
+					eventListener;
+
+				while (counter < eventListeners.length) {
+					eventListener = eventListeners[counter];
+					if (eventListener.object === this && eventListener.sEvent === sEvent && eventListener.fnHandler === fnHandler) {
+						this.detachEvent("on" + sEvent, eventListener.fnOnEvent);
+						eventListeners.splice(counter, 1);
+						break;
+					}
+					counter += 1;
+				}
+			};
+		}());
 	} else {
 		window.console.log("No document.attachEvent found."); // will be ignored
 		// debug: trying to fix
@@ -92,6 +174,26 @@ if (!document.addEventListener) {
 		}
 	}
 }
+
+//TTT
+/*
+var removeEventListener=function(type,listener , useCapture (will be ignored) ) {
+	var counter=0;
+	while (counter<eventListeners.length) {
+	  var eventListener=eventListeners[counter];
+	  if (eventListener.object==this && eventListener.type==type && eventListener.listener==listener) {
+		if (type=="DOMContentLoaded") {
+		  this.detachEvent("onreadystatechange",eventListener.wrapper);
+		} else {
+		  this.detachEvent("on"+type,eventListener.wrapper);
+		}
+		eventListeners.splice(counter, 1);
+		break;
+	  }
+	  ++counter;
+	}
+  }
+  */
 
 // https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach
 if (!Array.prototype.forEach) {
@@ -205,7 +307,7 @@ if (!Object.keys) {
 	};
 }
 
-if (!window.localStorage) { // for IE8 it is only available if page is hosted on web server, so...
+if (!Utils.localStorage) { // for IE8 it is only available if page is hosted on web server, so we simulate it...
 	// idea from: https://gist.github.com/remy/350433
 	(function () {
 		var oData = {},
@@ -248,7 +350,7 @@ if (!window.localStorage) { // for IE8 it is only available if page is hosted on
 				}
 			}
 		};
-		window.myLocalStorage = new Storage();
+		Utils.localStorage = new Storage();
 	}());
 }
 

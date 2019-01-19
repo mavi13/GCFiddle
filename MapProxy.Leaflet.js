@@ -181,20 +181,24 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 			oPopup = markerGroup.getPopup(),
 			aLayers = markerGroup.getLayers(),
 			aPath = [],
-			i, oMarkerOptions, oMarker;
+			i, oItem, oPosition, oMarkerOptions, oMarker;
 
 		for (i = 0; i < aList.length; i += 1) {
-			oMarkerOptions = aList[i];
-			aPath.push(oMarkerOptions.position);
+			oItem = aList[i];
+			oPosition = oItem.position.clone();
+			aPath.push(oPosition);
 			if (!aMarkerPool[i]) {
+				oMarkerOptions = Utils.objectAssign({}, oItem, { // create a deep copy so we can modify the position
+					position: oPosition
+				});
 				oMarker = new MapProxy.Leaflet.Marker(oMarkerOptions);
 				aMarkerPool[i] = oMarker;
 			} else {
 				oMarker = aMarkerPool[i];
-				oMarker.setLabel(oMarkerOptions.label).setTitle(oMarkerOptions.title).setPosition(oMarkerOptions.position);
+				oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oPosition);
 				if (oPopup && oPopup.isOpen() && this.markerGroup.getLayerId(oMarker.marker) === this.iPopupSourceId) {
-					oPopup.setLatLng(MapProxy.Leaflet.position2leaflet(oMarkerOptions.position));
-					oPopup.setContent(this.privGetPopupContent(oMarker));
+					oPopup.setLatLng(MapProxy.Leaflet.position2leaflet(oItem.position));
+					oPopup.setContent(this.privGetPopupContent(oMarker.marker));
 				}
 			}
 			if (i >= aLayers.length) {
@@ -301,7 +305,7 @@ MapProxy.Leaflet.Marker.prototype = {
 	},
 	setPosition: function (position) {
 		if (String(this.options.position) !== String(position)) {
-			this.options.position = position;
+			this.options.position = position.clone();
 			this.marker.setLatLng(MapProxy.Leaflet.position2leaflet(position));
 		}
 		return this;
@@ -323,12 +327,5 @@ MapProxy.Leaflet.Marker.prototype = {
 		}
 		return this;
 	}
-	/*
-	setMap: function (map) {
-		this.map = map;
-		this.marker.setMap(map ? map.privGetMap() : null);
-		return this;
-	}
-	*/
 };
 // end

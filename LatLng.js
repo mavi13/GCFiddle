@@ -28,6 +28,17 @@ LatLng.prototype = {
 		this.setLatLng(lat, lng);
 		// other properties: format, comment, error
 	},
+	clone: function () {
+		var oClone = new LatLng(),
+			sKey;
+
+		for (sKey in this) {
+			if (this.hasOwnProperty(sKey)) {
+				oClone[sKey] = this[sKey];
+			}
+		}
+		return oClone;
+	},
 	setLatLng: function (lat, lng) {
 		this.lat = Number(lat);
 		this.lng = Number(lng);
@@ -51,7 +62,16 @@ LatLng.prototype = {
 		return this.error;
 	},
 	toString: function () {
-		return String(Object.values(this));
+		var aValues = [],
+			sKey;
+
+		// Object.values (only available since ES 2017)
+		for (sKey in this) {
+			if (this.hasOwnProperty(sKey)) {
+				aValues.push(this[sKey]);
+			}
+		}
+		return String(aValues);
 	},
 	distanceTo: function (point) {
 		var radius = 6371e3,

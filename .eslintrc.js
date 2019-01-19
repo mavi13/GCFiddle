@@ -252,7 +252,7 @@ module.exports = {
         "prefer-promise-reject-errors": "error",
         "prefer-reflect": "off",
         "prefer-rest-params": "off",
-        "prefer-spread": "error",
+        "prefer-spread": "off",
         "prefer-template": "off",
         "quote-props": [2, "as-needed", { "keywords": true, "unnecessary": true }],
         "quotes": ["warn", "double", { "avoidEscape": true }],

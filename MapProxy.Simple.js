@@ -59,7 +59,9 @@ MapProxy.Simple.Map.prototype = {
 			this.options.onload(this);
 		}
 		document.getElementById("simpleCanvas2").addEventListener("click", this.onSimpleCanvas2Click.bind(this), false);
-		window.addEventListener("resize", this.fnDebounce(this.resize.bind(this), 200, false), false);
+		if (window.addEventListener) { // not for old IE8
+			window.addEventListener("resize", this.fnDebounce(this.resize.bind(this), 200, false), false);
+		}
 	},
 	onSimpleCanvas2Click: function (event) {
 		var oTarget = event.target,
@@ -173,7 +175,7 @@ MapProxy.Simple.Map.prototype = {
 
 		if (path.length) {
 			if (!canvas.getContext) {
-				window.console.warn("Browser does not support canvas.getContext()");
+				window.console.warn("Browser does not support canvas.getContext()"); // e.g. IE8
 				return;
 			}
 			context = canvas.getContext("2d");
@@ -200,13 +202,13 @@ MapProxy.Simple.Map.prototype = {
 	},
 	privDrawMarker: function (marker, bRemove) {
 		var context, oPos,
-			strokeStyle = marker.markerStyle || this.options.markerStyle,
-			fillStyle = marker.textStyle || this.options.textStyle,
+			strokeStyle = this.options.markerStyle, //marker.options.markerStyle || this.options.markerStyle,
+			fillStyle = this.options.textStyle, //marker.options.textStyle || this.options.textStyle,
 			iRadius = 10,
 			iLineWidth = 1,
 			canvas = this.aCanvas[1];
 
-		oPos = this.myConvertGeoToPixel(marker.position, this.oPixelMap);
+		oPos = this.myConvertGeoToPixel(marker.getPosition(), this.oPixelMap);
 
 		if (!canvas.getContext) {
 			window.console.warn("Browser does not support canvas.getContext()");
@@ -225,7 +227,7 @@ MapProxy.Simple.Map.prototype = {
 
 			context.beginPath();
 			context.arc(oPos.x, oPos.y, iRadius, 0, 2 * Math.PI);
-			context.fillText(marker.label, oPos.x, oPos.y);
+			context.fillText(marker.getLabel(), oPos.x, oPos.y);
 			context.stroke();
 		} else {
 			iRadius += Math.ceil(iLineWidth / 2);
@@ -336,37 +338,28 @@ MapProxy.Simple.FeatureGroup.prototype = {
 	addMarkers: function (aList) {
 		var aMarkers = this.aMarkers,
 			aPath = [],
-			i, oItem, oPosition, oMarker;
+			i, oItem, oPosition, oMarkerOptions, oMarker;
 
 		for (i = 0; i < aList.length; i += 1) {
 			oItem = aList[i];
-			oPosition = oItem.position;
+			oPosition = oItem.position.clone();
 			aPath.push(oPosition);
 			if (i >= aMarkers.length) {
-				oMarker = new MapProxy.Simple.Marker(oItem);
+				oMarkerOptions = Utils.objectAssign({}, oItem, { // create a deep copy so we can modify the position
+					position: oPosition
+				});
+				oMarker = new MapProxy.Simple.Marker(oMarkerOptions);
 				aMarkers.push(oMarker);
 			} else {
 				oMarker = aMarkers[i];
-				oMarker.setLabel(oItem.label);
-				oMarker.setTitle(oItem.title);
-				oMarker.setPosition(oPosition);
+				oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oPosition);
 			}
 		}
 
 		this.polyLine.setPath(aPath);
 	},
 	deleteMarkers: function () {
-		var aMarkers = this.aMarkers,
-			i, oMarker;
-
 		this.setMap(null);
-		for (i = 0; i < aMarkers.length; i += 1) {
-			oMarker = aMarkers[i];
-			if (oMarker && oMarker.destroy) { // needed for OpenLayers?
-				oMarker.destroy();
-			}
-			aMarkers[i] = null;
-		}
 		this.aMarkers = [];
 		if (this.polyLine) {
 			this.polyLine.setMap(null);
@@ -405,15 +398,6 @@ MapProxy.Simple.FeatureGroup.prototype = {
 			oMarker.setMap(map);
 		}
 	}
-	/*
-	, deleteFeatureGroup: function () {
-		this.deleteMarkers();
-		if (this.polyLine && this.polyLine.destroy) { // needed for OpenLayers?
-			this.polyLine.destroy();
-		}
-		this.polyLine = null;
-	}
-	*/
 };
 
 
@@ -423,37 +407,39 @@ MapProxy.Simple.Marker = function (options) {
 
 MapProxy.Simple.Marker.prototype = {
 	init: function (options) {
-		Utils.objectAssign(this, options); // position, title, label, map
+		this.options = Utils.objectAssign({	}, options); // position, title, label, map
 	},
 	getPosition: function () {
-		return this.position;
+		return this.options.position;
 	},
 	setPosition: function (position) {
-		if (this.position.lat !== position.lat || this.position.lng !== position.lng) {
+		if (String(this.options.position) !== String(position)) {
 			if (this.map) {
 				this.map.removeMarker(this); // remove old marker
 			}
-			this.position = position;
+			this.options.position = position.clone();
 			if (this.map) {
 				this.map.addMarker(this); // draw new marker
 			}
 		}
 	},
-	/*
 	getTitle: function () {
-		return this.title;
+		return this.options.title;
 	},
-	*/
 	setTitle: function (title) {
-		this.title = title;
+		if (this.options.title !== title) {
+			this.options.title = title;
+		}
+		return this;
 	},
-	/*
 	getLabel: function () {
-		return this.label;
+		return this.options.label;
 	},
-	*/
 	setLabel: function (label) {
-		this.label = label;
+		if (this.options.label !== label) {
+			this.options.label = label;
+		}
+		return this;
 	},
 	/*
 	getMap: function () {
@@ -468,6 +454,7 @@ MapProxy.Simple.Marker.prototype = {
 		if (this.map) {
 			this.map.addMarker(this); // draw new marker
 		}
+		return this;
 	}
 };
 

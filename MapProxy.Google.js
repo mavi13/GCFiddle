@@ -120,17 +120,21 @@ MapProxy.Google.FeatureGroup.prototype = {
 		var aMarkerPool = this.aMarkerPool,
 			aMarkers = this.aMarkers,
 			aPath = [],
-			i, oMarkerOptions, oMarker;
+			i, oItem, oPosition, oMarkerOptions, oMarker;
 
 		for (i = 0; i < aList.length; i += 1) {
-			oMarkerOptions = aList[i];
-			aPath.push(oMarkerOptions.position);
+			oItem = aList[i];
+			oPosition = oItem.position.clone();
+			aPath.push(oItem.position);
 			if (!aMarkerPool[i]) {
+				oMarkerOptions = Utils.objectAssign({}, oItem, {
+					position: oPosition
+				});
 				oMarker = new MapProxy.Google.Marker(oMarkerOptions);
 				aMarkerPool[i] = oMarker;
 			} else {
 				oMarker = aMarkerPool[i];
-				oMarker.setLabel(oMarkerOptions.label).setTitle(oMarkerOptions.title).setPosition(oMarkerOptions.position);
+				oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oPosition);
 				if (this.infoWindow && this.infoWindow.getAnchor() === oMarker) {
 					this.infoWindow.setContent(this.privGetPopupContent(oMarker));
 				}
@@ -254,7 +258,7 @@ MapProxy.Google.Marker.prototype = {
 	},
 	setPosition: function (position) {
 		if (String(this.options.position) !== String(position)) {
-			this.options.position = position;
+			this.options.position = position.clone();
 			this.marker.setPosition(MapProxy.Google.position2google(position));
 		}
 		return this;
