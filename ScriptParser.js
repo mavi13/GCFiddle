@@ -193,7 +193,7 @@ ScriptParser.prototype = {
 				var left,
 					t = token();
 
-				if (gDebug && gDebug.level > 2) {
+				if (gDebug && gDebug.level > 3) {
 					gDebug.log("DEBUG: expression rbp=" + rbp + " type=" + t.type + " t=%o", t);
 				}
 				advance();
@@ -429,7 +429,7 @@ ScriptParser.prototype = {
 			parseNode = function (node) {
 				var i, sValue, aNodeArgs;
 
-				if (gDebug && gDebug.level > 2) {
+				if (gDebug && gDebug.level > 3) {
 					gDebug.log("DEBUG: parseNode node=%o type=" + node.type + " name=" + node.name + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
 				}
 				if (node.type === "number" || node.type === "string") {
@@ -487,7 +487,7 @@ ScriptParser.prototype = {
 			sNode;
 
 		for (i = 0; i < parseTree.length; i += 1) {
-			if (gDebug && gDebug.level > 1) {
+			if (gDebug && gDebug.level > 2) {
 				gDebug.log("DEBUG: parseTree i=%d, node=%o", i, parseTree[i]);
 			}
 			sNode = parseNode(parseTree[i]);

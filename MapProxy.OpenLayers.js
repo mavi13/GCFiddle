@@ -28,20 +28,23 @@ MapProxy.OpenLayers.Map = function (options) {
 MapProxy.OpenLayers.Map.prototype = {
 	init: function (options) {
 		var that = this,
-			sProtocol, sUrl;
+			oView, sProtocol, sUrl;
 
 		this.options = Utils.objectAssign({ }, options);
+		oView = this.options.view;
 		this.registeredMarkers = {};
 		sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
 		sUrl = this.options.openlayersUrl.replace(/^http(s)?:/, sProtocol);
 		Utils.loadScript(sUrl, function () {
-			var mapDivId = that.options.mapDivId,
+			var sMapDivId = that.options.mapDivId,
 				bHidden;
 
 			window.console.log("OpenLayers " + OpenLayers.VERSION_NUMBER + " loaded (" + sUrl + ")");
-			bHidden = Utils.setHidden(mapDivId, false); // make sure canvas is not hidden
-			that.map = new OpenLayers.Map(mapDivId, { });
-			Utils.setHidden(mapDivId, bHidden); // restore
+
+			bHidden = oView.getHidden(sMapDivId);
+			oView.setHidden(sMapDivId, false); // make sure canvas is not hidden (allows to get width, height)
+			that.map = new OpenLayers.Map(sMapDivId, { });
+			oView.setHidden(sMapDivId, bHidden); // restore hidden
 			that.doInit2();
 
 			that.featureGroup = new MapProxy.OpenLayers.FeatureGroup({

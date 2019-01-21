@@ -8,10 +8,6 @@ function MapProxy(options) {
 	this.init(options);
 }
 
-MapProxy.create = function (options) {
-	return new MapProxy(options);
-};
-
 MapProxy.AvailableModules = {
 	google: "Google",
 	leaflet: "Leaflet",

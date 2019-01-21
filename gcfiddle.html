@@ -48,9 +48,9 @@
 				<div class="area">
 					<label for="varViewSelect" title="Variable View">View</label>
 					<select id="varViewSelect" title="Variable Type">
-						<option value="text">Text</option>
-						<option value="number" selected="selected">Number</option>
-						<option value="range">Range</option>
+						<option value="text" title="Text">Text</option>
+						<option value="number" title="Number" selected="selected">Number</option>
+						<option value="range" title="Range">Range</option>
 					</select>
 				</div>
 			</div>
@@ -73,7 +73,7 @@
 				<input id="waypointInput" value="" size="26" type="text" placeholder="value">
 			</div>
 			<div class="area">
-				<label for="waypointViewSelect" title="Waypoint View">View</label>
+				<label for="waypointViewSelect" title="Waypoint Format">View</label>
 				<select id="waypointViewSelect" title="Waypoint Format">
 					<option value="" selected="selected" title="as input">Automatic</option>
 					<option value="dmm" title="deg-min.min">dmm</option>
@@ -117,14 +117,16 @@
 		<legend id="consoleLogLegend" class="legendButton" title="Show/Hide Console log">Console log:</legend>
 		<textarea id="consoleLogArea" rows="12" cols="40"></textarea>
 	</fieldset>
+<script src="CommonEventHandler.js"></script>
+<script src="Controller.js"></script>
 <script src="InputStack.js"></script>
 <script src="LatLng.js"></script>
 <script src="MapProxy.js"></script>
-<!-- <script src="MapProxy.None.js"></script> -->
 <script src="MarkerFactory.js"></script>
+<script src="Model.js"></script>
 <script src="ScriptParser.js"></script>
-<script src="CommonEventHandler.js"></script>
 <script src="Utils.js"></script>
+<script src="View.js"></script>
 <script src="gcconfig.js"></script>
 <script src="gcfiddle.js"></script>
 </body>

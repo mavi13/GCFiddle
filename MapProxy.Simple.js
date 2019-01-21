@@ -12,7 +12,7 @@ MapProxy.Simple.Map = function (options) {
 
 MapProxy.Simple.Map.prototype = {
 	init: function (options) {
-		var mapDiv, bHidden, iWidth, iHeight, canvas, i;
+		var sMapDivId, oView, mapDiv, bHidden, iWidth, iHeight, canvas, i;
 
 		this.options = Utils.objectAssign({
 			markerStyle: "green",
@@ -21,12 +21,15 @@ MapProxy.Simple.Map.prototype = {
 			zoom: 0 // not used
 		}, options);
 
-		mapDiv = document.getElementById(this.options.mapDivId);
+		sMapDivId = this.options.mapDivId;
+		oView = this.options.view;
+		mapDiv = document.getElementById(sMapDivId);
 
-		bHidden = Utils.setHidden(this.options.mapDivId, false); // make sure canvas is not hidden (allows to get width, height)
+		bHidden = oView.getHidden(sMapDivId);
+		oView.setHidden(sMapDivId, false); // make sure canvas is not hidden (allows to get width, height)
 		iWidth = mapDiv.clientWidth;
 		iHeight = mapDiv.clientHeight;
-		Utils.setHidden(this.options.mapDivId, bHidden); // restore
+		oView.setHidden(sMapDivId, bHidden); // restore hidden
 		window.console.log("SimpleMap: width=" + iWidth + " height=" + iHeight + " created");
 
 		this.oPixelMap = {
@@ -59,7 +62,7 @@ MapProxy.Simple.Map.prototype = {
 			this.options.onload(this);
 		}
 		document.getElementById("simpleCanvas2").addEventListener("click", this.onSimpleCanvas2Click.bind(this), false);
-		if (window.addEventListener) { // not for old IE8
+		if (window.addEventListener) { // not for old IE8 (on element window!)
 			window.addEventListener("resize", this.fnDebounce(this.resize.bind(this), 200, false), false);
 		}
 	},
@@ -97,15 +100,17 @@ MapProxy.Simple.Map.prototype = {
 		};
 	},
 	resize: function () {
-		var mapDiv = document.getElementById(this.options.mapDivId), // mapCanvas-simple
-			bHidden = Utils.getHidden(this.options.mapDivId),
-			iWidth = mapDiv.clientWidth,
-			iHeight = mapDiv.clientHeight,
-			i, canvas;
+		var sMapDivId = this.options.mapDivId,
+			oView = this.options.view,
+			bHidden = oView.getHidden(sMapDivId),
+			mapDiv, iWidth, iHeight, i, canvas;
 
 		if (bHidden) {
 			return; // canvas is hidden
 		}
+		mapDiv = document.getElementById(sMapDivId); // mapCanvas-simple
+		iWidth = mapDiv.clientWidth;
+		iHeight = mapDiv.clientHeight;
 		if (iWidth !== this.oPixelMap.width || iHeight !== this.oPixelMap.height) {
 			window.console.log("MapProxy.Simple.resize width=" + iWidth + " height=" + iHeight);
 			for (i = 0; i < this.aCanvas.length; i += 1) {
@@ -202,8 +207,8 @@ MapProxy.Simple.Map.prototype = {
 	},
 	privDrawMarker: function (marker, bRemove) {
 		var context, oPos,
-			strokeStyle = this.options.markerStyle, //marker.options.markerStyle || this.options.markerStyle,
-			fillStyle = this.options.textStyle, //marker.options.textStyle || this.options.textStyle,
+			strokeStyle = this.options.markerStyle,
+			fillStyle = this.options.textStyle,
 			iRadius = 10,
 			iLineWidth = 1,
 			canvas = this.aCanvas[1];

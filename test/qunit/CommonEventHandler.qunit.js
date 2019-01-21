@@ -1,15 +1,57 @@
 // CommonEventHandler.qunit.js - ...
 //
-/* globals QUnit, CommonEventHandler, Utils, LatLng, MapProxy */
+/* globals QUnit, CommonEventHandler */
 
 "use strict";
 
-var gDebug = {
-		log: window.console.log,
-		level: 1
-	},
-	gcFiddle = {
-		config: {}
+var gDebug = null, // eslint-disable-line no-unused-vars
+	gcMock = {
+		config: {
+			example: "GCTEST1"
+		},
+		model: {
+			variables: { },
+			initVariables: function () {
+				return this;
+			}
+		},
+		view: {
+			data: {
+				categorySelect: "GCTEST1"
+			},
+			setDisabled: function () {
+				// empty
+			},
+			getSelectValue: function (sId) {
+				return this.data[sId];
+			},
+			setSelectValue: function (sId, value) {
+				this.data[sId] = value;
+			},
+			setAreaValue: function (sId, value) {
+				this.data[sId] = value;
+			},
+			setSelectTitleFromSelectedOption: function () {
+				// empty
+			},
+			attachEventHandler: function () {
+				// empty
+			},
+			detachEventHandler: function () {
+				// empty
+			}
+		},
+		controller: {
+			categories: { },
+			examples: { },
+			pendingScripts: [],
+			fnPutChangedInputOnStack: function () {
+				// empty
+			},
+			fnCalculate2: function () {
+				// empty
+			}
+		}
 	};
 
 
@@ -29,13 +71,32 @@ QUnit.module("CommonEventHandler test", {
 });
 
 QUnit.test("Properties", function (assert) {
-	var oHandler = new CommonEventHandler().attach(),
+	var commonEventHandler = new CommonEventHandler(gcMock.model, gcMock.view, gcMock.controller),
 		sScript = '$W0="N 49° 18.071 E 008° 42.167" a=213 b=289	$W1=["N 49° 18." a " E 008° 42." b]	#$W2=project($W0,0,50)';
 
-	//oHandler.onExecuteButtonClick();
+	// commonEventHandler.onExecuteButtonClick();
 
-	oHandler.detach();
-	assert.strictEqual("", "", "TODO");
+	commonEventHandler.detachEventHandler();
+	assert.strictEqual(sScript, sScript, "TODO");
 });
 
+QUnit.test("Load test script", function (assert) {
+	var commonEventHandler = new CommonEventHandler(gcMock.model, gcMock.view, gcMock.controller);
+
+	/*
+	fnLoadScript = Utils.loadScript;
+	Utils.loadScript = function (url, callback, arg) {
+		fnLoadScript("../../" + url, callback, arg); // cannot go back
+	};
+	*/
+
+	commonEventHandler.onCategorySelectChange(); // TODO
+
+	/*
+	Utils.loadScript = fnLoadScript;
+	*/
+
+	commonEventHandler.detachEventHandler();
+	assert.strictEqual("", "", "TODO");
+});
 // end

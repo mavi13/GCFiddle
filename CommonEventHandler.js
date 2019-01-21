@@ -1,16 +1,21 @@
 // CommonEventHandler.js - CommonEventHandler
 //
-/* globals Utils, gcFiddle, gDebug, LatLng, MapProxy */
+/* globals Utils, gDebug, LatLng, MapProxy */
 
 "use strict";
 
-function CommonEventHandler(options) {
-	this.init(options);
+function CommonEventHandler(oModel, oView, oController) {
+	this.init(oModel, oView, oController);
 }
 
 CommonEventHandler.prototype = {
-	init: function (/* options */) {
-		// empty
+	init: function (oModel, oView, oController) {
+		this.model = oModel;
+		this.view = oView;
+		this.controller = oController;
+
+		this.mapProxy = {};
+		this.attachEventHandler();
 	},
 
 	fnCommonEventHandler: function (event) {
@@ -34,26 +39,21 @@ CommonEventHandler.prototype = {
 		}
 	},
 
-	attach: function () {
-		document.addEventListener("click", this.fnCommonEventHandler.bind(this), false);
-		document.addEventListener("change", this.fnCommonEventHandler.bind(this), false);
+	attachEventHandler: function () {
+		this.view.attachEventHandler(this.fnCommonEventHandler.bind(this));
 		return this;
 	},
 
-	detach: function () {
-		document.removeEventListener("click", this.fnCommonEventHandler.bind(this));
-		document.removeEventListener("change", this.fnCommonEventHandler.bind(this));
+	detachEventHandler: function () {
+		this.view.detachEventHandler(this.fnCommonEventHandler.bind(this));
 		return this;
 	},
 
 	onVarSelectChange: function () {
-		var variables = gcFiddle.variables,
-			varSelect = document.getElementById("varSelect"),
-			varLabel = document.getElementById("varLabel"),
-			varInput = document.getElementById("varInput"),
-			sPar = varSelect.value,
-			sValue,
-			sType = document.getElementById("varViewSelect").value;
+		var sPar = this.view.getSelectValue("varSelect"),
+			variables = this.model.getVariables(),
+			sType = this.model.getProperty("variableType"),
+			sValue, iSelectLength;
 
 		if (!sPar) {
 			sPar = "";
@@ -61,87 +61,75 @@ CommonEventHandler.prototype = {
 		} else {
 			sValue = variables[sPar];
 		}
-		varLabel.innerText = sPar;
-		varLabel.title = sPar;
-		if (!(/^[\d]+$/).test(sValue)) { // currently only digits (without -,.) are numbers
-			sType = "text";
+		this.view.setLabelTextTitle("varLabel", sPar, sPar);
+
+		if (sType !== "text") {
+			if (!(/^[\d]+$/).test(sValue)) { // currently only digits (without -,.) are numbers
+				if (gDebug) {
+					gDebug.log("DEBUG: onVarSelectChange: Using type=text for non-numerical variable " + sValue);
+				}
+				sType = "text";
+			}
 		}
-		// old IE throws error when changing input type
-		try {
-			varInput.type = sType; // set type before value
-		} catch (e) {
-			window.console.warn("Browser does not allow to set input.type=" + sType + ": " + e.message);
-		}
-		varInput.value = sValue;
-		varSelect.title = (varSelect.selectedIndex >= 0) ? varSelect.options[varSelect.selectedIndex].title : "";
-		document.getElementById("varLegend").textContent = "Variables (" + varSelect.length + ")";
+		this.view.setInputType("varInput", sType).setInputValueTitle("varInput", sValue, sValue);
+
+		this.view.setSelectTitleFromSelectedOption("varSelect");
+		iSelectLength = this.view.getSelectLength("varSelect");
+		this.view.setLegendText("varLegend", "Variables (" + iSelectLength + ")");
 	},
 
 	onVarViewSelectChange: function () {
-		gcFiddle.config.variableType = document.getElementById("varViewSelect").value;
+		var sVariableType = this.view.getSelectValue("varViewSelect");
+
+		this.model.setProperty("variableType", sVariableType);
+		this.view.setSelectTitleFromSelectedOption("varViewSelect");
 		this.onVarSelectChange();
 	},
 
 	onWaypointViewSelectChange: function () {
-		gcFiddle.config.waypointFormat = document.getElementById("waypointViewSelect").value;
+		var sWaypointFormat = this.view.getSelectValue("waypointViewSelect");
+
+		this.model.setProperty("waypointFormat", sWaypointFormat);
+		this.view.setSelectTitleFromSelectedOption("waypointViewSelect");
 		this.onWaypointSelectChange(null); // title
 	},
 
 	fnCenterMapOnWaypoint: function (sTitle2Find) {
-		var aMarkers = gcFiddle.maFa.getMarkers(),
+		var aMarkers = this.controller.maFa.getMarkers(),
 			i, oMarker;
 
 		for (i = 0; i < aMarkers.length; i += 1) {
 			oMarker = aMarkers[i];
 			if (oMarker && sTitle2Find === oMarker.title) {
-				gcFiddle.maFa.setCenter(oMarker);
+				this.controller.maFa.setCenter(oMarker);
 				break;
 			}
 		}
 	},
 
 	onWaypointSelectChange: function (event) {
-		var variables = gcFiddle.variables,
-			waypointSelect = document.getElementById("waypointSelect"),
-			waypointLabel = document.getElementById("waypointLabel"),
-			waypointInput = document.getElementById("waypointInput"),
-			sPar = waypointSelect.value,
-			sValue,	oPos, sError,
-			fnAddClass = function (element, sClassName) {
-				var aClasses = element.className.split(" ");
-
-				if (aClasses.indexOf(sClassName) === -1) {
-					element.className += " " + sClassName;
-				}
-			},
-			fnRemoveClass = function (element, sClassName) {
-				var regExp = new RegExp("\\b" + sClassName + "\\b", "g");
-
-				element.className = element.className.replace(regExp, "");
-			};
+		var sPar = this.view.getSelectValue("waypointSelect"),
+			oVariables = this.model.getVariables(),
+			sWaypointFormat = this.model.getProperty("waypointFormat"),
+			sValue,	oPos, sError, sTitle, iSelectLength;
 
 		if (!sPar) {
 			sPar = "";
 			sValue = sPar;
 		} else {
-			sValue = variables[sPar];
+			sValue = oVariables[sPar];
 		}
 
-		waypointLabel.innerText = sPar;
-		waypointLabel.title = sPar;
+		this.view.setLabelTextTitle("waypointLabel", sPar, sPar);
 
-		waypointInput.value = sValue;
 		oPos = new LatLng().parse(sValue);
 		sError = oPos.getError();
-		waypointInput.title = sError || oPos.toFormattedString(gcFiddle.config.waypointFormat);
-		if (sError) {
-			fnAddClass(waypointInput, "invalid");
-		} else {
-			fnRemoveClass(waypointInput, "invalid");
-		}
+		sTitle = sError || oPos.toFormattedString(sWaypointFormat);
+		this.view.setInputValueTitle("waypointInput", sValue, sTitle).setInputInvalid("waypointInput", Boolean(sError));
 
-		waypointSelect.title = (waypointSelect.selectedIndex >= 0) ? waypointSelect.options[waypointSelect.selectedIndex].title : "";
-		document.getElementById("waypointLegend").textContent = "Waypoints (" + waypointSelect.length + ")";
+		this.view.setSelectTitleFromSelectedOption("waypointSelect");
+		iSelectLength = this.view.getSelectLength("waypointSelect");
+		this.view.setLegendText("waypointLegend", "Waypoints (" + iSelectLength + ")");
 
 		if (event) { // only if user selected, center to selected waypoint
 			this.fnCenterMapOnWaypoint(sPar);
@@ -149,166 +137,157 @@ CommonEventHandler.prototype = {
 	},
 
 	onVarInputChange: function () {
-		var variables = gcFiddle.variables,
-			varLabel = document.getElementById("varLabel"),
-			varInput = document.getElementById("varInput"),
-			sPar = varLabel.innerText,
-			sValue,
+		var sValue = this.view.getInputValue("varInput"),
+			sPar = this.view.getLabelText("varLabel"),
+			oVariables = this.model.getVariables(),
 			nValueAsNumber;
 
 		if (sPar) {
-			sValue = varInput.value;
 			nValueAsNumber = parseFloat(sValue);
-			if (variables.gcfOriginal[sPar] === undefined) {
-				variables.gcfOriginal[sPar] = variables[sPar];
+			if (oVariables.gcfOriginal[sPar] === undefined) {
+				oVariables.gcfOriginal[sPar] = oVariables[sPar];
 			}
-			variables[sPar] = isNaN(nValueAsNumber) ? sValue : nValueAsNumber;
-			gcFiddle.fnCalculate2();
-			gcFiddle.fnSetVarSelectOptions();
+			oVariables[sPar] = isNaN(nValueAsNumber) ? sValue : nValueAsNumber;
+			this.controller.fnCalculate2();
+			this.controller.fnSetVarSelectOptions();
 			this.onVarSelectChange(); // title change?
-			gcFiddle.fnSetWaypointSelectOptions();
-			gcFiddle.fnSetMarkers(variables);
-			this.onWaypointSelectChange(null);
+			this.controller.fnSetWaypointSelectOptions();
+			this.controller.fnSetMarkers(oVariables);
+			this.onWaypointSelectChange(null); // do not center on wp
 		}
 	},
 
 	onWaypointInputChange: function () {
-		var variables = gcFiddle.variables,
-			waypointLabel = document.getElementById("waypointLabel"),
-			waypointInput = document.getElementById("waypointInput"),
-			sPar = waypointLabel.innerText,
-			sValue,
+		var sValue = this.view.getInputValue("waypointInput"),
+			sPar = this.view.getLabelText("waypointLabel"),
+			oVariables = this.model.getVariables(),
 			nValueAsNumber;
 
 		if (sPar) {
-			sValue = waypointInput.value;
 			nValueAsNumber = parseFloat(sValue);
-			if (variables.gcfOriginal[sPar] === undefined) {
-				variables.gcfOriginal[sPar] = variables[sPar];
+			if (oVariables.gcfOriginal[sPar] === undefined) {
+				oVariables.gcfOriginal[sPar] = oVariables[sPar];
 			}
-			variables[sPar] = isNaN(nValueAsNumber) ? sValue : nValueAsNumber;
-			gcFiddle.fnCalculate2();
-			gcFiddle.fnSetVarSelectOptions();
-			gcFiddle.fnSetWaypointSelectOptions();
-			gcFiddle.fnSetMarkers(variables);
-			this.onWaypointSelectChange();
+			oVariables[sPar] = isNaN(nValueAsNumber) ? sValue : nValueAsNumber;
+			this.controller.fnCalculate2();
+			this.controller.fnSetVarSelectOptions();
+			this.controller.fnSetWaypointSelectOptions();
+			this.controller.fnSetMarkers(oVariables);
+			this.onWaypointSelectChange(null); // do not center on wp
 		}
 	},
 
 	onExecuteButtonClick: function () {
-		var waypointSelect = document.getElementById("waypointSelect");
+		var iSelectLength;
 
-		gcFiddle.fnPutChangedInputOnStack();
+		this.controller.fnPutChangedInputOnStack();
 
-		gcFiddle.variables = {
-			gcfOriginal: { }
-		};
-		gcFiddle.fnCalculate2();
-		gcFiddle.maFa.deleteMarkers();
-		gcFiddle.fnSetMarkers(gcFiddle.variables);
-		gcFiddle.fnSetVarSelectOptions();
+		this.model.initVariables();
+		this.controller.fnCalculate2();
+		this.controller.maFa.deleteMarkers();
+		this.controller.fnSetMarkers(this.model.getVariables());
+		this.controller.fnSetVarSelectOptions();
 		this.onVarSelectChange();
-		gcFiddle.fnSetWaypointSelectOptions();
-		if (waypointSelect.options.length) {
-			waypointSelect.selectedIndex = waypointSelect.options.length - 1; // select last waypoint
+		this.controller.fnSetWaypointSelectOptions();
+
+		iSelectLength = this.view.getSelectLength("waypointSelect");
+		if (iSelectLength) {
+			this.view.setSelectedIndex("waypointSelect", iSelectLength - 1); // select last waypoint
 		}
+
 		this.onWaypointSelectChange(null); // do not center on wp
-	//TTT do we need this? Already done in fnSetMarkers?	gcFiddle.maFa.fitBounds();
 	},
 
 	onUndoButtonClick: function () {
-		gcFiddle.fnSetInputAreaValue(gcFiddle.inputStack.undo());
-		gcFiddle.fnUpdateUndoRedoButtons();
-		gcFiddle.fnSetOutputAreaValue("");
+		this.controller.fnSetInputAreaValue(this.controller.inputStack.undo());
+		this.controller.fnUpdateUndoRedoButtons();
+		this.view.setAreaValue("outputArea", "");
 	},
 
 	onRedoButtonClick: function () {
-		gcFiddle.fnSetInputAreaValue(gcFiddle.inputStack.redo());
-		gcFiddle.fnUpdateUndoRedoButtons();
-		gcFiddle.fnSetOutputAreaValue("");
+		this.controller.fnSetInputAreaValue(this.controller.inputStack.redo());
+		this.controller.fnUpdateUndoRedoButtons();
+		this.view.setAreaValue("outputArea", "");
 	},
 
 	onPreprocessButtonClick: function () {
-		var sUrl = "Preprocessor.js";
+		var that = this,
+			sUrl = "Preprocessor.js";
 
 		if (typeof Preprocessor === "undefined") { // load module on demand
 			Utils.loadScript(sUrl, function () {
 				window.console.log(sUrl + " loaded");
-				gcFiddle.fnDoPreprocess();
+				that.controller.fnDoPreprocess();
 			});
 		} else {
-			gcFiddle.fnDoPreprocess();
+			this.controller.fnDoPreprocess();
 		}
 	},
 
 	onExampleSelectChange: function () {
 		var that = this,
-			sCategory = gcFiddle.config.category,
-			exampleSelect = document.getElementById("exampleSelect"),
-			sExample = exampleSelect.value,
-			oExamples = gcFiddle.examples[sCategory],
+			sCategory = this.model.getProperty("category"),
+			sExample = this.view.getSelectValue("exampleSelect"),
 			sName,
 
 			fnExampleLoaded = function (sFullUrl, sExample2, bSuppressLog) {
-				var sCategory2 = gcFiddle.config.category,
-					oExamples2 = gcFiddle.examples[sCategory2],
+				var sCategory2 = that.model.getProperty("category"), // still the same after loading?
+					oExamples2 = that.model.getAllExamples(sCategory2),
 					sName2 = sCategory2 + "/" + sExample2 + ".js",
 					sUnknownExample;
 
-				gcFiddle.config.example = sExample2;
+				that.model.setProperty("example", sExample2);
 				if (!bSuppressLog) {
 					window.console.log("Example " + sName2 + " loaded");
 				}
 				if (oExamples2[sExample2] === undefined) { // TODO: example without id loaded (Do we still need this?)
 					window.console.warn("Example " + sName2 + ": Wrong format! Must start with #<id>: <title>");
-					sUnknownExample = gcFiddle.emptyExample.unknown.key;
+					sUnknownExample = that.controller.emptyExample.unknown.key;
 					if (oExamples2[sUnknownExample]) {
 						oExamples2[sExample2] = oExamples2[sUnknownExample];
 						delete oExamples2[sUnknownExample];
 					} else {
 						window.console.error("No example 'unknown' found");
-						oExamples2[sExample2] = gcFiddle.fnParseExample("", "", sExample2);
+						oExamples2[sExample2] = that.controller.fnParseExample("", "", sExample2);
 					}
 				}
-				gcFiddle.fnSetInputAreaValue(oExamples2[sExample2].script);
-				gcFiddle.fnInitUndoRedoButtons();
+				that.controller.fnSetInputAreaValue(oExamples2[sExample2].script);
+				that.controller.fnInitUndoRedoButtons();
 				that.onExecuteButtonClick();
 			};
 
-		exampleSelect.title = (exampleSelect.selectedIndex >= 0) ? exampleSelect.options[exampleSelect.selectedIndex].title : "";
-		if (oExamples[sExample] !== undefined) {
+		this.view.setSelectTitleFromSelectedOption("exampleSelect");
+		if (this.model.getExample(sCategory, sExample) !== undefined) {
 			fnExampleLoaded("", sExample, true);
 		} else if (sExample) {
-			gcFiddle.fnSetInputAreaValue("#loading " + sExample + "...");
-			gcFiddle.fnSetOutputAreaValue("waiting...");
+			this.controller.fnSetInputAreaValue("#loading " + sExample + "...");
+			this.view.setAreaValue("outputArea", "waiting...");
 			sName = sCategory + "/" + sExample + ".js";
-			gcFiddle.pendingScripts.push({
+			this.controller.pendingScripts.push({
 				category: sCategory,
 				example: sExample,
 				url: sName
 			});
 			Utils.loadScript(sName, fnExampleLoaded, sExample);
 		} else {
-			gcFiddle.fnSetInputAreaValue("");
-			gcFiddle.config.example = "";
-			gcFiddle.fnInitUndoRedoButtons();
+			this.controller.fnSetInputAreaValue("");
+			this.model.setProperty("example", "");
+			this.controller.fnInitUndoRedoButtons();
 			this.onExecuteButtonClick();
 		}
 	},
 
 	onCategorySelectChange: function () {
 		var that = this,
-			categorySelect = document.getElementById("categorySelect"),
-			sCategory = categorySelect.value,
-			oCategories = gcFiddle.categories,
-			sName,
+			sCategory = this.view.getSelectValue("categorySelect"),
+			sName, bDisabled,
 
 			fnCategoryLoaded = function (sFullUrl, sCategory2) {
 				var	sName2 = sCategory2 + "/0index.js";
 
-				gcFiddle.config.category = sCategory2;
+				that.model.setProperty("category", sCategory2);
 				window.console.log("category " + sName2 + " loaded");
-				gcFiddle.fnSetExampleList();
+				that.controller.fnSetExampleList();
 				that.onExampleSelectChange();
 			},
 			fnLoadCategoryLocalStorage = function () {
@@ -316,11 +295,11 @@ CommonEventHandler.prototype = {
 					oExamples,
 					i, sKey, sItem;
 
-				oExamples = gcFiddle.fnSetExampleIndex("", sCategory); // create category, set example object
+				oExamples = that.controller.fnSetExampleIndex("", sCategory); // create category, set example object
 				for (i = 0; i < oStorage.length; i += 1) {
 					sKey = oStorage.key(i);
 					sItem = oStorage.getItem(sKey);
-					oExamples[sKey] = gcFiddle.fnAddExample(sItem, sCategory, {
+					oExamples[sKey] = that.controller.fnAddExample(sItem, sCategory, {
 						key: sKey,
 						title: "" // currently title not stored in saved data if not in input
 					});
@@ -328,17 +307,18 @@ CommonEventHandler.prototype = {
 				fnCategoryLoaded("", sCategory);
 			};
 
-		if (oCategories[sCategory] !== undefined) {
-			gcFiddle.config.category = sCategory;
-			gcFiddle.fnSetExampleList();
+		this.view.setSelectTitleFromSelectedOption("categorySelect");
+		if (this.model.getExampleIndex(sCategory) !== undefined) {
+			this.model.setProperty("category", sCategory);
+			this.controller.fnSetExampleList();
 			this.onExampleSelectChange();
 		} else {
-			document.getElementById("inputArea").value = "#loading index " + sCategory + "...";
+			this.view.setAreaValue("inputArea", "#loading index " + sCategory + "...");
 			if (sCategory === "saved") {
 				fnLoadCategoryLocalStorage(sCategory);
 			} else {
 				sName = sCategory + "/0index.js";
-				gcFiddle.pendingScripts.push({
+				this.controller.pendingScripts.push({
 					category: sCategory,
 					example: "0index",
 					url: sName
@@ -346,56 +326,75 @@ CommonEventHandler.prototype = {
 				Utils.loadScript(sName, fnCategoryLoaded, sCategory);
 			}
 		}
-		Utils.setDisabled("deleteButton", (sCategory !== "saved") || !Object.keys(gcFiddle.categories.saved).length);
+		bDisabled = (sCategory !== "saved") || !Object.keys(this.model.getExampleIndex("saved")).length;
+		this.view.setDisabled("deleteButton", bDisabled);
 	},
 
 	onInputLegendClick: function () {
-		gcFiddle.config.showInput = Utils.toogleHidden("inputArea");
+		var bShowInput = !this.view.toogleHidden("inputArea").getHidden("inputArea");
+
+		this.model.setProperty("showInput", bShowInput);
 	},
 
 	onOutputLegendClick: function () {
-		gcFiddle.config.showOutput = Utils.toogleHidden("outputArea");
+		var bShowOutput = !this.view.toogleHidden("outputArea").getHidden("outputArea");
+
+		this.model.setProperty("showOutput", bShowOutput);
 	},
 
 	onVarLegendClick: function () {
-		gcFiddle.config.showVariable = Utils.toogleHidden("varArea");
+		var bShowVariable = !this.view.toogleHidden("varArea").getHidden("varArea");
+
+		this.model.setProperty("showVariable", bShowVariable);
 	},
 
 	onNotesLegendClick: function () {
-		gcFiddle.config.showNotes = Utils.toogleHidden("notesArea");
+		var bShowNotes = !this.view.toogleHidden("notesArea").getHidden("notesArea");
+
+		this.model.setProperty("showNotes", bShowNotes);
 	},
 
 	onWaypointLegendClick: function () {
-		gcFiddle.config.showWaypoint = Utils.toogleHidden("waypointArea");
+		var bShowWaypoint = !this.view.toogleHidden("waypointArea").getHidden("waypointArea");
+
+		this.model.setProperty("showWaypoint", bShowWaypoint);
 	},
 
 	onMapLegendClick: function () {
-		var sMapType = gcFiddle.config.mapType;
+		var sMapType = this.model.getProperty("mapType"),
+			sId = "mapCanvas-" + sMapType,
+			bShowMap;
 
-		gcFiddle.config.showMap = Utils.toogleHidden("mapCanvas-" + sMapType);
-		if (gcFiddle.config.showMap) {
-			gcFiddle.maFa.resize();
-			gcFiddle.maFa.fitBounds();
+		bShowMap = !this.view.toogleHidden(sId).getHidden(sId);
+		this.model.setProperty("showMap", bShowMap);
+		if (bShowMap) {
+			this.controller.maFa.resize();
+			this.controller.maFa.fitBounds();
 		}
 	},
 
 	onLogsLegendClick: function () {
-		gcFiddle.config.showLogs = Utils.toogleHidden("logsArea");
+		var bShowLogs = !this.view.toogleHidden("logsArea").getHidden("logsArea");
+
+		this.model.setProperty("showLogs", bShowLogs);
 	},
 
 	onConsoleLogLegendClick: function () {
-		gcFiddle.config.showConsole = Utils.toogleHidden("consoleLogArea");
+		var bShowConsole = !this.view.toogleHidden("consoleLogArea").getHidden("consoleLogArea");
+
+		this.model.setProperty("showConsole", bShowConsole);
 	},
 
 	onFitBoundsButtonClick: function () {
-		var oMaFa = gcFiddle.maFa;
-
-		oMaFa.fitBounds();
+		this.controller.maFa.fitBounds();
 	},
 
 	onLocationButtonClick: function () {
+		var that = this;
+
 		function showPosition(position) {
-			var iLastMarker = gcFiddle.maFa.getMarkers().length,
+			var sWaypointFormat = that.model.getProperty("waypointFormat"),
+				iLastMarker = that.controller.maFa.getMarkers().length,
 				sLabel = Utils.strZeroFormat(String(iLastMarker), 2),
 				oMarker = {
 					position: new LatLng(position.coords.latitude, position.coords.longitude),
@@ -403,8 +402,8 @@ CommonEventHandler.prototype = {
 					title: "W" + sLabel
 				};
 
-			window.console.log("Location: " + oMarker.position.toFormattedString(gcFiddle.config.waypointFormat));
-			gcFiddle.maFa.addMarkers([oMarker]);
+			window.console.log("Location: " + oMarker.position.toFormattedString(sWaypointFormat));
+			that.controller.maFa.addMarkers([oMarker]);
 			// already done in addMarkers; that.onFitBoundsButtonClick();
 		}
 
@@ -435,20 +434,26 @@ CommonEventHandler.prototype = {
 		}
 	},
 
-	onOutputAreaClick: function (event) {
-		var variables = gcFiddle.variables,
-			oTarget = event.target,
-			iSelStart = oTarget.selectionStart,
-			sOutput = oTarget.value,
-			iLineStart,
-			iLineEnd,
-			iEqual,
-			sPar = "",
-			varSelect = document.getElementById("varSelect"),
-			waypointSelect = document.getElementById("waypointSelect");
+	onInputAreaClick: function () {
+		var oSelection = this.view.getAreaSelection("inputArea"); // also in event.target
 
 		if (gDebug) {
-			gDebug.log("onOutputAreaClick: selectionStart=" + event.target.selectionStart + " selectionEnd=" + event.target.selectionEnd);
+			gDebug.log("DEBUG: onInputAreaClick: selectionStart=" + oSelection.selectionStart + " selectionEnd=" + oSelection.selectionEnd);
+		}
+		// nothing to do
+	},
+
+	onOutputAreaClick: function () {
+		var variables = this.model.getVariables(),
+			sPar = "",
+			oSelection,	sOutput, iSelStart,	iLineStart,	iLineEnd, iEqual;
+
+		oSelection = this.view.getAreaSelection("outputArea"); // also in event.target
+		sOutput = oSelection.value;
+		iSelStart = oSelection.selectionStart;
+
+		if (gDebug) {
+			gDebug.log("DEBUG: onOutputAreaClick: selectionStart=" + oSelection.selectionStart + " selectionEnd=" + oSelection.selectionEnd);
 		}
 		if (sOutput) {
 			iLineEnd = sOutput.indexOf("\n", iSelStart);
@@ -464,16 +469,16 @@ CommonEventHandler.prototype = {
 				sPar = sOutput.substring(0, iEqual);
 			}
 			if (gDebug) {
-				gDebug.log("onOutputAreaClick: line='" + sOutput + "' var=" + sPar);
+				gDebug.log("DEBUG: onOutputAreaClick: line='" + sOutput + "' var=" + sPar);
 			}
-			if (sPar && variables[sPar] !== null) {
-				if (gcFiddle.fnIsWaypoint(sPar)) {
-					if (sPar !== waypointSelect.value) {
-						waypointSelect.value = sPar;
-						this.onWaypointSelectChange({});
+			if (sPar && variables[sPar] !== undefined) {
+				if (this.controller.fnIsWaypoint(sPar)) {
+					if (sPar !== this.view.getSelectValue("waypointSelect")) {
+						this.view.setSelectValue("waypointSelect", sPar);
+						this.onWaypointSelectChange({}); // center on wp
 					}
-				} else if (sPar !== varSelect.value) {
-					varSelect.value = sPar;
+				} else if (sPar !== this.view.getSelectValue("varSelect")) {
+					this.view.setSelectValue("varSelect", sPar);
 					this.onVarSelectChange();
 				}
 			}
@@ -481,18 +486,18 @@ CommonEventHandler.prototype = {
 	},
 
 	onMapTypeSelectChange: function () {
-		var	aMapCanvas = document.getElementsByClassName("canvas"),
-			mapTypeSelect = document.getElementById("mapTypeSelect"),
-			sMapType = mapTypeSelect.value,
+		var	that = this,
+			sMapType = this.view.getSelectValue("mapTypeSelect"),
 			sMapTypeId = "mapCanvas-" + sMapType,
-			oItem, i,
+			oMapProxyUnused, // currently not needed
 
 			fnGetInfoWindowContent = function (marker, previousMarker) {
 				var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
+					sWaypointFormat = that.model.getProperty("waypointFormat"),
 					sContent, oPosition0, oPosition, fAngle, iAngle, fDistance, iDistance, sDirection;
 
 				oPosition = marker.getPosition();
-				sContent = marker.getTitle() + "=" + oPosition.toFormattedString(gcFiddle.config.waypointFormat);
+				sContent = marker.getTitle() + "=" + oPosition.toFormattedString(sWaypointFormat);
 
 				if (previousMarker) {
 					oPosition0 = previousMarker.getPosition();
@@ -508,23 +513,24 @@ CommonEventHandler.prototype = {
 
 			fnMapLoaded = function (map) {
 				var sMapType2 = map.options.mapType,
-					oMapProxy = gcFiddle.mapProxy[sMapType2];
+					oMapProxy = that.mapProxy[sMapType2];
 
 				oMapProxy.setMap(map);
-				if (gcFiddle.maFa) {
-					gcFiddle.maFa.initMap(oMapProxy);
+				if (that.controller.maFa) {
+					that.controller.maFa.initMap(oMapProxy);
 				}
 			},
 			fnMapProxyLoaded = function (mapProxy) {
 				var sMapType2 = mapProxy.options.mapType,
 					sMapTypeId2 = "mapCanvas-" + sMapType2,
-					mConfig = gcFiddle.config,
+					mConfig = that.model.getAllProperties(),
 					mMapOptions = {
 						zoom: mConfig.zoom,
 						mapType: sMapType2,
 						mapDivId: sMapTypeId2,
 						onload: fnMapLoaded,
-						onGetInfoWindowContent: fnGetInfoWindowContent
+						onGetInfoWindowContent: fnGetInfoWindowContent,
+						view: that.view
 					},
 					sKey;
 
@@ -536,43 +542,35 @@ CommonEventHandler.prototype = {
 						}
 					}
 				}
-				gcFiddle.mapProxy[sMapType2] = mapProxy;
+				that.mapProxy[sMapType2] = mapProxy;
 				mapProxy.createMap(mMapOptions);
 			};
 
-		gcFiddle.config.mapType = sMapType;
-		for (i = 0; i < aMapCanvas.length; i += 1) {
-			oItem = aMapCanvas[i];
-			if (oItem.id === sMapTypeId) {
-				Utils.setHidden(oItem.id, !gcFiddle.config.showMap);
-			} else {
-				Utils.setHidden(oItem.id, true);
-			}
-		}
+		this.model.setProperty("mapType", sMapType);
 
-		if (!gcFiddle.mapProxy[sMapType]) {
-			MapProxy.create({
+		this.view.activateCanvasById(sMapTypeId, !this.model.getProperty("showMap"));
+
+		if (!this.mapProxy[sMapType]) {
+			oMapProxyUnused = new MapProxy({
 				mapType: sMapType,
 				onload: fnMapProxyLoaded
 			});
-		} else if (gcFiddle.maFa) {
-			gcFiddle.maFa.initMap(gcFiddle.mapProxy[sMapType]);
+		} else if (this.controller.maFa) {
+			this.controller.maFa.initMap(this.mapProxy[sMapType]);
 		}
 	},
 
 	onReloadButtonClick: function () {
-		var oChanged = Utils.getChangedParameters(gcFiddle.config, gcFiddle.initialConfig);
+		var oChanged = Utils.getChangedParameters(this.model.getAllProperties(), this.model.getAllInitialProperties());
 
-		window.location.search = "?" + gcFiddle.fnEncodeUriParam(oChanged); // jQuery.param(oChanged, true)
+		window.location.search = "?" + this.controller.fnEncodeUriParam(oChanged); // jQuery.param(oChanged, true)
 	},
 
 	onSaveButtonClick: function () {
-		var categorySelect = document.getElementById("categorySelect"),
-			sCategory = categorySelect.value,
-			exampleSelect = document.getElementById("exampleSelect"),
-			oselectedExample = gcFiddle.examples[sCategory][exampleSelect.value],
-			sInput = document.getElementById("inputArea").value,
-			oExample, oSavedList,
+		var sCategory = this.model.getProperty("category"),
+			sExample = this.model.getProperty("example"),
+			sInput = this.view.getAreaValue("inputArea"),
+			oExample, oSavedList, oSelectedExample,
 
 			fnTestIndexedDb = function (oExample2) {
 				var sDataBaseName = "GCFiddle",
@@ -603,9 +601,9 @@ CommonEventHandler.prototype = {
 
 					sInput2 = oExample2.script;
 					if (sInput2) {
-						iPos = sInput2.indexOf(gcFiddle.sJsonMarker);
+						iPos = sInput2.indexOf(this.controller.sJsonMarker);
 						if (iPos >= 0) {
-							oExample2 = Utils.objectAssign({}, window.JSON.parse(sInput2.substring(iPos + gcFiddle.sJsonMarker.length)), oExample2);
+							oExample2 = Utils.objectAssign({}, window.JSON.parse(sInput2.substring(iPos + this.controller.sJsonMarker.length)), oExample2);
 						}
 					}
 
@@ -624,50 +622,45 @@ CommonEventHandler.prototype = {
 
 		if (sCategory !== "saved") {
 			sCategory = "saved";
-			categorySelect.value = sCategory;
+			this.view.setSelectValue("categorySelect", sCategory);
 			this.onCategorySelectChange(); // may change example value as well
 		}
 
-		oExample = gcFiddle.fnAddExample(sInput, sCategory, oselectedExample || gcFiddle.emptyExample.draft);
+		oSelectedExample = this.model.getExample(sCategory, sExample);
+		oExample = this.controller.fnAddExample(sInput, sCategory, oSelectedExample || this.controller.emptyExample.draft);
 		Utils.localStorage.setItem(oExample.key, sInput);
 
-		if (gcFiddle.config.testIndexedDb) {
+		if (this.model.getProperty("testIndexedDb")) {
 			fnTestIndexedDb(oExample);
 		}
 
-		oSavedList = gcFiddle.categories.saved;
+		oSavedList = this.model.getExampleIndex("saved");
 
 		if (oSavedList[oExample.key]) {
 			oSavedList[oExample.key] = oExample;
-			if (exampleSelect.value !== oExample.key) {
-				exampleSelect.value = oExample.key;
+			if (this.view.getSelectValue("exampleSelect") !== oExample.key) {
+				this.view.setSelectValue("exampleSelect", oExample.key);
 			}
-			gcFiddle.fnSetExampleList(); // maybe title change
+			this.controller.fnSetExampleList(); // maybe title change
 			this.onExampleSelectChange(); // make sure correct input is shown
 		} else {
 			oSavedList[oExample.key] = oExample;
-			gcFiddle.config.example = oExample.key;
-			gcFiddle.fnSetExampleList();
+			this.model.setProperty("example", oExample.key);
+			this.controller.fnSetExampleList();
 			this.onExampleSelectChange();
 		}
-		Utils.setDisabled("deleteButton", !Object.keys(oSavedList).length);
+		this.view.setDisabled("deleteButton", !Object.keys(oSavedList).length);
 	},
 
 	onDeleteButtonClick: function () {
-		var sCategory = document.getElementById("categorySelect").value,
-			exampleSelect = document.getElementById("exampleSelect"),
-			sExample = exampleSelect.value,
-			oSavedList = gcFiddle.categories.saved,
-			fnConfirmPopup = function (message) {
-				var confirm = window.confirm;
-
-				return confirm(message);
-			};
+		var sCategory = this.model.getProperty("category"),
+			sExample = this.model.getProperty("example"),
+			oSavedList = this.model.getExampleIndex("saved");
 
 		if (sCategory !== "saved") {
 			return;
 		}
-		if (!fnConfirmPopup("Delete " + sCategory + "/" + sExample)) {
+		if (!this.view.showConfirmPopup("Delete " + sCategory + "/" + sExample)) {
 			return;
 		}
 		window.console.log("Deleting " + sExample);
@@ -676,10 +669,10 @@ CommonEventHandler.prototype = {
 		if (oSavedList) {
 			if (oSavedList[sExample]) {
 				delete oSavedList[sExample];
-				gcFiddle.fnSetExampleList();
+				this.controller.fnSetExampleList();
 				this.onExampleSelectChange();
 			}
-			Utils.setDisabled("deleteButton", !Object.keys(oSavedList).length);
+			this.view.setDisabled("deleteButton", !Object.keys(oSavedList).length);
 		}
 	}
 };

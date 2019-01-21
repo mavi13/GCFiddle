@@ -92,29 +92,6 @@ var Utils = {
 	stringCapitalize: function (str) {
 		return str.charAt(0).toUpperCase() + str.substring(1);
 	},
-	getHidden: function (id) {
-		return document.getElementById(id).hidden;
-	},
-	setElementProperty: function (id, propertyName, propertyValue) {
-		var element = document.getElementById(id),
-			bOldValue = element[propertyName];
-
-		element[propertyName] = propertyValue;
-
-		if (propertyName === "hidden") { // for old browsers
-			element.style.display = (propertyValue) ? "none" : "block";
-		}
-		return Boolean(bOldValue); // Boolean for old browsers
-	},
-	setHidden: function (id, hidden) {
-		return Utils.setElementProperty(id, "hidden", hidden);
-	},
-	toogleHidden: function (id) {
-		return this.setHidden(id, !this.getHidden(id));
-	},
-	setDisabled: function (id, disabled) {
-		return Utils.setElementProperty(id, "disabled", disabled);
-	},
 	getChangedParameters: function (current, initial) {
 		var oChanged = {},
 			sName;

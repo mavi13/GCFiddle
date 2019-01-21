@@ -175,28 +175,8 @@ if (!document.addEventListener) {
 	}
 }
 
-//TTT
-/*
-var removeEventListener=function(type,listener , useCapture (will be ignored) ) {
-	var counter=0;
-	while (counter<eventListeners.length) {
-	  var eventListener=eventListeners[counter];
-	  if (eventListener.object==this && eventListener.type==type && eventListener.listener==listener) {
-		if (type=="DOMContentLoaded") {
-		  this.detachEvent("onreadystatechange",eventListener.wrapper);
-		} else {
-		  this.detachEvent("on"+type,eventListener.wrapper);
-		}
-		eventListeners.splice(counter, 1);
-		break;
-	  }
-	  ++counter;
-	}
-  }
-  */
-
 // https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach
-if (!Array.prototype.forEach) {
+if (!Array.prototype.forEach) { // currently not used
 	Array.prototype.forEach = function (callback, thisArg) { // eslint-disable-line no-extend-native
 		var T, k, O, len, kValue;
 
