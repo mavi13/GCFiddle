@@ -10,9 +10,6 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 	gcFiddle = {
 		config: {
 			debug: 0,
-			exampleDir: "./test", // "examples" // example base directory
-			dbIndex: "0dbindex.js", // DB index relative to exampleDir
-			testNewExamples: true,
 			database: "testDB", // DB
 			example: "GCNEW1", // GCNEW1, GCTEST1, GCJVT3
 			showInput: true,
@@ -31,6 +28,8 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 			zoom: 15, // default zoom level
 			leafletUrl: "https://unpkg.com/leaflet@1.3.1/dist/leaflet.js",
 			openlayersUrl: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js",
+			exampleDir: "examples", // example base directory
+			dbIndex: "0dbindex.js", // DB index relative to exampleDir
 			testIndexedDb: false
 		},
 		model: null,
@@ -79,29 +78,6 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 					}
 				}
 				oConfig[sName] = sValue;
-			}
-		},
-
-		fnDoStart2: function () {
-			var that = this,
-				sUrl = "Polyfills.js",
-				bDebugForcePolyFill = false; // switch in debugger for testing
-
-			if (bDebugForcePolyFill) {
-				window.console = null;
-				String.prototype.trim = null; // eslint-disable-line no-extend-native
-				document.getElementsByClassName = null;
-				document.addEventListener = null;
-				Array.prototype.forEach = null; // eslint-disable-line no-extend-native
-			}
-
-			if ((!window.console || !Array.prototype.forEach || !Object.create || !Utils.localStorage) && typeof Polyfills === "undefined") { // need Polyfill?, load module on demand
-				Utils.loadScript(sUrl, function () {
-					window.console.log(sUrl + " loaded");
-					that.fnDoStart();
-				});
-			} else {
-				this.fnDoStart();
 			}
 		},
 

@@ -7,7 +7,7 @@
 var CommonEventHandler;
 
 if (typeof require !== "undefined") {
-	CommonEventHandler = require("../../CommonEventHandler.js"); // eslint-disable-line global-require
+	CommonEventHandler = require("../CommonEventHandler.js"); // eslint-disable-line global-require
 }
 
 var gcMock = { // eslint-disable-line vars-on-top,one-var

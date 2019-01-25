@@ -7,7 +7,7 @@
 var ScriptParser;
 
 if (typeof require !== "undefined") {
-	ScriptParser = require("../../ScriptParser.js"); // eslint-disable-line global-require
+	ScriptParser = require("../ScriptParser.js"); // eslint-disable-line global-require
 }
 
 QUnit.module("ScriptParser", {

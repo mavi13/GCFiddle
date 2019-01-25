@@ -11,6 +11,8 @@ GCFiddle Links:
 [GCNEW1](https://mavi13.github.io/GCFiddle/gcfiddle.html),
 [GCJVT3](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCJVT3)
 
+[![Build Status](https://travis-ci.com/mavi13/GCFiddle.svg?branch=master)](https://travis-ci.com/mavi13/GCFiddle)
+
 ## Features
 
 - Calculation language similar to "Wolf Language" used by CacheWolf's solver
@@ -31,8 +33,7 @@ GCFiddle Links:
 
 ### Input box
 
-- The first selection field sets the category of the geocache, e.g. "Test", "To Find" or "Found".
-   Categories are mapped to directories where the calculation scripts for geocaches reside.
+- The first selection field selects the database. The default is the read only "testDB" defined in file system or on the server and "Saved" in Browser local storage.
 - The second selection field loads a geocache calculation script and executes it
 - The input field contains the editable script
 - The "Execute" button executes the input script and fills the other boxes with the output.
@@ -42,9 +43,9 @@ GCFiddle Links:
    The resulting script is put in the history and executed.
 - The "Reload" button reloads the page with the current settings. (Please note that changes to the script are lost!)
    See the list of URL parameters below.
-- The "Save" button saves the current input in "Saved" category and selects it.
+- The "Save" button saves the current input in "Saved" database and selects it.
    It is stored in browser local storage which means that it is kept also during page reloads.
-- The "Delete" button deletes the current geocache in "Saved" category. There is a confirmation dialog to prevent accidential delete.
+- The "Delete" button deletes the current geocache in "Saved" database. There is a confirmation dialog to prevent accidential delete.
 
 ### Output box
 
@@ -240,8 +241,9 @@ $W2="N 49° 15.903 E 008° 40.777"
 
 URL parameters override settings in file `gcconfig.js` or `gcfiddle.js`.
 
-- `category=test`: Set the category to one of parameter `CategoryList`, e.g. `test`, `tofind`, `found`, `archived` or `saved`
-  - Directory `category` must exist and must contain an index file `0index.js`
+- `database=testDB`: Set the database
+  - Directory `testDB` must exist and must contain an index file `0dbindex.js`
+    with further configuration.
 - `debug=0`: Set the debug level, 0=off, 1=some, 2=some more,...
 - `example=GCNEW1`: Set example
 - `showInput=true`: Show the input box
@@ -268,17 +270,17 @@ URL parameters override settings in file `gcconfig.js` or `gcfiddle.js`.
       or [OpenLayers]("http://www.openlayers.org/api/OpenLayers.js") (http only)  
       or "lib/OpenLayers.js" (if available locally)  
       or "lib/OpenLayers.light.js" (light version with some features missing, e.g. Overview map, keyboard defaults)
-- `categoryList`=test,saved: Set list of possible categories, e.g. test,tofind,found,archived,saved
-  - Usually set in file `gcconfig.js` or `gcfiddle.js`
 - `testIndexedDb=false`: test Index Database (experimental)
+- `exampleDir=examples`, // example base directory
+- `dbIndex=0dbindex.js`, // DB index relative to exampleDir
 
 ## Developing, Testing
 
-QUnit test [testsuite.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/testsuite.qunit.html) runs:
+QUnit test [testsuite.qunit.html](https://mavi13.github.io/GCFiddle/test/testsuite.qunit.html) runs:
 
-- [LatLng.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/LatLng.qunit.html)
-- [Preprocessor.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/Preprocessor.qunit.html)
-- [ScriptParser.qunit.html](https://mavi13.github.io/GCFiddle/test/qunit/ScriptParser.qunit.html)
+- [LatLng.qunit.html](https://mavi13.github.io/GCFiddle/test/LatLng.qunit.html)
+- [Preprocessor.qunit.html](https://mavi13.github.io/GCFiddle/test/Preprocessor.qunit.html)
+- [ScriptParser.qunit.html](https://mavi13.github.io/GCFiddle/test/ScriptParser.qunit.html)
 
 ## Acknowledgements
 

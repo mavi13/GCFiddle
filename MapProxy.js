@@ -26,7 +26,7 @@ MapProxy.prototype = {
 
 		this.mapClass = MapProxy.AvailableModules[this.options.mapType];
 		if (this.mapClass) {
-			sUrl = "MapProxy." + this.mapClass + ".js";
+			sUrl = "MapProxy." + this.mapClass + ".js"; //TTT dir "js/?
 			Utils.loadScript(sUrl, function () {
 				window.console.log(sUrl + " loaded");
 

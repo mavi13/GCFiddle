@@ -7,7 +7,7 @@
 var Preprocessor;
 
 if (typeof require !== "undefined") {
-	Preprocessor = require("../../Preprocessor.js"); // eslint-disable-line global-require
+	Preprocessor = require("../Preprocessor.js"); // eslint-disable-line global-require
 }
 
 QUnit.module("Preprocessor", {

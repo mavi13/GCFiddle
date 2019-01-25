@@ -1,6 +1,6 @@
 {
   "name": "gcfiddle",
-  "version": "0.57.1",
+  "version": "0.57.2",
   "description": "Fiddle with Geocaching Waypoints",
   "main": "gcfiddle.js",
   "directories": {
@@ -11,7 +11,7 @@
     "qunit": "^2.6.1"
   },
   "scripts": {
-    "test": "qunit test/qunit/*.qunit.js"
+    "test": "qunit"
   },
   "repository": {
     "type": "git",
