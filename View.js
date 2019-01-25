@@ -1,6 +1,6 @@
 // View.js - View
 //
-/* globals gDebug */
+/* globals Utils */
 
 "use strict";
 
@@ -52,8 +52,8 @@ View.prototype = {
 					option.value = oItem.value;
 				}
 				if (option.text !== oItem.text) {
-					if (gDebug && gDebug.level > 1) {
-						gDebug.log("DEBUG: setSelectOptions: " + sId + ": text changed for index " + i + ": " + oItem.text);
+					if (Utils.debug > 1) {
+						Utils.console.debug("DEBUG: setSelectOptions: " + sId + ": text changed for index " + i + ": " + oItem.text);
 					}
 					option.text = oItem.text;
 					option.title = oItem.title;

@@ -1,58 +1,68 @@
 // CommonEventHandler.qunit.js - ...
 //
-/* globals QUnit, CommonEventHandler */
+/* globals QUnit */ // CommonEventHandler
 
 "use strict";
 
-var gDebug = null, // eslint-disable-line no-unused-vars
-	gcMock = {
-		config: {
-			example: "GCTEST1"
+var CommonEventHandler;
+
+if (typeof require !== "undefined") {
+	CommonEventHandler = require("../../CommonEventHandler.js"); // eslint-disable-line global-require
+}
+
+var gcMock = { // eslint-disable-line vars-on-top,one-var
+	config: {
+		example: "GCTEST1"
+	},
+	model: {
+		variables: {},
+		exampleIndex: {},
+		examples: {},
+		initVariables: function () {
+			return this;
 		},
-		model: {
-			variables: { },
-			initVariables: function () {
-				return this;
-			}
-		},
-		view: {
-			data: {
-				categorySelect: "GCTEST1"
-			},
-			setDisabled: function () {
-				// empty
-			},
-			getSelectValue: function (sId) {
-				return this.data[sId];
-			},
-			setSelectValue: function (sId, value) {
-				this.data[sId] = value;
-			},
-			setAreaValue: function (sId, value) {
-				this.data[sId] = value;
-			},
-			setSelectTitleFromSelectedOption: function () {
-				// empty
-			},
-			attachEventHandler: function () {
-				// empty
-			},
-			detachEventHandler: function () {
-				// empty
-			}
-		},
-		controller: {
-			categories: { },
-			examples: { },
-			pendingScripts: [],
-			fnPutChangedInputOnStack: function () {
-				// empty
-			},
-			fnCalculate2: function () {
-				// empty
-			}
+		getExampleIndex: function (sDatabase) {
+			return this.exampleIndex[sDatabase];
 		}
-	};
+	},
+	view: {
+		data: {
+			databaseSelect: "GCTEST1"
+		},
+		setDisabled: function () {
+			// empty
+		},
+		getSelectValue: function (sId) {
+			return this.data[sId];
+		},
+		setSelectValue: function (sId, value) {
+			this.data[sId] = value;
+		},
+		setAreaValue: function (sId, value) {
+			this.data[sId] = value;
+		},
+		setSelectTitleFromSelectedOption: function () {
+			// empty
+		},
+		attachEventHandler: function () {
+			// empty
+		},
+		detachEventHandler: function () {
+			// empty
+		}
+	},
+	controller: {
+		categories: {},
+		examples: {},
+		pendingScripts: [],
+		fnPutChangedInputOnStack: function () {
+			// empty
+		},
+		fnCalculate2: function () {
+			// empty
+		}
+	}
+};
 
 
 QUnit.module("CommonEventHandler test", {
@@ -90,7 +100,7 @@ QUnit.test("Load test script", function (assert) {
 	};
 	*/
 
-	commonEventHandler.onCategorySelectChange(); // TODO
+	//	commonEventHandler.onDatabaseSelectChange(); // TODO
 
 	/*
 	Utils.loadScript = fnLoadScript;

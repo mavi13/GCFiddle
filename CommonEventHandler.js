@@ -1,8 +1,16 @@
 // CommonEventHandler.js - CommonEventHandler
 //
-/* globals Utils, gDebug, LatLng, MapProxy */
+/* globals */ // LatLng, MapProxy, Utils
 
 "use strict";
+
+var LatLng, MapProxy, Utils;
+
+if (typeof require !== "undefined") {
+	LatLng = require("./LatLng.js"); // eslint-disable-line global-require
+	MapProxy = require("./MapProxy.js"); // eslint-disable-line global-require
+	Utils = require("./Utils.js"); // eslint-disable-line global-require
+}
 
 function CommonEventHandler(oModel, oView, oController) {
 	this.init(oModel, oView, oController);
@@ -26,16 +34,16 @@ CommonEventHandler.prototype = {
 		if (sId) {
 			sType = event.type; // click or change
 			sHandler = "on" + Utils.stringCapitalize(sId) + Utils.stringCapitalize(sType);
-			if (gDebug) {
-				gDebug.log("DEBUG: fnCommonEventHandler: sHandler=" + sHandler);
+			if (Utils.debug) {
+				Utils.console.debug("DEBUG: fnCommonEventHandler: sHandler=" + sHandler);
 			}
 			if (sHandler in this) {
 				this[sHandler](event);
 			} else if (!Utils.stringEndsWith(sHandler, "SelectClick") && !Utils.stringEndsWith(sHandler, "InputClick")) { // do not print all messages
-				window.console.log("Event handler not found: " + sHandler);
+				Utils.console.log("Event handler not found: " + sHandler);
 			}
-		} else if (gDebug) {
-			gDebug.log("DEBUG: Event handler for " + event.type + " unknown target " + oTarget);
+		} else if (Utils.debug) {
+			Utils.console.debug("DEBUG: Event handler for " + event.type + " unknown target " + oTarget);
 		}
 	},
 
@@ -65,8 +73,8 @@ CommonEventHandler.prototype = {
 
 		if (sType !== "text") {
 			if (!(/^[\d]+$/).test(sValue)) { // currently only digits (without -,.) are numbers
-				if (gDebug) {
-					gDebug.log("DEBUG: onVarSelectChange: Using type=text for non-numerical variable " + sValue);
+				if (Utils.debug) {
+					Utils.console.debug("DEBUG: onVarSelectChange: Using type=text for non-numerical variable " + sValue);
 				}
 				sType = "text";
 			}
@@ -216,7 +224,7 @@ CommonEventHandler.prototype = {
 
 		if (typeof Preprocessor === "undefined") { // load module on demand
 			Utils.loadScript(sUrl, function () {
-				window.console.log(sUrl + " loaded");
+				Utils.console.log(sUrl + " loaded");
 				that.controller.fnDoPreprocess();
 			});
 		} else {
@@ -226,45 +234,67 @@ CommonEventHandler.prototype = {
 
 	onExampleSelectChange: function () {
 		var that = this,
-			sCategory = this.model.getProperty("category"),
+			sDatabase = this.model.getProperty("database"),
 			sExample = this.view.getSelectValue("exampleSelect"),
-			sName,
+			sName, oExample, sSrc, oDatabase, sPath,
 
 			fnExampleLoaded = function (sFullUrl, sExample2, bSuppressLog) {
-				var sCategory2 = that.model.getProperty("category"), // still the same after loading?
-					oExamples2 = that.model.getAllExamples(sCategory2),
-					sName2 = sCategory2 + "/" + sExample2 + ".js",
-					sUnknownExample;
+				var sDatabase2 = that.model.getProperty("database"), // still the same after loading?
+					oExamples2 = that.model.getAllExamples(sDatabase2),
+					sName2 = sDatabase2 + "/" + sExample2 + ".js";
 
 				that.model.setProperty("example", sExample2);
 				if (!bSuppressLog) {
-					window.console.log("Example " + sName2 + " loaded");
+					Utils.console.log("Example " + sName2 + " loaded");
 				}
+
+				// TODO: example without id loaded (Do we still need this?)
+				if (oExamples2[sExample2] === undefined) {
+					Utils.console.warn("Example " + sName2 + ": Not in index? What to do next?");
+				}
+				/*
 				if (oExamples2[sExample2] === undefined) { // TODO: example without id loaded (Do we still need this?)
-					window.console.warn("Example " + sName2 + ": Wrong format! Must start with #<id>: <title>");
+					Utils.console.warn("Example " + sName2 + ": Wrong format! Must start with #<id>: <title>");
 					sUnknownExample = that.controller.emptyExample.unknown.key;
 					if (oExamples2[sUnknownExample]) {
 						oExamples2[sExample2] = oExamples2[sUnknownExample];
 						delete oExamples2[sUnknownExample];
 					} else {
-						window.console.error("No example 'unknown' found");
+						Utils.console.error("No example 'unknown' found");
 						oExamples2[sExample2] = that.controller.fnParseExample("", "", sExample2);
 					}
 				}
+				*/
 				that.controller.fnSetInputAreaValue(oExamples2[sExample2].script);
 				that.controller.fnInitUndoRedoButtons();
 				that.onExecuteButtonClick();
 			};
 
 		this.view.setSelectTitleFromSelectedOption("exampleSelect");
-		if (this.model.getExample(sCategory, sExample) !== undefined) {
+		oExample = this.model.getExample(sExample);
+		if (oExample && oExample.loaded) {
 			fnExampleLoaded("", sExample, true);
 		} else if (sExample) {
 			this.controller.fnSetInputAreaValue("#loading " + sExample + "...");
 			this.view.setAreaValue("outputArea", "waiting...");
-			sName = sCategory + "/" + sExample + ".js";
+
+			sSrc = oExample.src;
+
+			//TTT
+			sPath = "";
+			oDatabase = this.model.getDatabase(sDatabase);
+			if (oDatabase.src) {
+				sPath = oDatabase.src.split("/").slice(0, -1).join("/");
+			}
+
+			if (Utils.stringEndsWith(sSrc, ".js")) {
+				sName = this.model.getProperty("exampleDir") + "/" + sPath + "/" + sSrc;
+			} else {
+				sName = this.model.getProperty("exampleDir") + "/" + sPath + "/" + sSrc + "/" + sExample + ".js";
+			}
+
 			this.controller.pendingScripts.push({
-				category: sCategory,
+				database: sDatabase,
 				example: sExample,
 				url: sName
 			});
@@ -277,58 +307,65 @@ CommonEventHandler.prototype = {
 		}
 	},
 
-	onCategorySelectChange: function () {
+	onDatabaseSelectChange: function () {
 		var that = this,
-			sCategory = this.view.getSelectValue("categorySelect"),
-			sName, bDisabled,
+			sDatabase = this.view.getSelectValue("databaseSelect"),
+			sName, bDisabled, oDatabase,
 
-			fnCategoryLoaded = function (sFullUrl, sCategory2) {
-				var	sName2 = sCategory2 + "/0index.js";
+			fnDatabaseLoaded = function (sFullUrl, sDatabase2) {
+				if (sDatabase !== sDatabase2) {
+					Utils.console.warn("fnDatabaseLoaded: wrong database: " + sDatabase + ", " + sDatabase2);
+				}
 
-				that.model.setProperty("category", sCategory2);
-				window.console.log("category " + sName2 + " loaded");
+				oDatabase.loaded = true;
+				Utils.console.log("database/database loaded: " + sName);
 				that.controller.fnSetExampleList();
 				that.onExampleSelectChange();
 			},
-			fnLoadCategoryLocalStorage = function () {
+			fnLoadDatabaseLocalStorage = function () {
 				var	oStorage = Utils.localStorage,
-					oExamples,
 					i, sKey, sItem;
 
-				oExamples = that.controller.fnSetExampleIndex("", sCategory); // create category, set example object
 				for (i = 0; i < oStorage.length; i += 1) {
 					sKey = oStorage.key(i);
 					sItem = oStorage.getItem(sKey);
-					oExamples[sKey] = that.controller.fnAddExample(sItem, sCategory, {
-						key: sKey,
-						title: "" // currently title not stored in saved data if not in input
-					});
+					that.controller.fnAddItem(sKey, sItem);
 				}
-				fnCategoryLoaded("", sCategory);
+				oDatabase.loaded = true;
+				Utils.console.log("database loaded: " + sDatabase);
+				that.controller.fnSetExampleList();
+				that.onExampleSelectChange();
 			};
 
-		this.view.setSelectTitleFromSelectedOption("categorySelect");
-		if (this.model.getExampleIndex(sCategory) !== undefined) {
-			this.model.setProperty("category", sCategory);
+		this.model.setProperty("database", sDatabase);
+		this.view.setSelectTitleFromSelectedOption("databaseSelect");
+		oDatabase = this.model.getDatabase(sDatabase);
+		if (!oDatabase) {
+			Utils.console.error("onDatabaseSelectChange: database not available: " + sDatabase);
+			return;
+		}
+
+		if (oDatabase.loaded) {
 			this.controller.fnSetExampleList();
 			this.onExampleSelectChange();
 		} else {
-			this.view.setAreaValue("inputArea", "#loading index " + sCategory + "...");
-			if (sCategory === "saved") {
-				fnLoadCategoryLocalStorage(sCategory);
+			this.view.setAreaValue("inputArea", "#loading index " + sDatabase + "...");
+			if (sDatabase === "saved") {
+				fnLoadDatabaseLocalStorage(sDatabase);
 			} else {
-				sName = sCategory + "/0index.js";
+				sName = this.model.getProperty("exampleDir") + "/" + oDatabase.src;
 				this.controller.pendingScripts.push({
-					category: sCategory,
-					example: "0index",
+					database: sDatabase,
+					example: oDatabase.src,
 					url: sName
 				});
-				Utils.loadScript(sName, fnCategoryLoaded, sCategory);
+				Utils.loadScript(sName, fnDatabaseLoaded, sDatabase);
 			}
 		}
-		bDisabled = (sCategory !== "saved") || !Object.keys(this.model.getExampleIndex("saved")).length;
+		bDisabled = (sDatabase !== "saved") || !Object.keys(this.model.getAllExamples()).length;
 		this.view.setDisabled("deleteButton", bDisabled);
 	},
+
 
 	onInputLegendClick: function () {
 		var bShowInput = !this.view.toogleHidden("inputArea").getHidden("inputArea");
@@ -402,7 +439,7 @@ CommonEventHandler.prototype = {
 					title: "W" + sLabel
 				};
 
-			window.console.log("Location: " + oMarker.position.toFormattedString(sWaypointFormat));
+			Utils.console.log("Location: " + oMarker.position.toFormattedString(sWaypointFormat));
 			that.controller.maFa.addMarkers([oMarker]);
 			// already done in addMarkers; that.onFitBoundsButtonClick();
 		}
@@ -410,19 +447,19 @@ CommonEventHandler.prototype = {
 		function showError(error) {
 			switch (error.code) {
 			case error.PERMISSION_DENIED:
-				window.console.warn("User denied the request for Geolocation.");
+				Utils.console.warn("User denied the request for Geolocation.");
 				break;
 			case error.POSITION_UNAVAILABLE:
-				window.console.warn("Location information is unavailable.");
+				Utils.console.warn("Location information is unavailable.");
 				break;
 			case error.TIMEOUT:
-				window.console.warn("The request to get user location timed out.");
+				Utils.console.warn("The request to get user location timed out.");
 				break;
 			case error.UNKNOWN_ERROR:
-				window.console.warn("An unknown error occurred.");
+				Utils.console.warn("An unknown error occurred.");
 				break;
 			default:
-				window.console.warn("An error occurred.");
+				Utils.console.warn("An error occurred.");
 				break;
 			}
 		}
@@ -430,15 +467,15 @@ CommonEventHandler.prototype = {
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(showPosition, showError);
 		} else {
-			window.console.warn("Geolocation is not supported by this browser.");
+			Utils.console.warn("Geolocation is not supported by this browser.");
 		}
 	},
 
 	onInputAreaClick: function () {
 		var oSelection = this.view.getAreaSelection("inputArea"); // also in event.target
 
-		if (gDebug) {
-			gDebug.log("DEBUG: onInputAreaClick: selectionStart=" + oSelection.selectionStart + " selectionEnd=" + oSelection.selectionEnd);
+		if (Utils.debug) {
+			Utils.console.debug("DEBUG: onInputAreaClick: selectionStart=" + oSelection.selectionStart + " selectionEnd=" + oSelection.selectionEnd);
 		}
 		// nothing to do
 	},
@@ -452,8 +489,8 @@ CommonEventHandler.prototype = {
 		sOutput = oSelection.value;
 		iSelStart = oSelection.selectionStart;
 
-		if (gDebug) {
-			gDebug.log("DEBUG: onOutputAreaClick: selectionStart=" + oSelection.selectionStart + " selectionEnd=" + oSelection.selectionEnd);
+		if (Utils.debug) {
+			Utils.console.debug("DEBUG: onOutputAreaClick: selectionStart=" + oSelection.selectionStart + " selectionEnd=" + oSelection.selectionEnd);
 		}
 		if (sOutput) {
 			iLineEnd = sOutput.indexOf("\n", iSelStart);
@@ -468,8 +505,8 @@ CommonEventHandler.prototype = {
 			if (iEqual >= 0) {
 				sPar = sOutput.substring(0, iEqual);
 			}
-			if (gDebug) {
-				gDebug.log("DEBUG: onOutputAreaClick: line='" + sOutput + "' var=" + sPar);
+			if (Utils.debug) {
+				Utils.console.debug("DEBUG: onOutputAreaClick: line='" + sOutput + "' var=" + sPar);
 			}
 			if (sPar && variables[sPar] !== undefined) {
 				if (this.controller.fnIsWaypoint(sPar)) {
@@ -567,10 +604,10 @@ CommonEventHandler.prototype = {
 	},
 
 	onSaveButtonClick: function () {
-		var sCategory = this.model.getProperty("category"),
+		var sDatabase = this.model.getProperty("database"),
 			sExample = this.model.getProperty("example"),
 			sInput = this.view.getAreaValue("inputArea"),
-			oExample, oSavedList, oSelectedExample,
+			oExample,
 
 			fnTestIndexedDb = function (oExample2) {
 				var sDataBaseName = "GCFiddle",
@@ -603,77 +640,72 @@ CommonEventHandler.prototype = {
 					if (sInput2) {
 						iPos = sInput2.indexOf(this.controller.sJsonMarker);
 						if (iPos >= 0) {
-							oExample2 = Utils.objectAssign({}, window.JSON.parse(sInput2.substring(iPos + this.controller.sJsonMarker.length)), oExample2);
+							oExample2 = Utils.objectAssign({}, JSON.parse(sInput2.substring(iPos + this.controller.sJsonMarker.length)), oExample2);
 						}
 					}
 
 					oReq = oStore.put(oExample2); // add(), or put() to modify if exist
 					oReq.onsuccess = function (ev) {
-						window.console.log("indexedDB: Insertion successful: " + ev.target.result);
+						Utils.console.log("indexedDB: Insertion successful: " + ev.target.result);
 					};
 					oReq.onerror = function (ev) {
-						window.console.error("indexedDB: Insert error: " + ev.target.error); // or use his.error
+						Utils.console.error("indexedDB: Insert error: " + ev.target.error); // or use his.error
 					};
 				};
 				oRequest.onerror = function (event) {
-					window.console.error("indexedDB: Database error:" + event.target.errorCode);
+					Utils.console.error("indexedDB: Database error:" + event.target.errorCode);
 				};
 			};
 
-		if (sCategory !== "saved") {
-			sCategory = "saved";
-			this.view.setSelectValue("categorySelect", sCategory);
-			this.onCategorySelectChange(); // may change example value as well
+		if (sDatabase !== "saved") {
+			sDatabase = "saved";
+			this.view.setSelectValue("databaseSelect", sDatabase);
+			this.onDatabaseSelectChange(); // may change example value as well
 		}
 
-		oSelectedExample = this.model.getExample(sCategory, sExample);
-		oExample = this.controller.fnAddExample(sInput, sCategory, oSelectedExample || this.controller.emptyExample.draft);
-		Utils.localStorage.setItem(oExample.key, sInput);
+		sExample = this.controller.fnAddItem(sExample, sInput);
+
+		Utils.localStorage.setItem(sExample, sInput);
 
 		if (this.model.getProperty("testIndexedDb")) {
 			fnTestIndexedDb(oExample);
 		}
 
-		oSavedList = this.model.getExampleIndex("saved");
-
-		if (oSavedList[oExample.key]) {
-			oSavedList[oExample.key] = oExample;
-			if (this.view.getSelectValue("exampleSelect") !== oExample.key) {
-				this.view.setSelectValue("exampleSelect", oExample.key);
-			}
-			this.controller.fnSetExampleList(); // maybe title change
-			this.onExampleSelectChange(); // make sure correct input is shown
-		} else {
-			oSavedList[oExample.key] = oExample;
-			this.model.setProperty("example", oExample.key);
-			this.controller.fnSetExampleList();
-			this.onExampleSelectChange();
+		if (this.view.getSelectValue("exampleSelect") !== sExample) {
+			this.view.setSelectValue("exampleSelect", sExample);
 		}
-		this.view.setDisabled("deleteButton", !Object.keys(oSavedList).length);
+		this.model.setProperty("example", sExample);
+		this.controller.fnSetExampleList();
+		this.onExampleSelectChange();
+		this.view.setDisabled("deleteButton", !Object.keys(this.model.getAllExamples()).length);
 	},
 
 	onDeleteButtonClick: function () {
-		var sCategory = this.model.getProperty("category"),
+		var sDatabase = this.model.getProperty("database"),
 			sExample = this.model.getProperty("example"),
-			oSavedList = this.model.getExampleIndex("saved");
+			oExample;
 
-		if (sCategory !== "saved") {
+		if (sDatabase !== "saved") {
 			return;
 		}
-		if (!this.view.showConfirmPopup("Delete " + sCategory + "/" + sExample)) {
+		if (!this.view.showConfirmPopup("Delete " + sDatabase + "/" + sExample)) {
 			return;
 		}
-		window.console.log("Deleting " + sExample);
+		Utils.console.log("Deleting " + sExample);
 		Utils.localStorage.removeItem(sExample);
 
-		if (oSavedList) {
-			if (oSavedList[sExample]) {
-				delete oSavedList[sExample];
-				this.controller.fnSetExampleList();
-				this.onExampleSelectChange();
-			}
-			this.view.setDisabled("deleteButton", !Object.keys(oSavedList).length);
+		oExample = this.model.getExample(sExample);
+		if (oExample) {
+			this.model.deleteExample(sExample);
+			this.controller.fnSetExampleList();
+			this.onExampleSelectChange();
 		}
+		this.view.setDisabled("deleteButton", !Object.keys(this.model.getAllExamples()).length);
 	}
 };
+
+
+if (typeof module !== "undefined" && module.exports) {
+	module.exports = CommonEventHandler;
+}
 // end

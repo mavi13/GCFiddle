@@ -1,6 +1,6 @@
 // MarkerFactory.js - MarkerFactory...
 //
-/* globals gDebug, Utils */
+/* globals Utils */
 
 "use strict";
 
@@ -36,8 +36,8 @@ MarkerFactory.prototype = {
 			oFeatureGroup.addMarkers(this.aMarkerOptions); // it is rather a set
 			oFeatureGroup.fitBounds();
 			oFeatureGroup.setMap(this.mapProxy.getMap());
-			if (gDebug) {
-				gDebug.log("DEBUG: addMarkers: " + aMarkerOptions.length + " markers added, so we have: " + this.aMarkerOptions.length);
+			if (Utils.debug > 1) {
+				Utils.console.debug("DEBUG: addMarkers: " + aMarkerOptions.length + " markers added, so we have: " + this.aMarkerOptions.length);
 			}
 		}
 	},

@@ -1,6 +1,6 @@
 // Controller.js - Controller
 //
-/* globals gDebug, CommonEventHandler, InputStack, LatLng, MarkerFactory, Preprocessor, ScriptParser, Utils */
+/* globals CommonEventHandler, InputStack, LatLng, MarkerFactory, Preprocessor, ScriptParser, Utils */
 
 "use strict";
 
@@ -10,12 +10,13 @@ function Controller(oModel, oView) {
 
 Controller.prototype = {
 	init: function (oModel, oView) {
-		var sVariableType, sWaypointFormat, sMapType, sExample, sCategory;
+		var sVariableType, sWaypointFormat, sMapType, sExample, sDatabase;
 
 		this.model = oModel;
 		this.view = oView;
 
 		this.sJsonMarker = "#GC_INFO:";
+		/*
 		this.emptyExample = {
 			draft: {
 				key: "GC_DRAFT",
@@ -26,6 +27,7 @@ Controller.prototype = {
 				title: "Unknown"
 			}
 		};
+		*/
 		this.pendingScripts = [];
 
 
@@ -62,17 +64,17 @@ Controller.prototype = {
 		}
 		this.view.setHidden("mapCanvas-" + sMapType, !oModel.getProperty("showMap"));
 
-		this.fnSetCategoryList();
+		this.fnSetDatabaseList();
 
 		sExample = oModel.getProperty("example");
 		if (sExample) {
 			this.view.setSelectValue("exampleSelect", sExample);
 		}
 
-		sCategory = oModel.getProperty("category");
-		if (sCategory) {
-			this.view.setSelectValue("categorySelect", sCategory);
-			this.commonEventHandler.onCategorySelectChange();
+		sDatabase = oModel.getProperty("database");
+		if (sDatabase) {
+			this.view.setSelectValue("databaseSelect", sDatabase);
+			this.commonEventHandler.onDatabaseSelectChange();
 		} else {
 			this.commonEventHandler.onExampleSelectChange();
 		}
@@ -90,104 +92,111 @@ Controller.prototype = {
 			replace(/\*\/[^/]+$/, "");
 	},
 
-	fnGetPendingCategory: function () {
-		var sCategory = "",
-			oFile;
+	fnIsWaypoint: function (s) {
+		return s.indexOf("$") === 0; // waypoints start with "$"
+	},
 
-		if (this.pendingScripts.length) {
-			oFile = this.pendingScripts.pop();
-			sCategory = oFile.category;
-			if (gDebug) {
-				gDebug.log("DEBUG: getPendingCategory: category=" + sCategory + " taken from file " + oFile.url);
+	fnCreateNewExample: function (options) {
+		var oItem = {
+			key: "",
+			position: null, // position and comment
+			script: "",
+			title: "",
+			src: null,
+			loaded: false
+		};
+
+		if (options) {
+			Utils.objectAssign(oItem, options);
+		}
+		return oItem;
+	},
+
+	fnAddIndex2: function (oVariables, sItemSrc) {
+		var sPar, sKey, oPosition, oItem;
+
+		for (sPar in oVariables) {
+			if (oVariables.hasOwnProperty(sPar) && this.fnIsWaypoint(sPar)) {
+				sKey = sPar.substring(1); // remove "$"
+				oItem = this.model.getExample(sKey);
+				oPosition = new LatLng().parse(String(oVariables[sPar]));
+				if (oItem) {
+					window.console.warn("fnAddIndex2: example already exists: " + sKey);
+				}
+				oItem = this.fnCreateNewExample({ // database, key, script, title, ...
+					key: sKey,
+					position: oPosition, // position and comment
+					title: oPosition.getComment(),
+					src: sItemSrc
+					//loaded: false
+				});
+				this.model.setExample(oItem);
 			}
-		} else {
-			window.console.warn("getPendingCategory: No pending file, cannot get category");
 		}
-		return sCategory;
-	},
-
-	fnParseExample: function (input, category, emptyExample) {
-		var sInput = (typeof input === "string") ? Utils.stringTrimLeft(input) : this.fnHereDoc(input).trim(),
-			oExample = {
-				category: category,
-				key: "",
-				title: "",
-				script: sInput
-			},
-			sLine, aParts;
-
-		sLine = sInput.split("\n", 1)[0];
-		aParts = sLine.match(/^#([\w\d]+)\s*:\s*(.+)/);
-		if (aParts) {
-			oExample.key = aParts[1];
-			oExample.title = aParts[2];
-		} else if (!oExample.key) {
-			window.console.warn("parseExample: Example must start with #<id>: <title>");
-			emptyExample = emptyExample || this.emptyExample.unknown;
-			oExample.key = emptyExample.key;
-			oExample.title = emptyExample.title;
-			// sInput = "#" + oExample.key + ": " + oExample.title + "\n" + sInput;
-		} else {
-			window.console.log("parseExample: Example does not start with #<id>: <title>, using key " + oExample.key);
-		}
-
-		return oExample;
-	},
-
-	// Also called from files GCxxxxx.js
-	// if category is not specified it is taken from pendingScripts
-	fnAddExample: function (sInput, sCategory, emptyExample) {
-		var oExample;
-
-		if (!sCategory) {
-			sCategory = this.fnGetPendingCategory();
-		}
-		oExample = this.fnParseExample(sInput, sCategory, emptyExample);
-
-		window.console.log("addExample: category=" + oExample.category + "(" + this.model.getProperty("category") + ") key=" + oExample.key);
-		/*
-		if (this.examples[oExample.category]) {
-			this.examples[oExample.category][oExample.key] = oExample;
-		} else {
-			window.console.error("Unknown category: " + oExample.category);
-		}
-		*/
-		this.model.setExample(oExample);
-
-		return oExample;
 	},
 
 	// Also called from file 0index.js
-	// if category is not specified it is taken from pendingScripts
-	fnSetExampleIndex: function (input, sCategory) {
-		var that = this,
-			mItems = {},
-			sInput, aLines, i, sLine, oItem;
+	fnAddIndex: function (sItemSrc, input) {
+		var oVariables = {},
+			sInput, oOutput, oError, iEndPos, oFile;
 
 		sInput = (typeof input === "string") ? input.trim() : this.fnHereDoc(input).trim();
-		if (!sCategory) {
-			sCategory = this.fnGetPendingCategory();
-		}
-		if (sInput) {
-			aLines = sInput.split("\n");
-			for (i = 0; i < aLines.length; i += 1) {
-				sLine = aLines[i];
-				oItem = that.fnParseExample(sLine, sCategory);
-				if (!sCategory) {
-					sCategory = oItem.category;
-				}
-				mItems[oItem.key] = {
-					title: oItem.title
-				};
+		oOutput = new ScriptParser().calculate(sInput, oVariables);
+		if (oOutput.error) {
+			oError = oOutput.error;
+			iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
+			oOutput.text = "fnAddIndex: " + oError.message + ": '" + oError.value + "' (pos " + oError.pos + "-" + iEndPos + ")";
+			if (this.pendingScripts.length) {
+				oFile = this.pendingScripts.pop();
+				oOutput.text += " " + oFile.url;
 			}
+			window.console.error(oOutput.text);
+		} else {
+			this.fnAddIndex2(oVariables, sItemSrc);
 		}
-
-		this.model.setExampleIndex(sCategory, mItems);
-		return mItems;
 	},
 
-	fnIsWaypoint: function (s) {
-		return s.indexOf("$") === 0; // waypoints start with "$"
+	// Also called from files GCxxxxx.js
+	fnAddItem: function (sKey, input) { // optional sKey
+		var oVariables = {},
+			sInput, oExample, sLine, oOutput, oError, iEndPos, sPar, oPosition;
+
+		sInput = (typeof input === "string") ? Utils.stringTrimLeft(input) : this.fnHereDoc(input).trim();
+
+		sLine = sInput.split("\n", 1)[0];
+		oOutput = new ScriptParser().calculate(sLine, oVariables); // parse only first line
+		if (oOutput.error) {
+			oError = oOutput.error;
+			iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
+			window.console.warn("fnAddIndex: key=" + (sKey || "") + ": Cannot parse: " + oError.message + ": '" + oError.value + "' (pos " + oError.pos + "-" + iEndPos + ")");
+		} else {
+			for (sPar in oVariables) {
+				if (oVariables.hasOwnProperty(sPar) && this.fnIsWaypoint(sPar)) {
+					sKey = sPar.substring(1); // remove "$"
+					oPosition = new LatLng().parse(String(oVariables[sPar]));
+					break; // only first waypoint
+				}
+			}
+		}
+		sKey = sKey || "DRAFT";
+		oExample = this.model.getExample(sKey);
+		if (!oExample) {
+			oExample = this.fnCreateNewExample({
+				key: sKey
+			});
+			sKey = oExample.key;
+			this.model.setExample(oExample);
+			window.console.warn("fnAddItem: created draft example: " + sKey);
+		}
+		oExample.key = sKey; // maybe changed
+		oExample.script = sInput;
+		if (oPosition) {
+			oExample.position = oPosition;
+			oExample.title = oPosition.getComment();
+		}
+		oExample.loaded = true;
+		window.console.log("fnAddItem: database=" + this.model.getProperty("database") + ": key=" + sKey);
+		return sKey;
 	},
 
 	fnSetMarkers: function (variables) {
@@ -258,24 +267,24 @@ Controller.prototype = {
 		this.fnSetSelectOptions("waypointSelect", this.fnIsWaypoint, fnTextFormat);
 	},
 
-	fnSetCategoryList: function () {
-		var sSelect = "categorySelect",
+	fnSetDatabaseList: function () {
+		var sSelect = "databaseSelect",
 			aItems = [],
-			i = 0,
-			sCategoryList = this.model.getProperty("categoryList"),
-			aCategories, sValue, oItem, sSelectedValue;
+			oDatabases = this.model.getAllDatabases(),
+			sPar, oDb, sValue, oItem, sSelectedValue;
 
-		aCategories = sCategoryList.split(",");
-		for (i = 0; i < aCategories.length; i += 1) {
-			sValue = aCategories[i];
-			oItem = {
-				value: sValue,
-				title: Utils.stringCapitalize(sValue)
-			};
-			oItem.text = oItem.title;
-			aItems.push(oItem);
-			if (!sSelectedValue || sValue === this.model.getProperty("category")) {
-				sSelectedValue = sValue;
+		for (sPar in oDatabases) {
+			if (oDatabases.hasOwnProperty(sPar)) {
+				oDb = oDatabases[sPar];
+				oItem = {
+					value: sPar,
+					title: oDb.title
+				};
+				oItem.text = oItem.title;
+				aItems.push(oItem);
+				if (!sSelectedValue || sValue === this.model.getProperty("database")) {
+					sSelectedValue = sValue;
+				}
 			}
 		}
 		this.view.setSelectOptions(sSelect, aItems).setSelectValue(sSelect, sSelectedValue);
@@ -284,16 +293,20 @@ Controller.prototype = {
 	fnSetExampleList: function () {
 		var sSelect = "exampleSelect",
 			aItems = [],
-			sCategory = this.view.getSelectValue("categorySelect"),
-			oExamples = this.model.getExampleIndex(sCategory),
+			oExamples = this.model.getAllExamples(),
 			sCurrentExample = this.model.getProperty("example"),
-			sValue, oItem, sSelectedValue;
+			iIndex, sValue, sTitle, oItem, sSelectedValue;
 
 		for (sValue in oExamples) {
 			if (oExamples.hasOwnProperty(sValue)) {
+				sTitle = oExamples[sValue].title; // category and title
+				iIndex = sTitle.indexOf("!");
+				if (iIndex >= 0) {
+					sTitle = sTitle.substring(iIndex + 1); // remove category prefix
+				}
 				oItem = {
 					value: sValue,
-					title: (sValue + ": " + oExamples[sValue].title).substr(0, 160)
+					title: (sValue + ": " + sTitle).substr(0, 160)
 				};
 				oItem.text = oItem.title.substr(0, 20);
 				aItems.push(oItem);
@@ -445,7 +458,7 @@ Controller.prototype = {
 		mInfo.script = "";
 		if (sOutput !== "") {
 			if (mInfo.id) {
-				sOutput = "#" + mInfo.id + ": " + mInfo.title + "\n"
+				sOutput = "$" + mInfo.id + '="' + (mInfo.waypoint || "") + "!!" + mInfo.title + ' "\n'
 					+ "#https://coord.info/" + mInfo.id + "\n"
 					+ "$" + mInfo.id + '="' + (mInfo.waypoint || "") + '"\n'
 					+ sOutput

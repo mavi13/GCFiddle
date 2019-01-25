@@ -1,9 +1,9 @@
-/* globals addExample */
+/* globals gcFiddle */
 
 "use strict";
 
-addExample(function () { /*
-#GCPREP2: Preprocess2
+gcFiddle.addItem("", function () { /*
+$GCPREP2="!test!Preprocess2"
 #
 . NOTE: This example cannot be executed. Press the "Preprocess" button...
 #

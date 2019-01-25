@@ -1,8 +1,16 @@
 // ScriptParser.js - Parse calculation scripts
 //
-/* globals window, Utils, LatLng, gDebug */
+/* globals */ // Utils, LatLng
 
 "use strict";
+
+var LatLng, Utils;
+
+if (typeof require !== "undefined") {
+	LatLng = require("./LatLng.js"); // eslint-disable-line global-require
+	Utils = require("./Utils.js"); // eslint-disable-line global-require
+}
+
 
 // based on: https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript
 // (and: http://crockford.com/javascript/tdop/tdop.html ; test online: http://jsfiddle.net/h3xwj/embedded/result/)
@@ -158,13 +166,29 @@ ScriptParser.prototype = {
 			aParseTree = [],
 
 			symbol = function (id, nud, lbp, led) {
-				var oSym = oSymbols[id] || {};
+				var oSymbol = oSymbols[id];
 
+				if (!oSymbol) {
+					oSymbols[id] = {};
+					oSymbol = oSymbols[id];
+				}
+				if (nud) {
+					oSymbol.nud = nud;
+				}
+				if (lbp) {
+					oSymbol.lbp = lbp;
+				}
+				if (led) {
+					oSymbol.led = led;
+				}
+				/*
+				var oSym = oSymbols[id] || {};
 				oSymbols[id] = {
 					lbp: oSym.lbp || lbp,
 					nud: oSym.nud || nud,
-					led: oSym.lef || led
+					led: oSym.lef || led   //correct: oSym.lef => oSym.led!
 				};
+				*/
 			},
 
 			interpretToken = function (oToken) {
@@ -193,8 +217,8 @@ ScriptParser.prototype = {
 				var left,
 					t = token();
 
-				if (gDebug && gDebug.level > 3) {
-					gDebug.log("DEBUG: expression rbp=" + rbp + " type=" + t.type + " t=%o", t);
+				if (Utils.debug > 3) {
+					Utils.console.debug("DEBUG: expression rbp=" + rbp + " type=" + t.type + " t=%o", t);
 				}
 				advance();
 				if (!t.nud) {
@@ -429,8 +453,8 @@ ScriptParser.prototype = {
 			parseNode = function (node) {
 				var i, sValue, aNodeArgs;
 
-				if (gDebug && gDebug.level > 3) {
-					gDebug.log("DEBUG: parseNode node=%o type=" + node.type + " name=" + node.name + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+				if (Utils.debug > 3) {
+					Utils.console.debug("DEBUG: parseNode node=%o type=" + node.type + " name=" + node.name + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
 				}
 				if (node.type === "number" || node.type === "string") {
 					sValue = node.value;
@@ -448,12 +472,15 @@ ScriptParser.prototype = {
 				} else if (node.type === "assign") {
 					sValue = parseNode(node.value);
 					if (variables.gcfOriginal && variables.gcfOriginal[node.name] !== undefined && variables.gcfOriginal[node.name] !== variables[node.name]) {
-						window.console.log("Variable is set to hold: " + node.name + "=" + variables[node.name] + " (" + sValue + ")");
-						sValue = node.name + "=" + variables[node.name];
+						Utils.console.log("Variable is set to hold: " + node.name + "=" + variables[node.name] + " (" + sValue + ")");
+						sValue = variables[node.name]; // take existing value
 					} else {
-						variables[node.name] = sValue;
-						sValue = node.name + "=" + sValue;
+						variables[node.name] = sValue; // set new value
 					}
+					if (isNaN(parseFloat(sValue))) {
+						sValue = '"' + sValue + '"'; // value is not a number
+					}
+					sValue = node.name + "=" + sValue;
 				} else if (node.type === "call") {
 					aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
 					for (i = 0; i < node.args.length; i += 1) {
@@ -477,7 +504,7 @@ ScriptParser.prototype = {
 					sValue = parseNode(node.left);
 					sValue = mFunctions.nformat(sValue, node.value);
 				} else {
-					window.console.error("parseNode node=%o unknown type=" + node.type, node);
+					Utils.console.error("parseNode node=%o unknown type=" + node.type, node);
 					sValue = node;
 				}
 				return sValue;
@@ -487,8 +514,8 @@ ScriptParser.prototype = {
 			sNode;
 
 		for (i = 0; i < parseTree.length; i += 1) {
-			if (gDebug && gDebug.level > 2) {
-				gDebug.log("DEBUG: parseTree i=%d, node=%o", i, parseTree[i]);
+			if (Utils.debug > 2) {
+				Utils.console.debug("DEBUG: parseTree i=%d, node=%o", i, parseTree[i]);
 			}
 			sNode = parseNode(parseTree[i]);
 			if ((sNode !== undefined) && (sNode !== "")) {
@@ -597,13 +624,13 @@ ScriptParser.prototype = {
 
 				// deg() switch do degrees mode (default, ignored, we always use degrees)
 				deg: function () {
-					window.console.log("deg() ignored.");
+					Utils.console.log("deg() ignored.");
 				},
 
 				// rad() switch do radians mode (not supported, we always use degrees)
 				/*
 				rad: function () {
-					window.console.warn("rad() not supported.");
+					Utils.console.warn("rad() not supported.");
 				},
 				*/
 
@@ -773,7 +800,7 @@ ScriptParser.prototype = {
 					if (typeof mode === "undefined") { // no parameter, return status
 						return false;
 					}
-					window.console.warn("ic(mode) not implemented.");
+					Utils.console.warn("ic(mode) not implemented.");
 					return "";
 				},
 
@@ -923,4 +950,10 @@ ScriptParser.ErrorObject = function (message, value, pos) {
 	this.value = value;
 	this.pos = pos;
 };
+
+
+// for Node.js, allows CommonJS/Node.js require()
+if (typeof module !== "undefined" && module.exports) {
+	module.exports = ScriptParser;
+}
 // end

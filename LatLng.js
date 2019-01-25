@@ -3,9 +3,15 @@
 // based on: http://www.movable-type.co.uk/scripts/latlong.html, https://github.com/chrisveness/geodesy
 // Latitude/longitude spherical geodesy tools, (c) Chris Veness 2002-2016
 //
-/* globals Utils */
+/* globals */ // Utils
 
 "use strict";
+
+var Utils;
+
+if (typeof require !== "undefined") {
+	Utils = require("./Utils.js"); // eslint-disable-line global-require
+}
 
 function LatLng(lat, lng) {
 	this.init(lat, lng);
@@ -140,7 +146,7 @@ LatLng.prototype = {
 
 		if (delta12 === 0) {
 			if (!bSuppressWarnings) {
-				window.console.warn("intersection: delta12=" + delta12);
+				Utils.console.warn("intersection: delta12=" + delta12);
 			}
 			return null;
 		}
@@ -160,13 +166,13 @@ LatLng.prototype = {
 
 		if (Math.sin(alpha1) === 0 && Math.sin(alpha2) === 0) { // infinite intersections
 			if (!bSuppressWarnings) {
-				window.console.warn("intersection: infinite intersections");
+				Utils.console.warn("intersection: infinite intersections");
 			}
 			return null;
 		}
 		if (Math.sin(alpha1) * Math.sin(alpha2) < 0) { // ambiguous intersection
 			if (!bSuppressWarnings) {
-				window.console.warn("intersection: ambiguous intersections");
+				Utils.console.warn("intersection: ambiguous intersections");
 			}
 			return null;
 		}
@@ -269,7 +275,7 @@ LatLng.prototype = {
 		if (!bParseOk && coord !== "") {
 			this.error = "Cannot parse " + coord;
 			if (!bSuppressWarnings) {
-				window.console.warn("parse2position: Cannot parse '" + coord + "'");
+				Utils.console.warn("parse2position: Cannot parse '" + coord + "'");
 			}
 		}
 		return this;
@@ -346,7 +352,7 @@ LatLng.prototype = {
 		default:
 			sValue = undefined; // undefined means unknown format
 			if (!bSuppressWarnings) {
-				window.console.warn("position2string: Unknown format", format);
+				Utils.console.warn("position2string: Unknown format", format);
 			}
 		}
 		if (sComment) {
@@ -355,4 +361,9 @@ LatLng.prototype = {
 		return sValue;
 	}
 };
+
+
+if (typeof module !== "undefined" && module.exports) {
+	module.exports = LatLng;
+}
 // end

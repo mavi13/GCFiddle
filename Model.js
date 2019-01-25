@@ -13,8 +13,8 @@ Model.prototype = {
 		this.config = options.config; // store only a reference
 		this.initialConfig = options.initialConfig;
 
-		this.exampleIndex = { }; // example index
-		this.examples = { }; // loaded examples per category (properties: category, key, script, title)
+		this.databases = {};
+		this.examples = { }; // loaded examples per database (properties: database, key, script, title)
 
 		this.initVariables();
 	},
@@ -42,30 +42,55 @@ Model.prototype = {
 		return this;
 	},
 
-	getExampleIndex: function (sCategory) {
-		return this.exampleIndex[sCategory];
-	},
-	setExampleIndex: function (sCategory, oExampleIndex) {
-		this.exampleIndex[sCategory] = oExampleIndex;
-		if (!this.examples[sCategory]) {
-			this.examples[sCategory] = {};
+	addDatabases: function (oDb) {
+		var sPar, oEntry;
+
+		for (sPar in oDb) {
+			if (oDb.hasOwnProperty(sPar)) {
+				oEntry = oDb[sPar];
+				this.databases[sPar] = oEntry;
+				this.examples[sPar] = {};
+			}
 		}
 		return this;
 	},
-	getAllExamples: function (sCategory) {
-		return this.examples[sCategory];
+
+	getAllDatabases: function () {
+		return this.databases;
 	},
-	getExample: function (sCategory, sKey) {
-		return this.examples[sCategory][sKey];
+
+	getDatabase: function (sKey) {
+		return this.databases[sKey];
+	},
+
+	getAllExamples: function () {
+		var selectedDatabase = this.getProperty("database");
+
+		return this.examples[selectedDatabase];
+	},
+
+	getExample: function (sKey) {
+		var selectedDatabase = this.getProperty("database");
+
+		return this.examples[selectedDatabase][sKey];
 	},
 	setExample: function (oExample) {
-		var oExamples = this.examples[oExample.category];
+		var selectedDatabase = this.getProperty("database"),
+			sKey = oExample.key;
 
-		if (oExamples) {
-			oExamples[oExample.key] = oExample;
-		} else {
-			window.console.error("setExample: Unknown category: " + oExample.category);
+		if (!this.examples[selectedDatabase][sKey]) {
+			window.console.debug("setExample: creating new example: " + sKey);
 		}
+		this.examples[selectedDatabase][sKey] = oExample;
+		return this;
+	},
+	deleteExample: function (sKey) {
+		var selectedDatabase = this.getProperty("database");
+
+		if (!this.examples[selectedDatabase][sKey]) {
+			window.console.warn("deleteExample: example does not exist: " + sKey);
+		}
+		delete this.examples[selectedDatabase][sKey];
 		return this;
 	}
 };

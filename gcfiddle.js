@@ -6,13 +6,14 @@
 
 "use strict";
 
-var gDebug,
-	gcFiddleExternalConfig, // set in gcconfig.js
+var gcFiddleExternalConfig, // set in gcconfig.js
 	gcFiddle = {
 		config: {
 			debug: 0,
-			categoryList: "test,saved", // e.g. "test,tofind,found,archived,saved"
-			category: "test", // one of test, tofind, found, archived, saved
+			exampleDir: "./test", // "examples" // example base directory
+			dbIndex: "0dbindex.js", // DB index relative to exampleDir
+			testNewExamples: true,
+			database: "testDB", // DB
 			example: "GCNEW1", // GCNEW1, GCTEST1, GCJVT3
 			showInput: true,
 			showOutput: true,
@@ -35,6 +36,18 @@ var gDebug,
 		model: null,
 		view: null,
 		controller: null,
+
+		addDatabases: function (oDb) {
+			return gcFiddle.model.addDatabases(oDb);
+		},
+
+		addIndex: function (sLocation, fnInput) {
+			return gcFiddle.controller.fnAddIndex(sLocation, fnInput);
+		},
+
+		addItem: function (sKey, fnInput) {
+			return gcFiddle.controller.fnAddItem(sKey, fnInput);
+		},
 
 		// https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
 		fnParseUri: function (oConfig) {
@@ -69,36 +82,7 @@ var gDebug,
 			}
 		},
 
-		fnDoStart: function () {
-			var oStartConfig = this.config,
-				oInitialConfig,	oModel, iDebug;
-
-			if (gDebug) { // not yet active
-				gDebug.log("DEBUG: fnDoStart: gcFiddle started");
-			}
-			Utils.objectAssign(oStartConfig, gcFiddleExternalConfig || {}); // merge external config from gcconfig.js
-			oInitialConfig = Utils.objectAssign({}, oStartConfig); // save config
-			this.fnParseUri(oStartConfig); // modify config with URL parameters
-			this.model = new Model({
-				config: oStartConfig,
-				initialConfig: oInitialConfig
-			});
-			this.view = new View({});
-			oModel = this.model;
-			if (oModel.getProperty("showConsole")) {
-				this.view.redirectConsole();
-			}
-			iDebug = Number(oModel.getProperty("debug"));
-			if (iDebug > 0) {
-				gDebug = {
-					log: window.console.log,
-					level: iDebug
-				};
-			}
-			this.controller = new Controller(this.model, this.view);
-		},
-
-		fnOnLoad: function () {
+		fnDoStart2: function () {
 			var that = this,
 				sUrl = "Polyfills.js",
 				bDebugForcePolyFill = false; // switch in debugger for testing
@@ -119,18 +103,121 @@ var gDebug,
 			} else {
 				this.fnDoStart();
 			}
+		},
+
+		fnDoStart: function () {
+			var that = this,
+				oStartConfig = this.config,
+				oInitialConfig,	oModel, iDebug, sDbIndex;
+
+			if (Utils.debug) { // not yet active
+				Utils.console.debug("DEBUG: fnDoStart: gcFiddle started");
+			}
+			Utils.objectAssign(oStartConfig, gcFiddleExternalConfig || {}); // merge external config from gcconfig.js
+			oInitialConfig = Utils.objectAssign({}, oStartConfig); // save config
+			this.fnParseUri(oStartConfig); // modify config with URL parameters
+			this.model = new Model({
+				config: oStartConfig,
+				initialConfig: oInitialConfig
+			});
+			this.view = new View({});
+			oModel = this.model;
+			if (oModel.getProperty("showConsole")) {
+				this.view.redirectConsole();
+			}
+			iDebug = Number(oModel.getProperty("debug"));
+			Utils.debug = iDebug;
+
+			sDbIndex = oModel.getProperty("exampleDir") + "/" + oModel.getProperty("dbIndex");
+
+			if (sDbIndex) {
+				Utils.loadScript(sDbIndex, function () {
+					window.console.log(sDbIndex + " loaded");
+					that.controller = new Controller(that.model, that.view);
+				});
+			} else {
+				window.console.warn("DbIndex not set");
+				this.controller = new Controller(this.model, this.view);
+			}
+		},
+
+		fnOnLoad: function () {
+			var that = this,
+				sUrl = "Polyfills.js",
+				bDebugForcePolyFill = false; // switch in debugger for testing
+
+			Utils.initLocalStorage();
+
+			if (bDebugForcePolyFill) {
+				window.console = null;
+				String.prototype.trim = null; // eslint-disable-line no-extend-native
+				document.getElementsByClassName = null;
+				document.addEventListener = null;
+				Array.prototype.forEach = null; // eslint-disable-line no-extend-native
+			}
+
+			if ((!window.console || !Array.prototype.forEach || !Object.create || !Utils.localStorage) && typeof Polyfills === "undefined") { // need Polyfill?, load module on demand
+				Utils.loadScript(sUrl, function () {
+					window.console.log(sUrl + " loaded");
+					that.fnDoStart();
+				});
+			} else {
+				this.fnDoStart();
+			}
 		}
 	};
 
-// called from file 0index.js
+
+// Deprecated function called from file 0index.js
 function setExampleIndex(input) { // eslint-disable-line no-unused-vars
-	return gcFiddle.controller.fnSetExampleIndex(input);
+	var sAdapted = "",
+		sInput, aLines, i, sLine, aParts, sKey, sTitle;
+
+	Utils.console.warn("setExampleIndex: Deprecated example index format found! Trying to load and adapt...");
+
+	sInput = (typeof input === "string") ? Utils.stringTrimLeft(input) : gcFiddle.controller.fnHereDoc(input).trim();
+
+	if (sInput) {
+		aLines = sInput.split("\n");
+		for (i = 0; i < aLines.length; i += 1) {
+			sLine = aLines[i];
+			aParts = sLine.match(/^#([\w\d]+)\s*:\s*(.+)/);
+			if (aParts) {
+				sKey = aParts[1];
+				sTitle = aParts[2];
+				sTitle = String(sTitle).replace(/"/g, "'"); // replace quotes by apostropthes
+				sAdapted += "$" + sKey + '="!!' + sTitle + '"\n';
+			} else {
+				window.console.warn("setExampleIndex: ignoring line " + sLine);
+			}
+		}
+	}
+	return gcFiddle.controller.fnAddIndex("./", sAdapted);
 }
 
-// called from files GCxxxxx.js
+// Deprecated function called from old files GCxxxxx.js
 function addExample(input) { // eslint-disable-line no-unused-vars
-	return gcFiddle.controller.fnAddExample(input);
+	var sInput, aSplit, sLine, aParts, sKey, sTitle;
+
+	sInput = (typeof input === "string") ? Utils.stringTrimLeft(input) : gcFiddle.controller.fnHereDoc(input).trim();
+
+	aSplit = sInput.split("\n", 1);
+	sLine = aSplit[0]; // first line
+
+	Utils.console.warn("addExample: Deprecated example format found! Trying to load and adapt: " + sLine);
+
+	aParts = sLine.match(/^#([\w\d]+)\s*:\s*(.+)/);
+	if (aParts) {
+		sKey = aParts[1];
+		sTitle = aParts[2];
+		sTitle = String(sTitle).replace(/"/g, "'"); // replace quotes by apostropthes
+		sInput = "$" + sKey + '="!!' + sTitle + '"\n' + sInput;
+	} else {
+		window.console.warn("parseExample: Example must start with #<id>: <title>");
+	}
+	return gcFiddle.controller.fnAddItem("", sInput);
 }
+
 
 gcFiddle.fnOnLoad(); // if gcfiddle.js is the last script, we do not need to wait for window.onload
 // end

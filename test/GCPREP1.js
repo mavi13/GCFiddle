@@ -1,9 +1,9 @@
-/* globals addExample */
+/* globals gcFiddle */
 
 "use strict";
 
-addExample(function () { /*
-#GCPREP1: Preprocess1 (based on GCJVT3)
+gcFiddle.addItem("", function () { /*
+$GCPREP1="!test!Preprocess1 (based on GCJVT3)"
 #https://coord.info/GCJVT3
 #
 #Example provided with friendly permission by rosszwerg.

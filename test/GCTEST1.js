@@ -1,9 +1,9 @@
-/* globals addExample */
+/* globals gcFiddle */
 
 "use strict";
 
-addExample(function () { /*
-#GCTEST1: Test Page
+gcFiddle.addItem("", function () { /*
+$GCTEST1="N 49° 16.183 E 008° 40.637!!Test Page"
 #
 #
 #Basic tests
@@ -131,7 +131,7 @@ assert(min(3.14, 4), 3.14)
 assert(max(3.14, 4), 4)
 
 #random
-["Random: " random()]
+rand = random()
 
 #gcd
 assert(gcd(1071, 1029), 21)
@@ -313,5 +313,5 @@ assert(parse("a(1"), "Expected closing parenthesis for function: ')' (pos 1-2)")
 #assert(parse("\""), "Unterminated string: '' (pos 1-1)")
 #assert(parse(999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999), "Number is too large or too small: 'Infinity' (pos 12-20)")
 #
-"ok"
+"#ok"
 */ });

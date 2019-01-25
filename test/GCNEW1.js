@@ -1,6 +1,6 @@
-/* globals addExample */
+/* globals gcFiddle */
 
 "use strict";
 
-addExample(function () { /*
+gcFiddle.addItem("GCNEW1", function () { /*
 */ });

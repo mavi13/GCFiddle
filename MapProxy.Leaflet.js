@@ -1,7 +1,7 @@
 // MapProxy.Leaflet.js - MapProxy.Leaflet for GCFiddle
 // https://leafletjs.com/reference-1.3.0.html
 //
-/* globals MapProxy, Utils, gDebug, LatLng, L */ // make ESlint happy
+/* globals MapProxy, Utils, LatLng, L */ // make ESlint happy
 
 "use strict";
 
@@ -27,12 +27,12 @@ MapProxy.Leaflet.Map.prototype = {
 		sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
 		sUrl = this.options.leafletUrl.replace(/^http(s)?:/, sProtocol).replace(/(-src)?\.js$/, ".css");
 		Utils.loadStyle(sUrl, function () {
-			window.console.log("Leaflet style loaded (" + sUrl + ")");
+			Utils.console.log("Leaflet style loaded (" + sUrl + ")");
 		});
 
 		sUrl2 = this.options.leafletUrl.replace(/^http(s)?:/, sProtocol);
 		Utils.loadScript(sUrl2, function () {
-			window.console.log("Leaflet " + L.version + " loaded (" + sUrl2 + ")");
+			Utils.console.log("Leaflet " + L.version + " loaded (" + sUrl2 + ")");
 			that.map = L.map(that.options.mapDivId);
 			L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 				maxZoom: 18
@@ -132,8 +132,8 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 				oOldMarker = oMarkerGroup.getLayer(iOldPopupSourceId);
 				if (oOldMarker && oOldMarker.listens("dragstart")) {
 					oOldMarker.off(mMarkerDragListener);
-					if (gDebug) {
-						gDebug.log("DEBUG: drag events removed from old marker id " + iOldPopupSourceId);
+					if (Utils.debug) {
+						Utils.console.debug("DEBUG: drag events removed from old marker id " + iOldPopupSourceId);
 					}
 				}
 			}
@@ -142,16 +142,16 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 			if (oPopup.isOpen()) {
 				if (!oMarker.listens("dragstart")) {
 					oMarker.on(mMarkerDragListener);
-					if (gDebug) {
-						gDebug.log("DEBUG: drag events set to marker id " + that.iPopupSourceId);
+					if (Utils.debug) {
+						Utils.console.debug("DEBUG: drag events set to marker id " + that.iPopupSourceId);
 					}
 				}
 
 				oPopup.setContent(that.privGetPopupContent(oMarker));
 			} else if (oMarker.listens("dragstart")) { // not really needed to check
 				oMarker.off(mMarkerDragListener);
-				if (gDebug) {
-					gDebug.log("DEBUG: drag events removed from marker id " + that.iPopupSourceId);
+				if (Utils.debug) {
+					Utils.console.debug("DEBUG: drag events removed from marker id " + that.iPopupSourceId);
 				}
 			}
 		});
@@ -226,7 +226,7 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 					padding: [10, 10] // eslint-disable-line array-element-newline
 				});
 			} else {
-				window.console.warn("bounds are not vaild.");
+				Utils.console.warn("bounds are not vaild.");
 			}
 			this.polylineGroup.addTo(map.privGetMap());
 			this.markerGroup.addTo(map.privGetMap());
@@ -262,7 +262,7 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 			}
 			sContent = this.options.onGetInfoWindowContent ? this.options.onGetInfoWindowContent(oMarker, oPreviousMarker) : "";
 		} else {
-			window.console.error("privGetPopupContent: wrong index: " + iIndex);
+			Utils.console.error("privGetPopupContent: wrong index: " + iIndex);
 		}
 		return sContent;
 	}

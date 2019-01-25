@@ -1,9 +1,9 @@
-/* globals addExample */
+/* globals gcFiddle */
 
 "use strict";
 
-addExample(function () { /*
-#GCJVT3: Irren ist menschlich - To err is human (solution)
+gcFiddle.addItem("", function () { /*
+$GCJVT3="N 49° 18.071 E 008° 42.167!archived!Irren ist menschlich - To err is human (solution)"
 #https://coord.info/GCJVT3
 #
 #Solution provided with friendly permission by rosszwerg.

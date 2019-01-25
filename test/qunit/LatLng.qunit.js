@@ -1,8 +1,15 @@
 // LatLng.qunit.js - ...
 //
-/* globals QUnit, LatLng, Utils */
+/* globals QUnit */ // LatLng, Utils
 
 "use strict";
+
+var LatLng, Utils;
+
+if (typeof require !== "undefined") {
+	LatLng = require("../../LatLng.js"); // eslint-disable-line global-require
+	Utils = require("../../Utils.js"); // eslint-disable-line global-require
+}
 
 QUnit.module("LatLng Properties", {
 	before: function () {

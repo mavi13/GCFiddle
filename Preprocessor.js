@@ -1,8 +1,14 @@
 // Preprocessor.js - Preprocess text to scripts
 //
-/* globals Utils */ /* and implicit: ScriptParser */
+/* globals */ /* Utils */ /* and implicit: ScriptParser */
 
 "use strict";
+
+var Utils;
+
+if (typeof require !== "undefined") {
+	Utils = require("./Utils.js"); // eslint-disable-line global-require
+}
 
 function Preprocessor(options) {
 	this.init(options);
@@ -319,7 +325,7 @@ Preprocessor.prototype = {
 			iLength = Math.min(arguments.length, 6 + 1); // we need at most 6 arguments starting with index 1
 			for (i = 1; i < iLength; i += 1) {
 				sArg = arguments[i];
-				sArg = String(sArg).replace(/['"]/, ""); // remove apostropthes, quotes
+				sArg = String(sArg).replace(/['"]/, ""); // remove apostropthes, quotes //TTT global?
 				if (i === iLength - 1) { // last argument?
 					if (Utils.stringEndsWith(sArg, ")") && sArg.indexOf("(") < 0) { // sometimes a waypoint is surrounded by parenthesis, remove closing parenthesis
 						sArg = sArg.substring(0, sArg.length - 1);
@@ -403,7 +409,7 @@ Preprocessor.prototype = {
 				str = "#" + aHints[1];
 			}
 		} else {
-			window.console.warn("Unknown hint section: " + str);
+			Utils.console.warn("Unknown hint section: " + str);
 		}
 		return str;
 	},
@@ -463,7 +469,7 @@ Preprocessor.prototype = {
 				if (Object.keys(mOut).length > 0) {
 					aOut.push(mOut);
 				} else {
-					window.console.log("fnLogs: Cannot parse log entry " + i + ": " + sLog);
+					Utils.console.log("fnLogs: Cannot parse log entry " + i + ": " + sLog);
 				}
 			}
 		}
@@ -513,7 +519,7 @@ Preprocessor.prototype = {
 			if (Utils.stringEndsWith(sSectionName, "Logged Visits")) { // 83 Logged Visits
 				Utils.objectAssign(this.mInfo, this.fnLogs("\n" + sInput));
 			} else {
-				window.console.warn("Unknown part: " + sSectionName);
+				Utils.console.warn("Unknown part: " + sSectionName);
 				sOutput = this.fnPrefixHash(sInput);
 			}
 			break;
@@ -589,10 +595,15 @@ Preprocessor.prototype = {
 		sOutput = this.fnFixScript(sOutput, this.options.scriptParser);
 		if (sOutput === "") {
 			sOutput = sInput;
-			window.console.log("No sections found. Already preprocessed?");
+			Utils.console.log("No sections found. Already preprocessed?");
 		}
 		mInfo.script = sOutput;
 		return mInfo;
 	}
 };
+
+
+if (typeof module !== "undefined" && module.exports) {
+	module.exports = Preprocessor;
+}
 // end

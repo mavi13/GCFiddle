@@ -4,39 +4,71 @@
 "use strict";
 
 var Utils = {
-	loadScript: function (url, callback, arg) {
-		var script = document.createElement("script"),
-			sFullUrl;
+	debug: 0,
+	loadScript: function (sUrl, fnCallback, arg) {
+		// inspired by https://github.com/requirejs/requirejs/blob/master/require.js
+		var that = this,
+			script, sFullUrl,
+			onScriptLoad = function (event) {
+				var node = event.currentTarget || event.srcElement;
 
+				if (Utils.debug > 1) {
+					Utils.console.debug("DEBUG: onScriptLoad: " + node.src);
+				}
+				node.removeEventListener("load", onScriptLoad, false);
+				node.removeEventListener("error", that.onScriptError, false);
+
+				return fnCallback(sFullUrl, arg);
+			},
+			onScriptError = function (event) {
+				var node = event.currentTarget || event.srcElement;
+
+				if (Utils.debug > 1) {
+					Utils.console.debug("DEBUG: onScriptError: " + node.src);
+				}
+				node.removeEventListener("load", onScriptLoad, false);
+				node.removeEventListener("error", onScriptError, false);
+			},
+			onScriptReadyStateChange = function (event) { // for IE
+				var node = event.currentTarget || event.srcElement;
+
+				if (Utils.debug > 1) {
+					Utils.console.debug("DEBUG: onScriptReadyStateChange: " + node.src);
+				}
+				if (node.detachEvent) {
+					node.detachEvent("onreadystatechange", onScriptReadyStateChange);
+				}
+				if (node.readyState !== "loaded" && node.readyState !== "complete") {
+					return null; // error
+				}
+				return fnCallback(sFullUrl, arg); // success
+			};
+
+		script = document.createElement("script");
 		script.type = "text/javascript";
-		script.defer = "defer"; // only for IE
+		script.charset = "utf-8";
+		// script.defer = "defer"; // only for IE?
 		script.async = true;
 		if (script.readyState) { // IE
-			script.onreadystatechange = function () {
-				if (script.readyState === "loaded" || script.readyState === "complete") {
-					script.onreadystatechange = null;
-					return callback(sFullUrl, arg);
-				}
-				return null;
-			};
+			script.attachEvent("onreadystatechange", onScriptReadyStateChange);
 		} else { // Others
-			script.onload = function () {
-				callback(sFullUrl, arg);
-			};
+			script.addEventListener("load", onScriptLoad, false);
+			script.addEventListener("error", onScriptError, false);
 		}
-		script.src = url;
+		script.src = sUrl;
 		sFullUrl = script.src;
 		document.getElementsByTagName("head")[0].appendChild(script);
 		return sFullUrl;
 	},
-	loadStyle: function (url, callback, arg) {
-		var link = document.createElement("link");
+	loadStyle: function (sUrl, fnCallback, arg) {
+		var link;
 
+		link = document.createElement("link");
 		link.rel = "stylesheet";
 		link.onload = function () {
-			callback(arg);
+			fnCallback(arg);
 		};
-		link.href = url;
+		link.href = sUrl;
 		document.getElementsByTagName("head")[0].appendChild(link);
 	},
 	strNumFormat: function (s, iLen, sFillChar) {
@@ -110,11 +142,14 @@ var Utils = {
 		try {
 			Utils.localStorage = window.localStorage; // due to a bug in Edge this will throw an error when hosting locally (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8816771/)
 		} catch (e) {
-			window.console.warn("initLocalStorage: " + e);
+			Utils.console.log("initLocalStorage: " + e);
 		}
-	}
+	},
+	console: console
 };
 
-Utils.initLocalStorage();
 
+if (typeof module !== "undefined" && module.exports) {
+	module.exports = Utils;
+}
 // end

@@ -1,11 +1,14 @@
 // ScriptParser.qunit.js - ...
 //
-/* globals QUnit, ScriptParser */
+/* globals QUnit */ // ScriptParser
 
 "use strict";
 
-var gDebug; // eslint-disable-line no-unused-vars
-// (gDebug used in Scriptparser.parse)
+var ScriptParser;
+
+if (typeof require !== "undefined") {
+	ScriptParser = require("../../ScriptParser.js"); // eslint-disable-line global-require
+}
 
 QUnit.module("ScriptParser", {
 	before: function () {
@@ -419,6 +422,8 @@ QUnit.test("Empty", function (assert) {
 
 QUnit.test("Expression a+b", function (assert) {
 	var oParser = this.parser, // eslint-disable-line no-invalid-this
+		// fnNud = function (a) {},
+		// fnNud = (function () { return function (a) {}; }()),
 		aParse = [
 			{
 				pos: 0,
@@ -459,7 +464,7 @@ QUnit.test("Expression a+b", function (assert) {
 		oOut;
 
 	oOut = oParser.parse(aParse);
-	oOut = JSON.parse(JSON.stringify(oOut)); // remove parent objects with properties lbp, led, nud
+	oOut = JSON.parse(JSON.stringify(oOut)); // remove parent object prototypes with properties lbp, led, nud as functions
 	assert.deepEqual(oOut, mResult, "a+b");
 });
 

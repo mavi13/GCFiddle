@@ -1,8 +1,14 @@
 // Preprocessor.qunit.js - ...
 //
-/* globals QUnit, Preprocessor */
+/* globals QUnit */ // ,Preprocessor
 
 "use strict";
+
+var Preprocessor;
+
+if (typeof require !== "undefined") {
+	Preprocessor = require("../../Preprocessor.js"); // eslint-disable-line global-require
+}
 
 QUnit.module("Preprocessor", {
 	before: function () {
@@ -177,7 +183,7 @@ QUnit.test("Parameters from section: Skip to Content", function (assert) {
 
 	oPre.init(oPre.options); // init
 	oOut = oPre.processText(sText3);
-	//delete oOut.script;
+	// delete oOut.script;
 	mResult.script = "#Geocache Description:\n#my description\n";
 	assert.deepEqual(oOut, mResult, "parameters extracted from text3");
 });
