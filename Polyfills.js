@@ -25,6 +25,10 @@ if (!window.console) {
 	};
 }
 
+if (!window.console.debug) { // IE8
+	window.console.debug = window.console.log;
+}
+
 if (!String.prototype.trim) {
 	String.prototype.trim = function () { // eslint-disable-line no-extend-native
 		return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, "");
@@ -167,7 +171,7 @@ if (!document.addEventListener) {
 			};
 		}());
 	} else {
-		window.console.log("No document.attachEvent found."); // will be ignored
+		Utils.console.log("No document.attachEvent found."); // will be ignored
 		// debug: trying to fix
 		if (document.__proto__.addEventListener) { // eslint-disable-line no-proto
 			document.addEventListener = document.__proto__.addEventListener; // eslint-disable-line no-proto

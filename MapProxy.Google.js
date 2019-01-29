@@ -29,7 +29,7 @@ MapProxy.Google.Map.prototype = {
 		Utils.loadScript(sUrl, function () {
 			var mapDiv = document.getElementById(that.options.mapDivId);
 
-			window.console.log("GoogleMaps " + google.maps.version + " loaded");
+			Utils.console.log("GoogleMaps " + google.maps.version + " loaded");
 			that.map = new google.maps.Map(mapDiv, {
 				zoom: that.options.zoom
 			});

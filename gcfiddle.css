@@ -8,6 +8,7 @@ body {
 	padding: 2px;
 	margin: 2px;
 	background-color: LightGrey;
+	/* font-size: 2em; */ /* Test */
 }
 
 .clearLeft {
@@ -44,15 +45,25 @@ body {
 
 .label {
 	background-color: WhiteSmoke;
-	border: 1px transparent;
-	padding: 1px 0px;
-	margin: 1px;
+	float: left;
+	width: 4em;
+	margin-right: 0.2em;
+	text-align: right;
+	padding: 0px 2px 0px 2px;
+	overflow: hidden;
+	display: block;
 }
 
 .area {
 	padding: 2px;
 	margin: 1px;
 	border: 0.5px solid #7A7A7A;
+	float: left;
+}
+
+.field {
+	padding: 2px 2px 2px 2px;
+	float: left;
 }
 
 .editable {

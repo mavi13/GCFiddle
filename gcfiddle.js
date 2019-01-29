@@ -2,35 +2,39 @@
 // (c) mavi13, 2018
 // https://mavi13.github.io/GCFiddle/
 //
-/* globals Controller, Model, Utils, View */
+/* globals Controller, Model, ScriptParser, Utils, View */
 
 "use strict";
 
 var gcFiddleExternalConfig, // set in gcconfig.js
 	gcFiddle = {
 		config: {
+			database: "testDB", // database
+			databaseIndex: "0dbindex.js", // database index relative to exampleDir
 			debug: 0,
-			database: "testDB", // DB
-			example: "GCNEW1", // GCNEW1, GCTEST1, GCJVT3
+			example: "", // GCNEW1, GCTEST1, GCJVT3
+			exampleDir: "examples", // example base directory
+			filterCategory: "", // filter by categories (comma separated list, empty means all)
+			filterId: "", // filter by ID (substring, ignore-case)
+			filterTitle: "", // filter by title (substring, ignore-case)
+			googleKey: "", // Google API key
+			leafletMapboxKey: "", // mapbox access token (for leaflet maps, currently unused)
+			leafletUrl: "https://unpkg.com/leaflet@1.3.1/dist/leaflet.js",
+			mapType: "leaflet", // simple, google, leaflet, openlayers, none
+			openlayersUrl: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js",
+			showConsole: false, // for debugging
+			showFilter: true,
 			showInput: true,
+			showLogs: false,
+			showMap: true,
+			showNotes: true,
 			showOutput: true,
 			showVariable: true,
-			showNotes: true,
 			showWaypoint: true,
-			showMap: true,
-			showLogs: false,
-			showConsole: false, // for debugging
+			testIndexedDb: false, // Test
 			variableType: "number", // number, text, range
 			waypointFormat: "", // waypoint output format: "", dmm, dms, dd, dmmc, dmsc, ddc
-			leafletMapboxKey: "", // mapbox access token (for leaflet maps, currently unused)
-			mapType: "leaflet", // simple, google, leaflet, openlayers, none
-			googleKey: "", // Google API key
-			zoom: 15, // default zoom level
-			leafletUrl: "https://unpkg.com/leaflet@1.3.1/dist/leaflet.js",
-			openlayersUrl: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js",
-			exampleDir: "examples", // example base directory
-			dbIndex: "0dbindex.js", // DB index relative to exampleDir
-			testIndexedDb: false
+			zoom: 15 // default zoom level
 		},
 		model: null,
 		view: null,
@@ -84,7 +88,7 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 		fnDoStart: function () {
 			var that = this,
 				oStartConfig = this.config,
-				oInitialConfig,	oModel, iDebug, sDbIndex;
+				oInitialConfig,	oModel, iDebug;
 
 			if (Utils.debug) { // not yet active
 				Utils.console.debug("DEBUG: fnDoStart: gcFiddle started");
@@ -104,17 +108,7 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 			iDebug = Number(oModel.getProperty("debug"));
 			Utils.debug = iDebug;
 
-			sDbIndex = oModel.getProperty("exampleDir") + "/" + oModel.getProperty("dbIndex");
-
-			if (sDbIndex) {
-				Utils.loadScript(sDbIndex, function () {
-					window.console.log(sDbIndex + " loaded");
-					that.controller = new Controller(that.model, that.view);
-				});
-			} else {
-				window.console.warn("DbIndex not set");
-				this.controller = new Controller(this.model, this.view);
-			}
+			that.controller = new Controller(that.model, that.view);
 		},
 
 		fnOnLoad: function () {
@@ -134,7 +128,7 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 
 			if ((!window.console || !Array.prototype.forEach || !Object.create || !Utils.localStorage) && typeof Polyfills === "undefined") { // need Polyfill?, load module on demand
 				Utils.loadScript(sUrl, function () {
-					window.console.log(sUrl + " loaded");
+					Utils.console.log(sUrl + " loaded");
 					that.fnDoStart();
 				});
 			} else {
@@ -149,9 +143,9 @@ function setExampleIndex(input) { // eslint-disable-line no-unused-vars
 	var sAdapted = "",
 		sInput, aLines, i, sLine, aParts, sKey, sTitle;
 
-	Utils.console.warn("setExampleIndex: Deprecated example index format found! Trying to load and adapt...");
-
 	sInput = (typeof input === "string") ? Utils.stringTrimLeft(input) : gcFiddle.controller.fnHereDoc(input).trim();
+
+	Utils.console.warn("setExampleIndex: Deprecated example index format found! Trying to load and adapt...");
 
 	if (sInput) {
 		aLines = sInput.split("\n");
@@ -164,7 +158,7 @@ function setExampleIndex(input) { // eslint-disable-line no-unused-vars
 				sTitle = String(sTitle).replace(/"/g, "'"); // replace quotes by apostropthes
 				sAdapted += "$" + sKey + '="!!' + sTitle + '"\n';
 			} else {
-				window.console.warn("setExampleIndex: ignoring line " + sLine);
+				Utils.console.warn("setExampleIndex: ignoring line " + sLine);
 			}
 		}
 	}
@@ -173,7 +167,11 @@ function setExampleIndex(input) { // eslint-disable-line no-unused-vars
 
 // Deprecated function called from old files GCxxxxx.js
 function addExample(input) { // eslint-disable-line no-unused-vars
-	var sInput, aSplit, sLine, aParts, sKey, sTitle;
+	var sCategory = "",
+		sPosition = "",
+		sWaypoint,
+		oVariables = {},
+		sInput, aSplit, sLine, aParts, sKey, sTitle, oOutput, oError;
 
 	sInput = (typeof input === "string") ? Utils.stringTrimLeft(input) : gcFiddle.controller.fnHereDoc(input).trim();
 
@@ -187,9 +185,20 @@ function addExample(input) { // eslint-disable-line no-unused-vars
 		sKey = aParts[1];
 		sTitle = aParts[2];
 		sTitle = String(sTitle).replace(/"/g, "'"); // replace quotes by apostropthes
-		sInput = "$" + sKey + '="!!' + sTitle + '"\n' + sInput;
+
+		oOutput = new ScriptParser().calculate(sInput, oVariables);
+		if (oOutput.error) {
+			oError = oOutput.error;
+			Utils.console.warn("addExample: " + sKey + ": Cannot parse: " + oError.message + ": '" + oError.value + "' (pos " + oError.pos + "-... )");
+		} else {
+			sWaypoint = "$" + sKey;
+			if (oVariables[sWaypoint]) { // waypoint with key name found?
+				sPosition = oVariables[sWaypoint];
+			}
+		}
+		sInput = "$" + sKey + '="' + sPosition + "!" + sCategory + "!" + sTitle + '"\n' + sInput;
 	} else {
-		window.console.warn("parseExample: Example must start with #<id>: <title>");
+		Utils.console.warn("parseExample: Example must start with #<id>: <title>");
 	}
 	return gcFiddle.controller.fnAddItem("", sInput);
 }

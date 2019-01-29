@@ -1,6 +1,6 @@
 // ScriptParser.qunit.js - ...
 //
-/* globals QUnit */ // ScriptParser
+/* globals QUnit */
 
 "use strict";
 

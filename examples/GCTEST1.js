@@ -3,7 +3,7 @@
 "use strict";
 
 gcFiddle.addItem("", function () { /*
-$GCTEST1="N 49° 16.183 E 008° 40.637!!Test Page"
+$GCTEST1="N 49° 16.183 E 008° 40.637!test!Test Page"
 #
 #
 #Basic tests

@@ -1,6 +1,6 @@
 // Preprocessor.js - Preprocess text to scripts
 //
-/* globals */ /* Utils */ /* and implicit: ScriptParser */
+/* globals */ /* and implicit: ScriptParser */
 
 "use strict";
 

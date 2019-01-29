@@ -1,6 +1,6 @@
 // Model.js - Model
 //
-/* globals */
+/* globals Utils */
 
 "use strict";
 
@@ -79,7 +79,9 @@ Model.prototype = {
 			sKey = oExample.key;
 
 		if (!this.examples[selectedDatabase][sKey]) {
-			window.console.debug("setExample: creating new example: " + sKey);
+			if (Utils.debug) {
+				Utils.console.debug("setExample: creating new example: " + sKey);
+			}
 		}
 		this.examples[selectedDatabase][sKey] = oExample;
 		return this;
@@ -88,7 +90,7 @@ Model.prototype = {
 		var selectedDatabase = this.getProperty("database");
 
 		if (!this.examples[selectedDatabase][sKey]) {
-			window.console.warn("deleteExample: example does not exist: " + sKey);
+			Utils.console.warn("deleteExample: example does not exist: " + sKey);
 		}
 		delete this.examples[selectedDatabase][sKey];
 		return this;

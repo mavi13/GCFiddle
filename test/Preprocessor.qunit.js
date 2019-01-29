@@ -1,6 +1,6 @@
 // Preprocessor.qunit.js - ...
 //
-/* globals QUnit */ // ,Preprocessor
+/* globals QUnit */
 
 "use strict";
 

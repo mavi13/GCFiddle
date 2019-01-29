@@ -1,6 +1,6 @@
 // LatLng.qunit.js - ...
 //
-/* globals QUnit */ // LatLng, Utils
+/* globals QUnit */
 
 "use strict";
 

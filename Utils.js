@@ -5,6 +5,24 @@
 
 var Utils = {
 	debug: 0,
+	consoleText: "",
+	console: (typeof console !== "undefined") ? console : { // we must load Utils first to dynamically load Polyfill, but we maybe need a console on old browsers or if the console is closed
+		log: function (s) {
+			Utils.consoleText += s + "\n";
+		},
+		debug: function (s) {
+			Utils.consoleText += s + "\n";
+		},
+		info: function (s) {
+			Utils.consoleText += s + "\n";
+		},
+		warn: function (s) {
+			Utils.consoleText += s + "\n";
+		},
+		error: function (s) {
+			Utils.consoleText += s + "\n";
+		}
+	},
 	loadScript: function (sUrl, fnCallback, arg) {
 		// inspired by https://github.com/requirejs/requirejs/blob/master/require.js
 		var that = this,
@@ -30,16 +48,32 @@ var Utils = {
 				node.removeEventListener("error", onScriptError, false);
 			},
 			onScriptReadyStateChange = function (event) { // for IE
-				var node = event.currentTarget || event.srcElement;
+				var node, iTimeout;
 
-				if (Utils.debug > 1) {
-					Utils.console.debug("DEBUG: onScriptReadyStateChange: " + node.src);
+				if (event) {
+					node = event.currentTarget || event.srcElement;
+				} else {
+					node = script;
 				}
 				if (node.detachEvent) {
 					node.detachEvent("onreadystatechange", onScriptReadyStateChange);
 				}
+
+				if (Utils.debug > 1) {
+					Utils.console.debug("DEBUG: onScriptReadyStateChange: " + node.src);
+				}
+				// check also: https://stackoverflow.com/questions/1929742/can-script-readystate-be-trusted-to-detect-the-end-of-dynamic-script-loading
 				if (node.readyState !== "loaded" && node.readyState !== "complete") {
-					return null; // error
+					if (node.readyState === "loading") {
+						iTimeout = 200; // some delay
+						Utils.console.error("onScriptReadyStateChange: Still loading: " + node.src + " Waiting " + iTimeout + "ms");
+						setTimeout(function () {
+							onScriptReadyStateChange(); // check again
+						}, iTimeout);
+					} else {
+						Utils.console.error("onScriptReadyStateChange: Cannot load file " + node.src + " readystate=" + node.readyState);
+					}
+					return null;
 				}
 				return fnCallback(sFullUrl, arg); // success
 			};
@@ -51,6 +85,7 @@ var Utils = {
 		script.async = true;
 		if (script.readyState) { // IE
 			script.attachEvent("onreadystatechange", onScriptReadyStateChange);
+			//script.onreadystatechange = onScriptReadyStateChange;
 		} else { // Others
 			script.addEventListener("load", onScriptLoad, false);
 			script.addEventListener("error", onScriptError, false);
@@ -144,8 +179,7 @@ var Utils = {
 		} catch (e) {
 			Utils.console.log("initLocalStorage: " + e);
 		}
-	},
-	console: console
+	}
 };
 
 

@@ -1,6 +1,6 @@
 // CommonEventHandler.qunit.js - ...
 //
-/* globals QUnit */ // CommonEventHandler
+/* globals QUnit */
 
 "use strict";
 

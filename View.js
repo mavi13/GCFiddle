@@ -34,6 +34,19 @@ View.prototype = {
 		return this;
 	},
 
+	getAllSelectOptionValues: function (sId) {
+		var aItems = [],
+			select, i, options;
+
+		select = document.getElementById(sId);
+		options = select.options;
+
+		for (i = 0; i < options.length; i += 1) {
+			aItems.push(options[i].value);
+		}
+		return aItems;
+	},
+
 	setSelectOptions: function (sId, aOptions) {
 		var select, i, oItem, option;
 
@@ -59,17 +72,39 @@ View.prototype = {
 					option.title = oItem.title;
 				}
 			}
+			if (oItem.selected) { // multi-select
+				option.selected = oItem.selected;
+			}
 		}
 		// remove additional select options
-		for (i = select.length - 1; i >= aOptions.length; i -= 1) {
-			select.remove(i);
-		}
+		select.options.length = aOptions.length;
 		return this;
 	},
 	getSelectValue: function (sId) {
 		var select = document.getElementById(sId);
 
 		return select.value;
+	},
+	getMultiSelectValues: function (sId) {
+		var select = document.getElementById(sId),
+			aValues = [],
+			i;
+
+		// fast but not universally supported
+		if (select.selectedOptions !== undefined) {
+			for (i = 0; i < select.selectedOptions.length; i += 1) {
+				aValues.push(select.selectedOptions[i].value);
+			}
+
+		// compatible, but can be painfully slow
+		} else {
+			for (i = 0; i < select.options.length; i += 1) {
+				if (select.options[i].selected) {
+					aValues.push(select.options[i].value);
+				}
+			}
+		}
+		return aValues;
 	},
 	setSelectValue: function (sId, sValue) {
 		var select = document.getElementById(sId);
@@ -147,7 +182,7 @@ View.prototype = {
 		try {
 			input.type = sType;
 		} catch (e) {
-			window.console.warn("Browser does not allow to set input.type=" + sType + ": " + e.message);
+			Utils.console.warn("Browser does not allow to set input.type=" + sType + ": " + e.message);
 		}
 		return this;
 	},
@@ -155,6 +190,12 @@ View.prototype = {
 		var input = document.getElementById(sId);
 
 		return input.value;
+	},
+	setInputValue: function (sId, sValue) {
+		var input = document.getElementById(sId);
+
+		input.value = sValue;
+		return this;
 	},
 	setInputValueTitle: function (sId, sValue, sTitle) {
 		var input = document.getElementById(sId);
@@ -187,9 +228,9 @@ View.prototype = {
 	},
 
 	setLegendText: function (sId, sText) {
-		var select = document.getElementById(sId);
+		var legend = document.getElementById(sId);
 
-		select.textContent = sText;
+		legend.textContent = sText;
 		return this;
 	},
 	getLabelText: function (sId) {
@@ -197,11 +238,22 @@ View.prototype = {
 
 		return label.innerText;
 	},
-	setLabelTextTitle: function (sId, sText, sTitle) {
+	setLabelText: function (sId, sText) {
 		var label = document.getElementById(sId);
 
 		label.innerText = sText;
+		return this;
+	},
+	setLabelTitle: function (sId, sTitle) {
+		var label = document.getElementById(sId);
+
 		label.title = sTitle;
+		return this;
+	},
+	setSpanText: function (sId, sText) {
+		var span = document.getElementById(sId);
+
+		span.textContent = sText;
 		return this;
 	},
 
@@ -226,24 +278,30 @@ View.prototype = {
 				"warn",
 				"error"
 			],
-			sVerb,
 			consoleLogArea = document.getElementById("consoleLogArea"),
-			i;
+			sVerb, i,
+			fnConsoleGenerator = function (fnMethod, sVerb2, oLog) {
+				return function () { // varargs
+					var aArgs;
 
-		for (i = 0; i < aVerbs.length; i += 1) {
-			sVerb = aVerbs[i];
-			window.console[sVerb] = (function (fnMethod, sVerb2, oLog) {
-				return function () {
 					if (fnMethod) {
 						if (fnMethod.apply) {
 							fnMethod.apply(console, arguments);
 						} else { // we do our best without apply
-							fnMethod(arguments);
+							aArgs = [];
+							for (i = 0; i < arguments.length; i += 1) {
+								aArgs.push(arguments[i]);
+							}
+							fnMethod(aArgs.join(" ")); // combine arguments for IE8
 						}
 					}
 					oLog.value += sVerb2 + ": " + Array.prototype.slice.call(arguments).join(" ") + "\n";
 				};
-			}(window.console[sVerb], sVerb, consoleLogArea));
+			};
+
+		for (i = 0; i < aVerbs.length; i += 1) {
+			sVerb = aVerbs[i];
+			window.console[sVerb] = fnConsoleGenerator(window.console[sVerb], sVerb, consoleLogArea);
 		}
 	},
 	showConfirmPopup: function (message) {

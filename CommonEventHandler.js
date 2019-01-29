@@ -69,7 +69,7 @@ CommonEventHandler.prototype = {
 		} else {
 			sValue = variables[sPar];
 		}
-		this.view.setLabelTextTitle("varLabel", sPar, sPar);
+		this.view.setLabelText("varLabel", sPar).setLabelTitle("varLabel", sPar);
 
 		if (sType !== "text") {
 			if (!(/^[\d]+$/).test(sValue)) { // currently only digits (without -,.) are numbers
@@ -128,7 +128,7 @@ CommonEventHandler.prototype = {
 			sValue = oVariables[sPar];
 		}
 
-		this.view.setLabelTextTitle("waypointLabel", sPar, sPar);
+		this.view.setLabelText("waypointLabel", sPar).setLabelTitle("waypointLabel", sPar);
 
 		oPos = new LatLng().parse(sValue);
 		sError = oPos.getError();
@@ -240,10 +240,9 @@ CommonEventHandler.prototype = {
 
 			fnExampleLoaded = function (sFullUrl, sExample2, bSuppressLog) {
 				var sDatabase2 = that.model.getProperty("database"), // still the same after loading?
-					oExamples2 = that.model.getAllExamples(sDatabase2),
+					oExamples2 = that.model.getAllExamples(),
 					sName2 = sDatabase2 + "/" + sExample2 + ".js";
 
-				that.model.setProperty("example", sExample2);
 				if (!bSuppressLog) {
 					Utils.console.log("Example " + sName2 + " loaded");
 				}
@@ -268,19 +267,23 @@ CommonEventHandler.prototype = {
 				that.controller.fnSetInputAreaValue(oExamples2[sExample2].script);
 				that.controller.fnInitUndoRedoButtons();
 				that.onExecuteButtonClick();
+
+				if (that.onMyExampleSelectChangeCompleted) {
+					that.onMyExampleSelectChangeCompleted(sExample);
+				}
 			};
 
 		this.view.setSelectTitleFromSelectedOption("exampleSelect");
-		oExample = this.model.getExample(sExample);
+		that.model.setProperty("example", sExample);
+		oExample = this.model.getExample(sExample); // already loaded
 		if (oExample && oExample.loaded) {
 			fnExampleLoaded("", sExample, true);
-		} else if (sExample) {
+		} else if (sExample) { // need to load
 			this.controller.fnSetInputAreaValue("#loading " + sExample + "...");
 			this.view.setAreaValue("outputArea", "waiting...");
 
 			sSrc = oExample.src;
 
-			//TTT
 			sPath = "";
 			oDatabase = this.model.getDatabase(sDatabase);
 			if (oDatabase.src) {
@@ -304,6 +307,10 @@ CommonEventHandler.prototype = {
 			this.model.setProperty("example", "");
 			this.controller.fnInitUndoRedoButtons();
 			this.onExecuteButtonClick();
+
+			if (this.onMyExampleSelectChangeCompleted) {
+				this.onMyExampleSelectChangeCompleted(sExample);
+			}
 		}
 	},
 
@@ -316,10 +323,10 @@ CommonEventHandler.prototype = {
 				if (sDatabase !== sDatabase2) {
 					Utils.console.warn("fnDatabaseLoaded: wrong database: " + sDatabase + ", " + sDatabase2);
 				}
-
 				oDatabase.loaded = true;
-				Utils.console.log("database/database loaded: " + sName);
-				that.controller.fnSetExampleList();
+				Utils.console.log("database loaded: " + sName);
+				that.controller.fnSetFilterCategorySelectOptions();
+				that.controller.fnSetExampleSelectOptions();
 				that.onExampleSelectChange();
 			},
 			fnLoadDatabaseLocalStorage = function () {
@@ -331,10 +338,7 @@ CommonEventHandler.prototype = {
 					sItem = oStorage.getItem(sKey);
 					that.controller.fnAddItem(sKey, sItem);
 				}
-				oDatabase.loaded = true;
-				Utils.console.log("database loaded: " + sDatabase);
-				that.controller.fnSetExampleList();
-				that.onExampleSelectChange();
+				fnDatabaseLoaded("", sDatabase);
 			};
 
 		this.model.setProperty("database", sDatabase);
@@ -346,7 +350,8 @@ CommonEventHandler.prototype = {
 		}
 
 		if (oDatabase.loaded) {
-			this.controller.fnSetExampleList();
+			that.controller.fnSetFilterCategorySelectOptions();
+			this.controller.fnSetExampleSelectOptions();
 			this.onExampleSelectChange();
 		} else {
 			this.view.setAreaValue("inputArea", "#loading index " + sDatabase + "...");
@@ -366,6 +371,64 @@ CommonEventHandler.prototype = {
 		this.view.setDisabled("deleteButton", bDisabled);
 	},
 
+	onFilterCategorySelectChange: function () {
+		var aSelectedCategories, sFilterCategory;
+
+		aSelectedCategories = this.view.getMultiSelectValues("filterCategorySelect");
+		sFilterCategory = aSelectedCategories.join(",");
+		this.model.setProperty("filterCategory", sFilterCategory);
+		if (Utils.debug) {
+			Utils.console.debug("DEBUG: onFilterCategorySelectChange: filterCategory: " + sFilterCategory);
+		}
+
+		this.controller.fnSetExampleSelectOptions();
+		this.onExampleSelectChange();
+	},
+
+	onFilterApplyButtonClick: function () {
+		var aSelectedCategories, sFilterCategory, sFilterTitle, sFilterId;
+
+		aSelectedCategories = this.view.getMultiSelectValues("filterCategorySelect");
+		sFilterCategory = aSelectedCategories.join(",");
+		this.model.setProperty("filterCategory", sFilterCategory);
+
+		sFilterId = this.view.getSelectValue("filterIdInput");
+		this.model.setProperty("filterId", sFilterId);
+
+		sFilterTitle = this.view.getSelectValue("filterTitleInput");
+		this.model.setProperty("filterTitle", sFilterTitle);
+
+		if (Utils.debug) {
+			Utils.console.debug("DEBUG: onFilterApplyButtonClick: filterCategory: " + sFilterCategory + " filterId: " + sFilterId + " filterTitle: " + sFilterTitle);
+		}
+
+		this.controller.fnSetExampleSelectOptions();
+		this.onExampleSelectChange();
+	},
+
+	onFilterResetButtonClick: function () {
+		var sFilterCategory = "", // or take from saved config
+			sFilterTitle = "",
+			sFilterId = "";
+
+		this.model.setProperty("filterId", sFilterId);
+		this.view.setInputValue("filterIdInput", sFilterId);
+
+		this.model.setProperty("filterTitle", sFilterTitle);
+		this.view.setInputValue("filterTitleInput", sFilterTitle);
+
+		this.model.setProperty("filterCategory", sFilterCategory);
+		this.controller.fnSetFilterCategorySelectOptions();
+
+		this.controller.fnSetExampleSelectOptions();
+		this.onExampleSelectChange();
+	},
+
+	onFilterLegendClick: function () {
+		var bShowFilter = !this.view.toogleHidden("filterArea").getHidden("filterArea");
+
+		this.model.setProperty("showFilter", bShowFilter);
+	},
 
 	onInputLegendClick: function () {
 		var bShowInput = !this.view.toogleHidden("inputArea").getHidden("inputArea");
@@ -603,6 +666,65 @@ CommonEventHandler.prototype = {
 		window.location.search = "?" + this.controller.fnEncodeUriParam(oChanged); // jQuery.param(oChanged, true)
 	},
 
+	onMyExampleSelectChangeCompleted: function (sExample) {
+		if (Utils.debug > 1) {
+			Utils.console.debug("onMyExampleSelectChangeCompleted: " + sExample);
+			// handler not used, yet
+		}
+	},
+
+	onIndexButtonClick: function () {
+		var that = this,
+			aExamples,
+			iIndex = 0,
+			fnDumpIndex = function () {
+				var sList = "",
+					i, sExample, oExample, sLine;
+
+				for (i = 0; i < aExamples.length; i += 1) {
+					sExample = aExamples[i];
+					oExample = that.model.getExample(sExample);
+					if (oExample) {
+						if (!oExample.loaded) {
+							Utils.console.warn("fnDumpIndex: Example not loaded: " + sExample);
+						}
+						sLine = oExample.script.split("\n", 1)[0]; // only first line
+						if (!sLine) {
+							sLine = "$" + sExample + '="!!DUMMY"';
+						}
+						sList += sLine + "\n";
+					}
+				}
+				that.view.setAreaValue("outputArea", sList);
+			},
+			fnSelectNextValue = function () {
+				var iTimeout = 40, // 10 could be ok
+					sValue;
+
+				if (iIndex < aExamples.length) {
+					sValue = aExamples[iIndex];
+					if (Utils.debug) {
+						Utils.console.debug("fnSelectNextValue: select value " + sValue + " (index " + iIndex + ")");
+					}
+					that.view.setSelectValue("exampleSelect", sValue);
+					that.onExampleSelectChange();
+					setTimeout(fnSelectNextValue, iTimeout);
+					//other possiblility: that.onMyExampleSelectChangeCompleted = fnSelectNextValue;
+					iIndex += 1;
+				} else {
+					//that.onMyExampleSelectChangeCompleted = null;
+					setTimeout(fnDumpIndex, iTimeout);
+				}
+			};
+
+		aExamples = this.view.getAllSelectOptionValues("exampleSelect");
+		aExamples.sort(); // use toLowerCase?
+
+		Utils.console.log("onNewIndexButton: examples=" + aExamples);
+
+		fnSelectNextValue();
+	},
+
 	onSaveButtonClick: function () {
 		var sDatabase = this.model.getProperty("database"),
 			sExample = this.model.getProperty("example"),
@@ -675,7 +797,8 @@ CommonEventHandler.prototype = {
 			this.view.setSelectValue("exampleSelect", sExample);
 		}
 		this.model.setProperty("example", sExample);
-		this.controller.fnSetExampleList();
+		this.controller.fnSetFilterCategorySelectOptions(); // maybe category added
+		this.controller.fnSetExampleSelectOptions();
 		this.onExampleSelectChange();
 		this.view.setDisabled("deleteButton", !Object.keys(this.model.getAllExamples()).length);
 	},
@@ -697,7 +820,8 @@ CommonEventHandler.prototype = {
 		oExample = this.model.getExample(sExample);
 		if (oExample) {
 			this.model.deleteExample(sExample);
-			this.controller.fnSetExampleList();
+			this.controller.fnSetFilterCategorySelectOptions(); // maybe category removed
+			this.controller.fnSetExampleSelectOptions();
 			this.onExampleSelectChange();
 		}
 		this.view.setDisabled("deleteButton", !Object.keys(this.model.getAllExamples()).length);

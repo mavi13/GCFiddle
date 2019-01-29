@@ -242,37 +242,41 @@ $W2="N 49° 15.903 E 008° 40.777"
 URL parameters override settings in file `gcconfig.js` or `gcfiddle.js`.
 
 - `database=testDB`: Set the database
-  - Directory `testDB` must exist and must contain an index file `0dbindex.js`
-    with further configuration.
+- `databaseIndex=0dbindex.js`: database index in `exampleDir`
 - `debug=0`: Set the debug level, 0=off, 1=some, 2=some more,...
 - `example=GCNEW1`: Set example
-- `showInput=true`: Show the input box
-- `showOutput=true`: Show the output box
-- `showVariable=true`: Show the variable box
-- `showNotes=true`: Show the notes box
-- `showWaypoint=true`: Show waypoint box
-- `showMap=true`: Show the map box
-- `showConsole=false`: Show console box (for debugging messages)
-- `variableType=number`: Set general type of variables in the variable box to `number`, `text` or `range`
-  - If a variable is not a number, `text` is used
-- `waypointFormat=""`: Set waypoint output format: `(empty string)`, `dmm`, `dms`, `dd`,  `dmmc`, `dmsc`, `ddc`
-- `mapType=leaflet`: Set type of map to `leaflet`, `openlayers`, `google`, `simple` or `none`.
-  - For map type `google`, an API key must be set with parameter `googleKey`
-- `googleKey=""`: Set [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key)
+- `exampleDir=examples`: example base directory
+- `filterCategory`: filter by categories (comma separated list, empty means all)
+- `filterId`: filter by ID (substring, ignore-case)
+- `filterTitle`: filter by title (substring, ignore-case)
+- `googleKey`: Set [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key)
   - Can also be set in file `gcconfig.js` or `gcfiddle.js`
-- `zoom=15`: Set initial zoom level for Google Maps (usually automatically set)
+- `leafletMapboxKey`: mapbox access token (for leaflet maps, currently unused)
 - `leafletUrl`: Set URL for the Leaflet library
   - [leaflet, https]("https://unpkg.com/leaflet@1.3.1/dist/leaflet.js") (default)
   - or "lib/leaflet.js" (if available locally)
-  - or "lib/leaflet-src.js", // (if available locally, debug sources)
+  - or "lib/leaflet-src.js" (if available locally, debug sources)
+- `mapType=leaflet`: Set type of map to `leaflet`, `openlayers`, `google`, `simple` or `none`.
+  - For map type `google`, an API key must be set with parameter `googleKey`
 - `openLayersUrl`: Set URL for the OpenLayers library
   - [OpenLayers, https]("https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js") (default)  
       or [OpenLayers]("http://www.openlayers.org/api/OpenLayers.js") (http only)  
       or "lib/OpenLayers.js" (if available locally)  
       or "lib/OpenLayers.light.js" (light version with some features missing, e.g. Overview map, keyboard defaults)
+- `showConsole=false`: Show console box (for debugging messages)
+- `showFilter=true`: Show the filter box
+- `showInput=true`: Show the input box
+- `showLogs=true`: Show Example Logs
+- `showMap=true`: Show the map box
+- `showNotes=true`: Show the notes box
+- `showOutput=true`: Show the output box
+- `showVariable=true`: Show the variable box
+- `showWaypoint=true`: Show waypoint box
 - `testIndexedDb=false`: test Index Database (experimental)
-- `exampleDir=examples`, // example base directory
-- `dbIndex=0dbindex.js`, // DB index relative to exampleDir
+- `variableType=number`: Set general type of variables in the variable box to `number`, `text` or `range`
+  - If a variable is not a number, `text` is used
+- `waypointFormat`: Set waypoint output format: `(empty string)`, `dmm`, `dms`, `dd`,  `dmmc`, `dmsc`, `ddc`
+- `zoom=15`: Set initial zoom level for Google Maps (usually automatically set)
 
 ## Developing, Testing
 

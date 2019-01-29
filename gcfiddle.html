@@ -10,43 +10,75 @@
 <body>
 	<fieldset class="flexBox">
 		<legend>
-			<span id="inputLegend" class="legendButton" title="Show/Hide Input">Input:</span>
-			<select id="databaseSelect" title="Database">
+			<span id="filterLegend" class="legendButton" title="Show/Hide Filter & Sorting">Filter</span>
+			<select id="databaseSelect" title="Select Database">
 			</select>
+		</legend>
+		<div id="filterArea" class="area">
+			<div class="field">
+				<label id="filterCategoryLabel" for="filterCategorySelect" class="label" title="Category Filter (multi select)">Category</label>
+				<select id="filterCategorySelect" title="Category" size="4" multiple>
+				</select>
+			</div>
+			<div class="field clearLeft">
+				<label id="filterIdLabel" for="filterIdInput" class="label" title="Id Filter">Id</label>
+				<input id="filterIdInput" value="" size="10" type="text" title="Id" placeholder="value">
+			</div>
+			<div class="field clearLeft">
+				<label id="filterTitleLabel" for="filterTitleInput" class="label" title="Title Filter">Title</label>
+				<input id="filterTitleInput" value="" size="10" type="text" title="Title" placeholder="value">
+			</div>
+			<div class="field clearLeft">
+				<label id="filterSelectedLabel" for="filterSelectedSpan" class="label" title="Selected Eamples">Selected</label>
+				<span id="filterSelectedSpan">0</span>
+			</div>
+			<div class="clearLeft"> <!-- clearleft needed for IE -->
+				<button id="filterApplyButton" title="Apply Filter">Apply</button>
+				<button id="filterResetButton" title="Reset Filter">Reset</button>
+			</div>
+		</div>
+		<div class="clearLeft"> <!-- clearleft needed for IE -->
+			Special:
+			<button id="reloadButton" title="Reload page with URL parameter settings">Reload</button>
+			<button id="indexButton" title="Recreate example index and dump it out">Index</button>
+		</div>
+	</fieldset>
+	<fieldset class="flexBox">
+		<legend>
+			<span id="inputLegend" class="legendButton" title="Show/Hide Example Script">Script</span>
 			<select id="exampleSelect" title="Load Example">
 			</select>
 		</legend>
 		<textarea id="inputArea" rows="15" cols="40"></textarea>
 		<div>
-			<button id="executeButton" title="Execute input source">Execute</button>
-			<button id="undoButton" title="Undo input source" disabled>Undo</button>
-			<button id="redoButton" title="Redo input source" disabled>Redo</button>
+			<button id="executeButton" title="Execute script">Execute</button>
+			<button id="undoButton" title="Undo changes" disabled>Undo</button>
+			<button id="redoButton" title="Redo changes" disabled>Redo</button>
 			<br>
-			<button id="preprocessButton" title="Preprocess input source">Preprocess</button>
-			<button id="reloadButton" title="Reload page with URL parameter settings">Reload</button>
+			<button id="preprocessButton" title="Preprocess input">Preprocess</button>
 			<button id="saveButton" title="Save input to local storage">Save</button>
 			<button id="deleteButton" title="Delete input from local storage" disabled>Del</button>
 		</div>
 	</fieldset>
 	<fieldset class="flexBox">
 		<legend>
-			<span id="outputLegend" class="legendButton" title="Show/Hide Output">Output:</span>
+			<span id="outputLegend" class="legendButton" title="Show/Hide Output">Output</span>
 		</legend>
 		<textarea id="outputArea" placeholder="Use input field, press 'Execute'" rows="12" cols="40" readonly></textarea>
 	</fieldset>
 	<fieldset class="flexBox">
 			<legend>
-				<span id="varLegend" class="legendButton" title="Show/Hide variable">Variable:</span>
+				<span id="varLegend" class="legendButton" title="Show/Hide Variables">Variables</span>
 				<select id="varSelect" title="Select variable">
 				</select>
 			</legend>
-			<div id="varArea">
-				<div class="area">
+			<div id="varArea" class="area">
+				<div class="field">
 					<label id="varLabel" for="varInput" class="label" title="Variable Name"></label>
 					<input id="varInput" value="" min="0" max="9999" step="1" type="text" placeholder="value">
 				</div>
-				<div class="area">
-					<label for="varViewSelect" title="Variable View">View</label>
+				<div class="field clearLeft">
+					<label for="varViewSelect"  class="label" title="Variable Type">Type</label>
 					<select id="varViewSelect" title="Variable Type">
 						<option value="text" title="Text">Text</option>
 						<option value="number" title="Number" selected="selected">Number</option>
@@ -57,23 +89,23 @@
 	</fieldset>
 	<fieldset class="flexBox">
 		<legend>
-			<span id="notesLegend" class="legendButton" title="Show/Hide notes">Notes:</span>
+			<span id="notesLegend" class="legendButton" title="Show/Hide Notes">Notes</span>
 		</legend>
 		<div id="notesArea" contenteditable="true" class="area editable">&nbsp;</div>
 	</fieldset>
 	<fieldset class="flexBox clearLeft">
 		<legend>
-			<span id="waypointLegend" class="legendButton" title="Show/Hide Waypoint">Waypoint:</span>
+			<span id="waypointLegend" class="legendButton" title="Show/Hide Waypoints">Waypoints</span>
 			<select id="waypointSelect" title="Select waypoint">
 			</select>
 		</legend>
 		<div id="waypointArea" class="area">
-			<div class="area">
+			<div class="field">
 				<label id="waypointLabel" for="waypointInput" class="label" title="Waypoint Name"></label>
 				<input id="waypointInput" value="" size="26" type="text" placeholder="value">
 			</div>
-			<div class="area">
-				<label for="waypointViewSelect" title="Waypoint Format">View</label>
+			<div class="field clearLeft">
+				<label for="waypointViewSelect"  class="label" title="Waypoint Format">Format</label>
 				<select id="waypointViewSelect" title="Waypoint Format">
 					<option value="" selected="selected" title="as input">Automatic</option>
 					<option value="dmm" title="deg-min.min">dmm</option>
@@ -88,7 +120,7 @@
 	</fieldset>
 	<fieldset class="flexBox clearLeft" id="mapArea">
 		<legend>
-			<span id="mapLegend" class="legendButton" title="Show/Hide Map">Map:</span>
+			<span id="mapLegend" class="legendButton" title="Show/Hide Map">Map</span>
 			<select id="mapTypeSelect" title="Map Type">
 				<option value="leaflet" title="Open Street Map (Leaflet)">Leaflet</option>
 				<option value="openlayers" title="Open Street Map (OpenLayers)">OpenLayers</option>
@@ -109,12 +141,12 @@
 	</fieldset>
 	<fieldset class="flexBox clearLeft">
 		<legend>
-			<span id="logsLegend" class="legendButton" title="Show/Hide Logs">Logs:</span>
+			<span id="logsLegend" class="legendButton" title="Show/Hide Logs">Logs</span>
 		</legend>
 		<textarea id="logsArea" placeholder="Show logs if available" rows="12" cols="40" readonly></textarea>
 	</fieldset>
 	<fieldset class="flexBox clearLeft" id="consoleLogBox" hidden>
-		<legend id="consoleLogLegend" class="legendButton" title="Show/Hide Console log">Console log:</legend>
+		<legend id="consoleLogLegend" class="legendButton" title="Show/Hide Console log">Console log</legend>
 		<textarea id="consoleLogArea" rows="12" cols="40"></textarea>
 	</fieldset>
 <script src="CommonEventHandler.js"></script>

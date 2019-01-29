@@ -30,7 +30,7 @@ MapProxy.Simple.Map.prototype = {
 		iWidth = mapDiv.clientWidth;
 		iHeight = mapDiv.clientHeight;
 		oView.setHidden(sMapDivId, bHidden); // restore hidden
-		window.console.log("SimpleMap: width=" + iWidth + " height=" + iHeight + " created");
+		Utils.console.log("SimpleMap: width=" + iWidth + " height=" + iHeight + " created");
 
 		this.oPixelMap = {
 			width: iWidth,
@@ -71,7 +71,7 @@ MapProxy.Simple.Map.prototype = {
 			x = event.clientX - oTarget.offsetLeft + window.scrollX, // x,y are relative to the canvas
 			y = event.clientY - oTarget.offsetTop + window.scrollY;
 
-		window.console.log("onSimpleCanvas2Click: x=" + x + ", y=" + y);
+		Utils.console.log("onSimpleCanvas2Click: x=" + x + ", y=" + y);
 		if (event.stopPropagation) {
 			event.stopPropagation();
 		} else {
@@ -112,7 +112,7 @@ MapProxy.Simple.Map.prototype = {
 		iWidth = mapDiv.clientWidth;
 		iHeight = mapDiv.clientHeight;
 		if (iWidth !== this.oPixelMap.width || iHeight !== this.oPixelMap.height) {
-			window.console.log("MapProxy.Simple.resize width=" + iWidth + " height=" + iHeight);
+			Utils.console.log("MapProxy.Simple.resize width=" + iWidth + " height=" + iHeight);
 			for (i = 0; i < this.aCanvas.length; i += 1) {
 				canvas = this.aCanvas[i];
 				if (canvas.width !== iWidth) {
@@ -180,7 +180,7 @@ MapProxy.Simple.Map.prototype = {
 
 		if (path.length) {
 			if (!canvas.getContext) {
-				window.console.warn("Browser does not support canvas.getContext()"); // e.g. IE8
+				Utils.console.warn("Browser does not support canvas.getContext()"); // e.g. IE8
 				return;
 			}
 			context = canvas.getContext("2d");
@@ -216,7 +216,7 @@ MapProxy.Simple.Map.prototype = {
 		oPos = this.myConvertGeoToPixel(marker.getPosition(), this.oPixelMap);
 
 		if (!canvas.getContext) {
-			window.console.warn("Browser does not support canvas.getContext()");
+			Utils.console.warn("Browser does not support canvas.getContext()");
 			return;
 		}
 		context = canvas.getContext("2d");

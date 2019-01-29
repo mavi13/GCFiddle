@@ -226,7 +226,7 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 					padding: [10, 10] // eslint-disable-line array-element-newline
 				});
 			} else {
-				Utils.console.warn("bounds are not vaild.");
+				Utils.console.warn("bounds are not vaild");
 			}
 			this.polylineGroup.addTo(map.privGetMap());
 			this.markerGroup.addTo(map.privGetMap());

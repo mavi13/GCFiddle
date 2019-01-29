@@ -10,26 +10,26 @@ function Controller(oModel, oView) {
 
 Controller.prototype = {
 	init: function (oModel, oView) {
-		var sVariableType, sWaypointFormat, sMapType, sExample, sDatabase;
+		var that = this,
+			sFilterId, sFilterTitle, sVariableType, sWaypointFormat, sMapType, sExample, sDatabase, sDatabaseIndex,
+			onDatabaseIndexLoaded = function () {
+				Utils.console.log(sDatabaseIndex + " loaded");
+				sDatabase = oModel.getProperty("database");
+				if (sDatabase) {
+					that.fnSetDatabaseSelect();
+					that.view.setSelectValue("databaseSelect", sDatabase);
+					that.commonEventHandler.onDatabaseSelectChange();
+				} else {
+					that.commonEventHandler.onExampleSelectChange();
+				}
+			};
 
 		this.model = oModel;
 		this.view = oView;
 
 		this.sJsonMarker = "#GC_INFO:";
-		/*
-		this.emptyExample = {
-			draft: {
-				key: "GC_DRAFT",
-				title: "Draft"
-			},
-			unknown: {
-				key: "GC_UNKNOWN",
-				title: "Unknown"
-			}
-		};
-		*/
-		this.pendingScripts = [];
 
+		this.pendingScripts = []; //TTT
 
 		this.commonEventHandler = new CommonEventHandler(this.model, this.view, this);
 
@@ -38,6 +38,16 @@ Controller.prototype = {
 		this.inputStack = new InputStack();
 
 		this.maFa = new MarkerFactory();
+
+		sFilterId = oModel.getProperty("filterId");
+		if (sFilterId) {
+			this.view.setInputValue("filterIdInput", sFilterId);
+		}
+
+		sFilterTitle = oModel.getProperty("filterTitle");
+		if (sFilterTitle) {
+			this.view.setInputValue("filterTitleInput", sFilterTitle);
+		}
 
 		sVariableType = oModel.getProperty("variableType");
 		if (sVariableType) {
@@ -49,6 +59,7 @@ Controller.prototype = {
 			this.view.setSelectValue("waypointViewSelect", sWaypointFormat);
 		}
 
+		this.view.setHidden("filterArea", !oModel.getProperty("showFilter"));
 		this.view.setHidden("inputArea", !oModel.getProperty("showInput"));
 		this.view.setHidden("outputArea", !oModel.getProperty("showOutput"));
 		this.view.setHidden("varArea", !oModel.getProperty("showVariable"));
@@ -64,25 +75,22 @@ Controller.prototype = {
 		}
 		this.view.setHidden("mapCanvas-" + sMapType, !oModel.getProperty("showMap"));
 
-		this.fnSetDatabaseList();
-
 		sExample = oModel.getProperty("example");
 		if (sExample) {
 			this.view.setSelectValue("exampleSelect", sExample);
-		}
-
-		sDatabase = oModel.getProperty("database");
-		if (sDatabase) {
-			this.view.setSelectValue("databaseSelect", sDatabase);
-			this.commonEventHandler.onDatabaseSelectChange();
-		} else {
-			this.commonEventHandler.onExampleSelectChange();
 		}
 
 		if (sMapType) {
 			this.view.setSelectValue("mapTypeSelect", sMapType);
 		}
 		this.commonEventHandler.onMapTypeSelectChange();
+
+		sDatabaseIndex = this.model.getProperty("exampleDir") + "/" + this.model.getProperty("databaseIndex");
+		if (sDatabaseIndex) {
+			Utils.loadScript(sDatabaseIndex, onDatabaseIndexLoaded);
+		} else {
+			Utils.console.error("DatabaseIndex not set");
+		}
 	},
 
 	// see: https://stackoverflow.com/questions/805107/creating-multiline-strings-in-javascript?rq=1
@@ -121,7 +129,7 @@ Controller.prototype = {
 				oItem = this.model.getExample(sKey);
 				oPosition = new LatLng().parse(String(oVariables[sPar]));
 				if (oItem) {
-					window.console.warn("fnAddIndex2: example already exists: " + sKey);
+					Utils.console.warn("fnAddIndex2: example already exists: " + sKey);
 				}
 				oItem = this.fnCreateNewExample({ // database, key, script, title, ...
 					key: sKey,
@@ -150,7 +158,7 @@ Controller.prototype = {
 				oFile = this.pendingScripts.pop();
 				oOutput.text += " " + oFile.url;
 			}
-			window.console.error(oOutput.text);
+			Utils.console.error(oOutput.text);
 		} else {
 			this.fnAddIndex2(oVariables, sItemSrc);
 		}
@@ -163,12 +171,16 @@ Controller.prototype = {
 
 		sInput = (typeof input === "string") ? Utils.stringTrimLeft(input) : this.fnHereDoc(input).trim();
 
-		sLine = sInput.split("\n", 1)[0];
+		sLine = sInput.split("\n", 1)[0]; // only first line
 		oOutput = new ScriptParser().calculate(sLine, oVariables); // parse only first line
 		if (oOutput.error) {
 			oError = oOutput.error;
 			iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
-			window.console.warn("fnAddIndex: key=" + (sKey || "") + ": Cannot parse: " + oError.message + ": '" + oError.value + "' (pos " + oError.pos + "-" + iEndPos + ")");
+			if (!sKey) {
+				sKey = this.model.getProperty("example"); // no key specified, take selected example
+				Utils.console.warn("fnAddIndex: No key detected, taking selected example: " + sKey);
+			}
+			Utils.console.warn("fnAddIndex: " + sKey + ": Cannot parse: " + oError.message + ": '" + oError.value + "' (pos " + oError.pos + "-" + iEndPos + ")");
 		} else {
 			for (sPar in oVariables) {
 				if (oVariables.hasOwnProperty(sPar) && this.fnIsWaypoint(sPar)) {
@@ -186,7 +198,7 @@ Controller.prototype = {
 			});
 			sKey = oExample.key;
 			this.model.setExample(oExample);
-			window.console.warn("fnAddItem: created draft example: " + sKey);
+			Utils.console.warn("fnAddItem: created draft example: " + sKey);
 		}
 		oExample.key = sKey; // maybe changed
 		oExample.script = sInput;
@@ -195,7 +207,8 @@ Controller.prototype = {
 			oExample.title = oPosition.getComment();
 		}
 		oExample.loaded = true;
-		window.console.log("fnAddItem: database=" + this.model.getProperty("database") + ": key=" + sKey);
+		// database=this.model.getProperty("database")
+		Utils.console.log("fnAddItem: " + sKey);
 		return sKey;
 	},
 
@@ -219,7 +232,7 @@ Controller.prototype = {
 		this.maFa.setMarkers(aMarkerOptions);
 	},
 
-	fnSetSelectOptions: function (sSelect, fnSel, fnTextFormat) {
+	fnSetWaypointVarSelectOptions: function (sSelect, fnSel, fnTextFormat) {
 		var oVariables = this.model.getVariables(),
 			aItems = [],
 			oItem, sValue;
@@ -244,7 +257,7 @@ Controller.prototype = {
 	fnSetVarSelectOptions: function () {
 		var that = this;
 
-		this.fnSetSelectOptions("varSelect",
+		this.fnSetWaypointVarSelectOptions("varSelect",
 			function (s) { return !that.fnIsWaypoint(s); }
 		);
 	},
@@ -264,10 +277,10 @@ Controller.prototype = {
 			return parameter + "=" + sValue;
 		};
 
-		this.fnSetSelectOptions("waypointSelect", this.fnIsWaypoint, fnTextFormat);
+		this.fnSetWaypointVarSelectOptions("waypointSelect", this.fnIsWaypoint, fnTextFormat);
 	},
 
-	fnSetDatabaseList: function () {
+	fnSetDatabaseSelect: function () {
 		var sSelect = "databaseSelect",
 			aItems = [],
 			oDatabases = this.model.getAllDatabases(),
@@ -290,32 +303,126 @@ Controller.prototype = {
 		this.view.setSelectOptions(sSelect, aItems).setSelectValue(sSelect, sSelectedValue);
 	},
 
-	fnSetExampleList: function () {
-		var sSelect = "exampleSelect",
-			aItems = [],
+	fnGetAllCategories: function () {
+		var oItems = {},
 			oExamples = this.model.getAllExamples(),
-			sCurrentExample = this.model.getProperty("example"),
-			iIndex, sValue, sTitle, oItem, sSelectedValue;
+			iIndex, sValue, sTitle, sCategory;
 
+		// Get all categories from example titles
 		for (sValue in oExamples) {
 			if (oExamples.hasOwnProperty(sValue)) {
 				sTitle = oExamples[sValue].title; // category and title
 				iIndex = sTitle.indexOf("!");
 				if (iIndex >= 0) {
-					sTitle = sTitle.substring(iIndex + 1); // remove category prefix
+					sCategory = sTitle.substring(0, iIndex); // get category prefix
+				} else {
+					sCategory = "";
 				}
+				oItems[sCategory] = true;
+			}
+		}
+		return oItems;
+	},
+
+	fnGetFilterCategory: function () {
+		var mFilterCategory, sFilterCategory, aFilterCategory, i;
+
+		sFilterCategory = this.model.getProperty("filterCategory");
+		if (sFilterCategory !== "") { // split: empty string returns array with empty string
+			aFilterCategory = sFilterCategory.split(",");
+			mFilterCategory = {};
+			for (i = 0; i < aFilterCategory.length; i += 1) {
+				mFilterCategory[aFilterCategory[i]] = true;
+			}
+		}
+		return mFilterCategory; // for empty list return undefined
+	},
+
+	fnSetFilterCategorySelectOptions: function () {
+		var sSelect = "filterCategorySelect",
+			oItems = {},
+			aItems = [],
+			mFilterCategory, sValue, oItem;
+
+		oItems = this.fnGetAllCategories();
+		mFilterCategory = this.fnGetFilterCategory();
+		if (mFilterCategory) { // check if selected categories are valid, otherwise remove them all from selected
+			for (sValue in mFilterCategory) {
+				if (mFilterCategory.hasOwnProperty(sValue)) {
+					if (!oItems[sValue]) {
+						if (Utils.debug > 1) { // eslint-disable-line max-depth
+							Utils.console.debug("fnSetFilterCategorySelectOptions: category selection removed, so all are selected");
+						}
+						mFilterCategory = null;
+						this.model.setProperty("filterCategory", "");
+						break;
+					}
+				}
+			}
+		}
+
+		for (sValue in oItems) {
+			if (oItems.hasOwnProperty(sValue)) {
 				oItem = {
-					value: sValue,
-					title: (sValue + ": " + sTitle).substr(0, 160)
+					value: sValue.substr(0, 30),
+					title: sValue.substr(0, 160),
+					selected: (!mFilterCategory || mFilterCategory[sValue])
 				};
-				oItem.text = oItem.title.substr(0, 20);
+				oItem.text = oItem.value;
+				if (sValue === "") {
+					oItem.text = "<unset>";
+					oItem.title = "Not set";
+				}
 				aItems.push(oItem);
-				if (!sSelectedValue || sValue === sCurrentExample) {
-					sSelectedValue = sValue;
+			}
+		}
+		this.view.setSelectOptions(sSelect, aItems);
+	},
+
+	fnSetExampleSelectOptions: function () {
+		var sSelect = "exampleSelect",
+			aItems = [],
+			oExamples = this.model.getAllExamples(),
+			sCurrentExample = this.model.getProperty("example"),
+			mFilterCategory, sFilterId, sFilterTitle,
+			iIndex, sValue, sTitle, sCategory, oItem, sSelectedValue;
+
+		mFilterCategory = this.fnGetFilterCategory();
+
+		sFilterId = this.model.getProperty("filterId");
+		sFilterId = sFilterId.toLowerCase();
+
+		sFilterTitle = this.model.getProperty("filterTitle");
+		sFilterTitle = sFilterTitle.toLowerCase();
+
+		for (sValue in oExamples) {
+			if (oExamples.hasOwnProperty(sValue)) {
+				sTitle = oExamples[sValue].title; // category and title
+				iIndex = sTitle.indexOf("!");
+				if (iIndex < 0) { // no prefix marker found?
+					sTitle = "!" + sTitle; // set prefix marker
+				}
+				sCategory = sTitle.substring(0, iIndex);
+				sTitle = sTitle.substring(iIndex + 1); // remove category prefix
+				if ((!mFilterCategory || mFilterCategory[sCategory])
+					&& (sFilterId === "" || sValue.toLowerCase().indexOf(sFilterId) >= 0)
+					&& (sFilterTitle === "" || sTitle.toLowerCase().indexOf(sFilterTitle) >= 0)) { // filter
+					oItem = {
+						value: sValue,
+						title: (sValue + ": " + sTitle).substr(0, 160)
+					};
+					oItem.text = oItem.title.substr(0, 30);
+					aItems.push(oItem);
+					if (!sSelectedValue || sValue === sCurrentExample) {
+						sSelectedValue = sValue;
+					}
+				} else if (Utils.debug > 1) {
+					Utils.console.debug("DEBUG: fnSetExampleSelectOptions: item " + sValue + " filtered");
 				}
 			}
 		}
 		this.view.setSelectOptions(sSelect, aItems).setSelectValue(sSelect, sSelectedValue);
+		this.view.setSpanText("filterSelectedSpan", aItems.length);
 	},
 
 	fnSetInputAreaValue: function (sValue) {
@@ -329,7 +436,7 @@ Controller.prototype = {
 			try {
 				oInfo = window.JSON.parse(sJson);
 			} catch (e) {
-				window.console.error(e);
+				Utils.console.error(e);
 			}
 			if (oInfo && oInfo.logs) {
 				aLogs = oInfo.logs;
@@ -444,7 +551,7 @@ Controller.prototype = {
 	fnDoPreprocess: function () {
 		var sInput = this.view.getAreaValue("inputArea"),
 			sOutput = "",
-			oProcessor, mInfo;
+			oProcessor, mInfo, aCategory;
 
 		oProcessor = new Preprocessor({
 			scriptParser: new ScriptParser()
@@ -458,9 +565,15 @@ Controller.prototype = {
 		mInfo.script = "";
 		if (sOutput !== "") {
 			if (mInfo.id) {
-				sOutput = "$" + mInfo.id + '="' + (mInfo.waypoint || "") + "!!" + mInfo.title + ' "\n'
+				aCategory = [];
+				if (mInfo.archived) {
+					aCategory.push("archived");
+				}
+				if (mInfo.log) {
+					aCategory.push(mInfo.log); // e.g. "found"
+				}
+				sOutput = "$" + mInfo.id + '="' + (mInfo.waypoint || "") + "!" + aCategory.join(",") + "!" + mInfo.title + ' "\n'
 					+ "#https://coord.info/" + mInfo.id + "\n"
-					+ "$" + mInfo.id + '="' + (mInfo.waypoint || "") + '"\n'
 					+ sOutput
 					+ "#\n"
 					+ this.sJsonMarker + window.JSON.stringify(mInfo) + "\n";

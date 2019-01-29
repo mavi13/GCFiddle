@@ -3,7 +3,7 @@
 // based on: http://www.movable-type.co.uk/scripts/latlong.html, https://github.com/chrisveness/geodesy
 // Latitude/longitude spherical geodesy tools, (c) Chris Veness 2002-2016
 //
-/* globals */ // Utils
+/* globals */
 
 "use strict";
 
@@ -352,7 +352,7 @@ LatLng.prototype = {
 		default:
 			sValue = undefined; // undefined means unknown format
 			if (!bSuppressWarnings) {
-				Utils.console.warn("position2string: Unknown format", format);
+				Utils.console.warn("position2string: Unknown format: " + format);
 			}
 		}
 		if (sComment) {

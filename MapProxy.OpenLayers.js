@@ -39,7 +39,7 @@ MapProxy.OpenLayers.Map.prototype = {
 			var sMapDivId = that.options.mapDivId,
 				bHidden;
 
-			window.console.log("OpenLayers " + OpenLayers.VERSION_NUMBER + " loaded (" + sUrl + ")");
+			Utils.console.log("OpenLayers " + OpenLayers.VERSION_NUMBER + " loaded (" + sUrl + ")");
 
 			bHidden = oView.getHidden(sMapDivId);
 			oView.setHidden(sMapDivId, false); // make sure canvas is not hidden (allows to get width, height)

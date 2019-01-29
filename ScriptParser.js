@@ -1,6 +1,6 @@
 // ScriptParser.js - Parse calculation scripts
 //
-/* globals */ // Utils, LatLng
+/* globals */
 
 "use strict";
 
