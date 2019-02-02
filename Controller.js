@@ -107,9 +107,9 @@ Controller.prototype = {
 	fnCreateNewExample: function (options) {
 		var oItem = {
 			key: "",
-			position: null, // position and comment
+			position: null, // position and comment (category and title)
 			script: "",
-			title: "",
+			//title: "",
 			src: null,
 			loaded: false
 		};
@@ -134,7 +134,7 @@ Controller.prototype = {
 				oItem = this.fnCreateNewExample({ // database, key, script, title, ...
 					key: sKey,
 					position: oPosition, // position and comment
-					title: oPosition.getComment(),
+					//title: oPosition.getComment(),
 					src: sItemSrc
 					//loaded: false
 				});
@@ -146,19 +146,25 @@ Controller.prototype = {
 	// Also called from file 0index.js
 	fnAddIndex: function (sItemSrc, input) {
 		var oVariables = {},
-			sInput, oOutput, oError, iEndPos, oFile;
+			sInput, oOutput, oError, iEndPos, oFile, sDatabase, oDatabase;
 
 		sInput = (typeof input === "string") ? input.trim() : this.fnHereDoc(input).trim();
 		oOutput = new ScriptParser().calculate(sInput, oVariables);
 		if (oOutput.error) {
 			oError = oOutput.error;
 			iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
-			oOutput.text = "fnAddIndex: " + oError.message + ": '" + oError.value + "' (pos " + oError.pos + "-" + iEndPos + ")";
+			oOutput.text = oError.message + ": '" + oError.value + "' (pos " + oError.pos + "-" + iEndPos + ")";
 			if (this.pendingScripts.length) {
 				oFile = this.pendingScripts.pop();
 				oOutput.text += " " + oFile.url;
 			}
-			Utils.console.error(oOutput.text);
+			Utils.console.error("fnAddIndex: " + oOutput.text);
+			sDatabase = this.model.getProperty("database");
+			oDatabase = this.model.getDatabase(sDatabase);
+			if (oDatabase) {
+				oDatabase.error = oOutput.text;
+				oDatabase.script = sInput;
+			}
 		} else {
 			this.fnAddIndex2(oVariables, sItemSrc);
 		}
@@ -176,11 +182,7 @@ Controller.prototype = {
 		if (oOutput.error) {
 			oError = oOutput.error;
 			iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
-			if (!sKey) {
-				sKey = this.model.getProperty("example"); // no key specified, take selected example
-				Utils.console.warn("fnAddIndex: No key detected, taking selected example: " + sKey);
-			}
-			Utils.console.warn("fnAddIndex: " + sKey + ": Cannot parse: " + oError.message + ": '" + oError.value + "' (pos " + oError.pos + "-" + iEndPos + ")");
+			Utils.console.warn("fnAddItem: " + sKey + ": Cannot parse: " + oError.message + ": '" + oError.value + "' (pos " + oError.pos + "-" + iEndPos + ")");
 		} else {
 			for (sPar in oVariables) {
 				if (oVariables.hasOwnProperty(sPar) && this.fnIsWaypoint(sPar)) {
@@ -190,7 +192,13 @@ Controller.prototype = {
 				}
 			}
 		}
-		sKey = sKey || "DRAFT";
+
+		if (!sKey) {
+			sKey = this.model.getProperty("example"); // no key specified, take selected example (does not work if multiple examples in one file)
+			//sKey = sKey || "DRAFT"; //TTT
+			Utils.console.warn("fnAddItem: No key detected. Taking selected key: " + sKey);
+			//sInput = "# Warning: No key detected, assuming selected key: " + sKey + "\n\n" + sInput;
+		}
 		oExample = this.model.getExample(sKey);
 		if (!oExample) {
 			oExample = this.fnCreateNewExample({
@@ -198,16 +206,13 @@ Controller.prototype = {
 			});
 			sKey = oExample.key;
 			this.model.setExample(oExample);
-			Utils.console.warn("fnAddItem: created draft example: " + sKey);
+			Utils.console.log("fnAddItem: Creating new example: " + sKey);
 		}
 		oExample.key = sKey; // maybe changed
 		oExample.script = sInput;
-		if (oPosition) {
-			oExample.position = oPosition;
-			oExample.title = oPosition.getComment();
-		}
+		oExample.position = oPosition || oExample.position || new LatLng();
+		//oExample.title = oPosition.getComment();
 		oExample.loaded = true;
-		// database=this.model.getProperty("database")
 		Utils.console.log("fnAddItem: " + sKey);
 		return sKey;
 	},
@@ -311,7 +316,7 @@ Controller.prototype = {
 		// Get all categories from example titles
 		for (sValue in oExamples) {
 			if (oExamples.hasOwnProperty(sValue)) {
-				sTitle = oExamples[sValue].title; // category and title
+				sTitle = oExamples[sValue].position.getComment(); // category and title
 				iIndex = sTitle.indexOf("!");
 				if (iIndex >= 0) {
 					sCategory = sTitle.substring(0, iIndex); // get category prefix
@@ -397,7 +402,7 @@ Controller.prototype = {
 
 		for (sValue in oExamples) {
 			if (oExamples.hasOwnProperty(sValue)) {
-				sTitle = oExamples[sValue].title; // category and title
+				sTitle = oExamples[sValue].position.getComment(); // category and title
 				iIndex = sTitle.indexOf("!");
 				if (iIndex < 0) { // no prefix marker found?
 					sTitle = "!" + sTitle; // set prefix marker
@@ -425,29 +430,23 @@ Controller.prototype = {
 		this.view.setSpanText("filterSelectedSpan", aItems.length);
 	},
 
-	fnSetInputAreaValue: function (sValue) {
+	fnSetLogsAreaValue: function (sValue) {
 		var sLog = "",
-			iPos, sJson, oInfo, aLogs, i, oLog;
+			iLength = 0,
+			oInfo, aLogs, i, oLog;
 
-		this.view.setAreaValue("inputArea", sValue);
-		iPos = sValue.indexOf(this.sJsonMarker);
-		if (iPos >= 0) {
-			sJson = sValue.substring(iPos + this.sJsonMarker.length);
-			try {
-				oInfo = window.JSON.parse(sJson);
-			} catch (e) {
-				Utils.console.error(e);
-			}
-			if (oInfo && oInfo.logs) {
-				aLogs = oInfo.logs;
-				for (i = 0; i < aLogs.length; i += 1) {
-					oLog = aLogs[i];
-					sLog += oLog.date + " (" + oLog.type + ") " + oLog.name + " (" + oLog.finds + ")\n" + oLog.text + "\n";
-				}
+		oInfo = this.fnExtractGcInfo(sValue);
+		if (oInfo && oInfo.logs) {
+			aLogs = oInfo.logs;
+			iLength = aLogs.length;
+			for (i = 0; i < iLength; i += 1) {
+				oLog = aLogs[i];
+				sLog += oLog.date + " (" + oLog.type + ") " + oLog.name + " (" + oLog.finds + ")\n" + oLog.text + "\n";
 			}
 		}
 		this.view.setAreaValue("logsArea", sLog);
-		this.view.setLegendText("logsLegend", "Logs (" + (aLogs ? aLogs.length : 0) + ")");
+		this.view.setLegendText("logsLegend", "Logs (" + iLength + ")");
+		this.view.setDisabled("removeLogsButton", !iLength);
 	},
 
 	fnCalculate2: function () {
@@ -548,6 +547,35 @@ Controller.prototype = {
 		return mInfo;
 	},
 
+	fnExtractGcInfo: function (sInput) {
+		var iPos, sJson, oInfo;
+
+		iPos = sInput.indexOf(this.sJsonMarker);
+		if (iPos >= 0) {
+			sJson = sInput.substring(iPos + this.sJsonMarker.length);
+			try {
+				oInfo = JSON.parse(sJson);
+			} catch (e) {
+				Utils.console.error(e);
+			}
+		}
+		return oInfo;
+	},
+
+	fnInsertGcInfo: function (sInput, mInfo) {
+		var iPos;
+
+		iPos = sInput.indexOf(this.sJsonMarker);
+		if (iPos >= 0) {
+			sInput = sInput.substring(0, iPos); // remove gcInfo
+		}
+
+		if (mInfo) {
+			sInput += this.sJsonMarker + JSON.stringify(mInfo) + "\n";
+		}
+		return sInput;
+	},
+
 	fnDoPreprocess: function () {
 		var sInput = this.view.getAreaValue("inputArea"),
 			sOutput = "",
@@ -566,22 +594,24 @@ Controller.prototype = {
 		if (sOutput !== "") {
 			if (mInfo.id) {
 				aCategory = [];
-				if (mInfo.archived) {
-					aCategory.push("archived");
-				}
 				if (mInfo.log) {
 					aCategory.push(mInfo.log); // e.g. "found"
 				}
-				sOutput = "$" + mInfo.id + '="' + (mInfo.waypoint || "") + "!" + aCategory.join(",") + "!" + mInfo.title + ' "\n'
+				if (mInfo.archived) {
+					aCategory.push("archived");
+				}
+				sOutput = "$" + mInfo.id + '="' + (mInfo.waypoint || "") + "!" + aCategory.join(" ") + "!" + mInfo.title + '"\n'
 					+ "#https://coord.info/" + mInfo.id + "\n"
 					+ sOutput
-					+ "#\n"
-					+ this.sJsonMarker + window.JSON.stringify(mInfo) + "\n";
+					+ "#\n";
+
+				sOutput = this.fnInsertGcInfo(sOutput, mInfo);
 			}
 		}
 
 		this.fnPutChangedInputOnStack();
-		this.fnSetInputAreaValue(sOutput);
+		this.view.setAreaValue("inputArea", sOutput);
+		this.fnSetLogsAreaValue(sOutput);
 		this.commonEventHandler.onExecuteButtonClick();
 	},
 

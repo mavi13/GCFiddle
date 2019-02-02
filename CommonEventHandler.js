@@ -1,6 +1,6 @@
 // CommonEventHandler.js - CommonEventHandler
 //
-/* globals */ // LatLng, MapProxy, Utils
+/* globals */
 
 "use strict";
 
@@ -186,9 +186,11 @@ CommonEventHandler.prototype = {
 	},
 
 	onExecuteButtonClick: function () {
-		var iSelectLength;
+		var sInput = this.view.getAreaValue("inputArea"),
+			iSelectLength;
 
 		this.controller.fnPutChangedInputOnStack();
+		this.controller.fnSetLogsAreaValue(sInput);
 
 		this.model.initVariables();
 		this.controller.fnCalculate2();
@@ -207,13 +209,19 @@ CommonEventHandler.prototype = {
 	},
 
 	onUndoButtonClick: function () {
-		this.controller.fnSetInputAreaValue(this.controller.inputStack.undo());
+		var sInput = this.controller.inputStack.undo();
+
+		this.view.setAreaValue("inputArea", sInput);
+		this.controller.fnSetLogsAreaValue(sInput);
 		this.controller.fnUpdateUndoRedoButtons();
 		this.view.setAreaValue("outputArea", "");
 	},
 
 	onRedoButtonClick: function () {
-		this.controller.fnSetInputAreaValue(this.controller.inputStack.redo());
+		var sInput = this.controller.inputStack.redo();
+
+		this.view.setAreaValue("inputArea", sInput);
+		this.controller.fnSetLogsAreaValue(sInput);
 		this.controller.fnUpdateUndoRedoButtons();
 		this.view.setAreaValue("outputArea", "");
 	},
@@ -241,7 +249,8 @@ CommonEventHandler.prototype = {
 			fnExampleLoaded = function (sFullUrl, sExample2, bSuppressLog) {
 				var sDatabase2 = that.model.getProperty("database"), // still the same after loading?
 					oExamples2 = that.model.getAllExamples(),
-					sName2 = sDatabase2 + "/" + sExample2 + ".js";
+					sName2 = sDatabase2 + "/" + sExample2 + ".js",
+					sInput;
 
 				if (!bSuppressLog) {
 					Utils.console.log("Example " + sName2 + " loaded");
@@ -264,7 +273,8 @@ CommonEventHandler.prototype = {
 					}
 				}
 				*/
-				that.controller.fnSetInputAreaValue(oExamples2[sExample2].script);
+				sInput = oExamples2[sExample2].script;
+				that.view.setAreaValue("inputArea", sInput);
 				that.controller.fnInitUndoRedoButtons();
 				that.onExecuteButtonClick();
 
@@ -279,7 +289,7 @@ CommonEventHandler.prototype = {
 		if (oExample && oExample.loaded) {
 			fnExampleLoaded("", sExample, true);
 		} else if (sExample) { // need to load
-			this.controller.fnSetInputAreaValue("#loading " + sExample + "...");
+			that.view.setAreaValue("inputArea", "#loading " + sExample + "...");
 			this.view.setAreaValue("outputArea", "waiting...");
 
 			sSrc = oExample.src;
@@ -303,7 +313,7 @@ CommonEventHandler.prototype = {
 			});
 			Utils.loadScript(sName, fnExampleLoaded, sExample);
 		} else {
-			this.controller.fnSetInputAreaValue("");
+			that.view.setAreaValue("inputArea", "");
 			this.model.setProperty("example", "");
 			this.controller.fnInitUndoRedoButtons();
 			this.onExecuteButtonClick();
@@ -324,10 +334,15 @@ CommonEventHandler.prototype = {
 					Utils.console.warn("fnDatabaseLoaded: wrong database: " + sDatabase + ", " + sDatabase2);
 				}
 				oDatabase.loaded = true;
-				Utils.console.log("database loaded: " + sName);
+				Utils.console.log("database loaded: " + sDatabase2 + ": " + sName);
 				that.controller.fnSetFilterCategorySelectOptions();
 				that.controller.fnSetExampleSelectOptions();
-				that.onExampleSelectChange();
+				if (oDatabase.error) {
+					that.view.setAreaValue("inputArea", oDatabase.script);
+					that.view.setAreaValue("outputArea", oDatabase.error);
+				} else {
+					that.onExampleSelectChange();
+				}
 			},
 			fnLoadDatabaseLocalStorage = function () {
 				var	oStorage = Utils.localStorage,
@@ -356,6 +371,7 @@ CommonEventHandler.prototype = {
 		} else {
 			this.view.setAreaValue("inputArea", "#loading index " + sDatabase + "...");
 			if (sDatabase === "saved") {
+				sName = "localStorage";
 				fnLoadDatabaseLocalStorage(sDatabase);
 			} else {
 				sName = this.model.getProperty("exampleDir") + "/" + oDatabase.src;
@@ -725,59 +741,68 @@ CommonEventHandler.prototype = {
 		fnSelectNextValue();
 	},
 
+	fnTestIndexedDb: function (sExample) {
+		var that = this,
+			sDataBaseName = "GCFiddle",
+			sStoreName = "geocaches",
+			oExample = this.model.getExample(sExample),
+			oRequest;
+
+		oRequest = window.indexedDB.open(sDataBaseName, 1);
+
+		oRequest.onupgradeneeded = function (event) {
+			var oDb = event.target.result,
+				oStore, oTitleIndex;
+
+			oStore = oDb.createObjectStore(sStoreName,
+				{
+					keyPath: "id"
+				});
+
+			oTitleIndex = oStore.createIndex("byTitle", "title",
+				{
+					unique: false
+				});
+			return oTitleIndex;
+		};
+		oRequest.onsuccess = function (event) {
+			var oDb = event.target.result,
+				oTransaction, sInput, oInfo, oStore, oReq, sComment, iIndex;
+
+			oTransaction = oDb.transaction(sStoreName, "readwrite");
+			oStore = oTransaction.objectStore(sStoreName);
+
+			sInput = oExample.script;
+			if (sInput) {
+				oInfo = that.controller.fnExtractGcInfo(sInput);
+				if (oInfo) {
+					sComment = oExample.position.getComment();
+					iIndex = sComment.indexOf("!"); // appended comment?
+					if (iIndex >= 0) {
+						oExample.category = sComment.substring(0, iIndex);
+						oExample.title = sComment.substring(iIndex + 1);
+					}
+					oExample = Utils.objectAssign(oInfo, oExample);
+				}
+			}
+
+			oReq = oStore.put(oExample); // add(), or put() to modify if exist
+			oReq.onsuccess = function (ev) {
+				Utils.console.log("indexedDB: Insertion successful: " + ev.target.result);
+			};
+			oReq.onerror = function (ev) {
+				Utils.console.error("indexedDB: Insert error: " + ev.target.error); // or use this.error
+			};
+		};
+		oRequest.onerror = function (event) {
+			Utils.console.error("indexedDB: Database error:" + event.target.errorCode);
+		};
+	},
+
 	onSaveButtonClick: function () {
 		var sDatabase = this.model.getProperty("database"),
 			sExample = this.model.getProperty("example"),
-			sInput = this.view.getAreaValue("inputArea"),
-			oExample,
-
-			fnTestIndexedDb = function (oExample2) {
-				var sDataBaseName = "GCFiddle",
-					sStoreName = "geocaches",
-					oRequest = window.indexedDB.open(sDataBaseName, 1);
-
-				oRequest.onupgradeneeded = function (event) {
-					var oDb = event.target.result,
-						oStore, oTitleIndex;
-
-					oStore = oDb.createObjectStore(sStoreName,
-						{
-							keyPath: "id"
-						});
-
-					oTitleIndex = oStore.createIndex("byTitle", "title",
-						{
-							unique: false
-						});
-					return oTitleIndex;
-				};
-				oRequest.onsuccess = function (event) {
-					var oDb = event.target.result,
-						oTransaction, sInput2, iPos, oStore, oReq;
-
-					oTransaction = oDb.transaction(sStoreName, "readwrite");
-					oStore = oTransaction.objectStore(sStoreName);
-
-					sInput2 = oExample2.script;
-					if (sInput2) {
-						iPos = sInput2.indexOf(this.controller.sJsonMarker);
-						if (iPos >= 0) {
-							oExample2 = Utils.objectAssign({}, JSON.parse(sInput2.substring(iPos + this.controller.sJsonMarker.length)), oExample2);
-						}
-					}
-
-					oReq = oStore.put(oExample2); // add(), or put() to modify if exist
-					oReq.onsuccess = function (ev) {
-						Utils.console.log("indexedDB: Insertion successful: " + ev.target.result);
-					};
-					oReq.onerror = function (ev) {
-						Utils.console.error("indexedDB: Insert error: " + ev.target.error); // or use his.error
-					};
-				};
-				oRequest.onerror = function (event) {
-					Utils.console.error("indexedDB: Database error:" + event.target.errorCode);
-				};
-			};
+			sInput = this.view.getAreaValue("inputArea");
 
 		if (sDatabase !== "saved") {
 			sDatabase = "saved";
@@ -787,16 +812,17 @@ CommonEventHandler.prototype = {
 
 		sExample = this.controller.fnAddItem(sExample, sInput);
 
-		Utils.localStorage.setItem(sExample, sInput);
-
-		if (this.model.getProperty("testIndexedDb")) {
-			fnTestIndexedDb(oExample);
-		}
-
 		if (this.view.getSelectValue("exampleSelect") !== sExample) {
 			this.view.setSelectValue("exampleSelect", sExample);
 		}
 		this.model.setProperty("example", sExample);
+
+		Utils.localStorage.setItem(sExample, sInput);
+
+		if (this.model.getProperty("testIndexedDb")) {
+			this.fnTestIndexedDb(sExample);
+		}
+
 		this.controller.fnSetFilterCategorySelectOptions(); // maybe category added
 		this.controller.fnSetExampleSelectOptions();
 		this.onExampleSelectChange();
@@ -825,6 +851,19 @@ CommonEventHandler.prototype = {
 			this.onExampleSelectChange();
 		}
 		this.view.setDisabled("deleteButton", !Object.keys(this.model.getAllExamples()).length);
+	},
+
+	onRemoveLogsButtonClick: function () {
+		var	sInput = this.view.getAreaValue("inputArea"),
+			oInfo;
+
+		oInfo = this.controller.fnExtractGcInfo(sInput);
+		if (oInfo && oInfo.logs) {
+			oInfo.logs.length = 0;
+			sInput = this.controller.fnInsertGcInfo(sInput, oInfo);
+			this.view.setAreaValue("inputArea", sInput);
+			this.onExecuteButtonClick();
+		}
 	}
 };
 
