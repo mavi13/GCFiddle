@@ -246,6 +246,30 @@ if (!Array.prototype.indexOf) {
 	};
 }
 
+// based on: https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/map
+if (!Array.prototype.map) {
+	Array.prototype.map = function (callback, thisArg) { // eslint-disable-line no-extend-native,func-names
+		var aValues = [],
+			oObject = Object(this),
+			len = oObject.length,
+			T, i, kValue, mappedValue;
+
+		if (arguments.length > 1) {
+			T = thisArg;
+		}
+
+		for (i = 0; i < len; i += 1) {
+			if (i in oObject) {
+				kValue = oObject[i];
+				mappedValue = callback.call(T, kValue, i, oObject);
+				aValues[i] = mappedValue;
+			}
+		}
+		return aValues;
+	};
+}
+
+
 // https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Object/create
 if (typeof Object.create !== "function") {
 	Object.create = (function (undefined) { // eslint-disable-line no-shadow-restricted-names

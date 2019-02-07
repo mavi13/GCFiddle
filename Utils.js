@@ -23,9 +23,10 @@ var Utils = {
 			Utils.consoleText += s + "\n";
 		}
 	},
-	loadScript: function (sUrl, fnCallback, arg) {
+	loadScript: function (sUrl, fnSuccess, fnError) {
 		// inspired by https://github.com/requirejs/requirejs/blob/master/require.js
 		var that = this,
+			iIEtimeoutCount = 3,
 			script, sFullUrl,
 			onScriptLoad = function (event) {
 				var node = event.currentTarget || event.srcElement;
@@ -36,7 +37,9 @@ var Utils = {
 				node.removeEventListener("load", onScriptLoad, false);
 				node.removeEventListener("error", that.onScriptError, false);
 
-				return fnCallback(sFullUrl, arg);
+				if (fnSuccess) {
+					fnSuccess(sFullUrl);
+				}
 			},
 			onScriptError = function (event) {
 				var node = event.currentTarget || event.srcElement;
@@ -46,6 +49,10 @@ var Utils = {
 				}
 				node.removeEventListener("load", onScriptLoad, false);
 				node.removeEventListener("error", onScriptError, false);
+
+				if (fnError) {
+					fnError(sFullUrl);
+				}
 			},
 			onScriptReadyStateChange = function (event) { // for IE
 				var node, iTimeout;
@@ -64,18 +71,23 @@ var Utils = {
 				}
 				// check also: https://stackoverflow.com/questions/1929742/can-script-readystate-be-trusted-to-detect-the-end-of-dynamic-script-loading
 				if (node.readyState !== "loaded" && node.readyState !== "complete") {
-					if (node.readyState === "loading") {
+					if (node.readyState === "loading" && iIEtimeoutCount) {
+						iIEtimeoutCount -= 1;
 						iTimeout = 200; // some delay
-						Utils.console.error("onScriptReadyStateChange: Still loading: " + node.src + " Waiting " + iTimeout + "ms");
+						Utils.console.error("onScriptReadyStateChange: Still loading: " + node.src + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
 						setTimeout(function () {
 							onScriptReadyStateChange(); // check again
 						}, iTimeout);
 					} else {
+						// iIEtimeoutCount = 3;
 						Utils.console.error("onScriptReadyStateChange: Cannot load file " + node.src + " readystate=" + node.readyState);
+						if (fnError) {
+							fnError(sFullUrl);
+						}
 					}
-					return null;
+				} else if (fnSuccess) {
+					fnSuccess(sFullUrl);
 				}
-				return fnCallback(sFullUrl, arg); // success
 			};
 
 		script = document.createElement("script");
@@ -84,8 +96,8 @@ var Utils = {
 		// script.defer = "defer"; // only for IE?
 		script.async = true;
 		if (script.readyState) { // IE
+			iIEtimeoutCount = 3;
 			script.attachEvent("onreadystatechange", onScriptReadyStateChange);
-			//script.onreadystatechange = onScriptReadyStateChange;
 		} else { // Others
 			script.addEventListener("load", onScriptLoad, false);
 			script.addEventListener("error", onScriptError, false);

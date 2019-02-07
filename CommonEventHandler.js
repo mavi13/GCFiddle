@@ -242,38 +242,18 @@ CommonEventHandler.prototype = {
 
 	onExampleSelectChange: function () {
 		var that = this,
-			sDatabase = this.model.getProperty("database"),
 			sExample = this.view.getSelectValue("exampleSelect"),
-			sName, oExample, sSrc, oDatabase, sPath,
+			sUrl, oExample, sSrc, oDatabase, sPath,
 
-			fnExampleLoaded = function (sFullUrl, sExample2, bSuppressLog) {
-				var sDatabase2 = that.model.getProperty("database"), // still the same after loading?
-					oExamples2 = that.model.getAllExamples(),
-					sName2 = sDatabase2 + "/" + sExample2 + ".js",
-					sInput;
+			fnExampleLoaded = function (sFullUrl, bSuppressLog) {
+				var sInput;
 
 				if (!bSuppressLog) {
-					Utils.console.log("Example " + sName2 + " loaded");
+					Utils.console.log("Example " + sUrl + " loaded");
 				}
 
-				// TODO: example without id loaded (Do we still need this?)
-				if (oExamples2[sExample2] === undefined) {
-					Utils.console.warn("Example " + sName2 + ": Not in index? What to do next?");
-				}
-				/*
-				if (oExamples2[sExample2] === undefined) { // TODO: example without id loaded (Do we still need this?)
-					Utils.console.warn("Example " + sName2 + ": Wrong format! Must start with #<id>: <title>");
-					sUnknownExample = that.controller.emptyExample.unknown.key;
-					if (oExamples2[sUnknownExample]) {
-						oExamples2[sExample2] = oExamples2[sUnknownExample];
-						delete oExamples2[sUnknownExample];
-					} else {
-						Utils.console.error("No example 'unknown' found");
-						oExamples2[sExample2] = that.controller.fnParseExample("", "", sExample2);
-					}
-				}
-				*/
-				sInput = oExamples2[sExample2].script;
+				oExample = that.model.getExample(sExample);
+				sInput = oExample.script;
 				that.view.setAreaValue("inputArea", sInput);
 				that.controller.fnInitUndoRedoButtons();
 				that.onExecuteButtonClick();
@@ -281,37 +261,36 @@ CommonEventHandler.prototype = {
 				if (that.onMyExampleSelectChangeCompleted) {
 					that.onMyExampleSelectChangeCompleted(sExample);
 				}
+			},
+			fnExampleError = function () {
+				Utils.console.log("Example " + sUrl + " error");
+				that.view.setAreaValue("inputArea", "");
+				that.view.setAreaValue("outputArea", "Cannot load example: " + sExample);
 			};
 
 		this.view.setSelectTitleFromSelectedOption("exampleSelect");
 		that.model.setProperty("example", sExample);
 		oExample = this.model.getExample(sExample); // already loaded
 		if (oExample && oExample.loaded) {
-			fnExampleLoaded("", sExample, true);
-		} else if (sExample) { // need to load
+			fnExampleLoaded("", true);
+		} else if (sExample && oExample && oExample.src) { // need to load
 			that.view.setAreaValue("inputArea", "#loading " + sExample + "...");
 			this.view.setAreaValue("outputArea", "waiting...");
 
 			sSrc = oExample.src;
 
 			sPath = "";
-			oDatabase = this.model.getDatabase(sDatabase);
+			oDatabase = this.model.getDatabase();
 			if (oDatabase.src) {
 				sPath = oDatabase.src.split("/").slice(0, -1).join("/");
 			}
 
 			if (Utils.stringEndsWith(sSrc, ".js")) {
-				sName = this.model.getProperty("exampleDir") + "/" + sPath + "/" + sSrc;
+				sUrl = this.model.getProperty("exampleDir") + "/" + sPath + "/" + sSrc;
 			} else {
-				sName = this.model.getProperty("exampleDir") + "/" + sPath + "/" + sSrc + "/" + sExample + ".js";
+				sUrl = this.model.getProperty("exampleDir") + "/" + sPath + "/" + sSrc + "/" + sExample + ".js";
 			}
-
-			this.controller.pendingScripts.push({
-				database: sDatabase,
-				example: sExample,
-				url: sName
-			});
-			Utils.loadScript(sName, fnExampleLoaded, sExample);
+			Utils.loadScript(sUrl, fnExampleLoaded, fnExampleError);
 		} else {
 			that.view.setAreaValue("inputArea", "");
 			this.model.setProperty("example", "");
@@ -324,25 +303,39 @@ CommonEventHandler.prototype = {
 		}
 	},
 
+	fnSetDeleteButtonStatus: function () {
+		var sDatabase = this.model.getProperty("database"),
+			bDisabled = (sDatabase !== "saved") || !Object.keys(this.model.getFilteredExamples()).length;
+
+		this.view.setDisabled("deleteButton", bDisabled);
+	},
+
 	onDatabaseSelectChange: function () {
 		var that = this,
 			sDatabase = this.view.getSelectValue("databaseSelect"),
-			sName, bDisabled, oDatabase,
+			sUrl, oDatabase,
 
-			fnDatabaseLoaded = function (sFullUrl, sDatabase2) {
-				if (sDatabase !== sDatabase2) {
-					Utils.console.warn("fnDatabaseLoaded: wrong database: " + sDatabase + ", " + sDatabase2);
-				}
+			fnDatabaseLoaded = function (/* sFullUrl */) {
 				oDatabase.loaded = true;
-				Utils.console.log("fnDatabaseLoaded: database loaded: " + sDatabase2 + ": " + sName);
+				Utils.console.log("fnDatabaseLoaded: database loaded: " + sDatabase + ": " + sUrl);
 				that.controller.fnSetFilterCategorySelectOptions();
 				that.controller.fnSetExampleSelectOptions();
 				if (oDatabase.error) {
+					Utils.console.error("fnDatabaseLoaded: database contains errors: " + sDatabase + ": " + sUrl);
 					that.view.setAreaValue("inputArea", oDatabase.script);
 					that.view.setAreaValue("outputArea", oDatabase.error);
 				} else {
 					that.onExampleSelectChange();
 				}
+			},
+			fnDatabaseError = function (/* sFullUrl */) {
+				oDatabase.loaded = false;
+				Utils.console.error("fnDatabaseError: database error: " + sDatabase + ": " + sUrl);
+				that.controller.fnSetFilterCategorySelectOptions();
+				that.controller.fnSetExampleSelectOptions();
+				that.onExampleSelectChange();
+				that.view.setAreaValue("inputArea", "");
+				that.view.setAreaValue("outputArea", "Cannot load database: " + sDatabase);
 			},
 			fnLoadDatabaseLocalStorage = function () {
 				var	oStorage = Utils.localStorage,
@@ -358,7 +351,7 @@ CommonEventHandler.prototype = {
 
 		this.model.setProperty("database", sDatabase);
 		this.view.setSelectTitleFromSelectedOption("databaseSelect");
-		oDatabase = this.model.getDatabase(sDatabase);
+		oDatabase = this.model.getDatabase();
 		if (!oDatabase) {
 			Utils.console.error("onDatabaseSelectChange: database not available: " + sDatabase);
 			return;
@@ -369,22 +362,16 @@ CommonEventHandler.prototype = {
 			this.controller.fnSetExampleSelectOptions();
 			this.onExampleSelectChange();
 		} else {
-			this.view.setAreaValue("inputArea", "#loading index " + sDatabase + "...");
+			this.view.setAreaValue("inputArea", "#loading database " + sDatabase + "...");
 			if (sDatabase === "saved") {
-				sName = "localStorage";
+				sUrl = "localStorage";
 				fnLoadDatabaseLocalStorage(sDatabase);
 			} else {
-				sName = this.model.getProperty("exampleDir") + "/" + oDatabase.src;
-				this.controller.pendingScripts.push({
-					database: sDatabase,
-					example: oDatabase.src,
-					url: sName
-				});
-				Utils.loadScript(sName, fnDatabaseLoaded, sDatabase);
+				sUrl = this.model.getProperty("exampleDir") + "/" + oDatabase.src;
+				Utils.loadScript(sUrl, fnDatabaseLoaded, fnDatabaseError);
 			}
 		}
-		bDisabled = (sDatabase !== "saved") || !Object.keys(this.model.getAllExamples()).length;
-		this.view.setDisabled("deleteButton", bDisabled);
+		this.fnSetDeleteButtonStatus();
 	},
 
 	onFilterCategorySelectChange: function () {
@@ -420,6 +407,7 @@ CommonEventHandler.prototype = {
 
 		this.controller.fnSetExampleSelectOptions();
 		this.onExampleSelectChange();
+		this.fnSetDeleteButtonStatus();
 	},
 
 	onFilterResetButtonClick: function () {
@@ -438,6 +426,7 @@ CommonEventHandler.prototype = {
 
 		this.controller.fnSetExampleSelectOptions();
 		this.onExampleSelectChange();
+		this.fnSetDeleteButtonStatus();
 	},
 
 	onFilterLegendClick: function () {
@@ -826,7 +815,7 @@ CommonEventHandler.prototype = {
 		this.controller.fnSetFilterCategorySelectOptions(); // maybe category added
 		this.controller.fnSetExampleSelectOptions();
 		this.onExampleSelectChange();
-		this.view.setDisabled("deleteButton", !Object.keys(this.model.getAllExamples()).length);
+		this.fnSetDeleteButtonStatus();
 	},
 
 	onDeleteButtonClick: function () {
@@ -850,7 +839,7 @@ CommonEventHandler.prototype = {
 			this.controller.fnSetExampleSelectOptions();
 			this.onExampleSelectChange();
 		}
-		this.view.setDisabled("deleteButton", !Object.keys(this.model.getAllExamples()).length);
+		this.fnSetDeleteButtonStatus();
 	},
 
 	onRemoveLogsButtonClick: function () {

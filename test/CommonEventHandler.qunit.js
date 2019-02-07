@@ -54,7 +54,6 @@ var gcMock = { // eslint-disable-line vars-on-top,one-var
 	controller: {
 		categories: {},
 		examples: {},
-		pendingScripts: [],
 		fnPutChangedInputOnStack: function () {
 			// empty
 		},

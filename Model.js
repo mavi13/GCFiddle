@@ -10,17 +10,14 @@ if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 }
 
-function Model(options) {
-	this.init(options);
+function Model(config, initialConfig) {
+	this.init(config, initialConfig);
 }
 
 Model.prototype = {
-	init: function (options) {
-		this.config = {};
-		if (options) {
-			this.config = options.config; // store only a reference
-			this.initialConfig = options.initialConfig;
-		}
+	init: function (config, initialConfig) {
+		this.config = config || {}; // store only a reference
+		this.initialConfig = initialConfig || {};
 		this.databases = {};
 		this.examples = {}; // loaded examples per database (properties: database, key, script, title)
 
@@ -65,8 +62,10 @@ Model.prototype = {
 	getAllDatabases: function () {
 		return this.databases;
 	},
-	getDatabase: function (sKey) {
-		return this.databases[sKey];
+	getDatabase: function () {
+		var sDatabase = this.getProperty("database");
+
+		return this.databases[sDatabase];
 	},
 
 
@@ -74,6 +73,75 @@ Model.prototype = {
 		var selectedDatabase = this.getProperty("database");
 
 		return this.examples[selectedDatabase];
+	},
+	fnGetFilterCategories: function () {
+		var mFilterCategory, sFilterCategory, aFilterCategory, i;
+
+		sFilterCategory = this.getProperty("filterCategory");
+		if (sFilterCategory !== "") { // split: empty string returns array with empty string
+			aFilterCategory = sFilterCategory.split(",");
+			mFilterCategory = {};
+			for (i = 0; i < aFilterCategory.length; i += 1) {
+				mFilterCategory[aFilterCategory[i]] = true;
+			}
+		}
+		return mFilterCategory; // for empty list return undefined
+	},
+	fnGetExampleTitle: function (oExample) {
+		var sComment, iIndex, sTitle;
+
+		sComment = oExample.position.getComment(); // category and title
+		iIndex = sComment.indexOf("!");
+		sTitle = (iIndex >= 0) ? sComment.substring(iIndex + 1) : "";
+		return sTitle;
+	},
+	fnGetExampleCategory: function (oExample) {
+		var sComment, iIndex, sCategory;
+
+		sComment = oExample.position.getComment(); // category and title
+		iIndex = sComment.indexOf("!");
+		sCategory = (iIndex >= 0) ? sComment.substring(0, iIndex) : "";
+		return sCategory;
+	},
+	fnGetAllExampleCategories: function () {
+		var oItems = {},
+			oAllExamples = this.getAllExamples(),
+			oExample, sKey, sCategory;
+
+		// Get all categories from example titles
+		for (sKey in oAllExamples) {
+			if (oAllExamples.hasOwnProperty(sKey)) {
+				oExample = oAllExamples[sKey];
+				sCategory = this.fnGetExampleCategory(oExample);
+				oItems[sCategory] = true;
+			}
+		}
+		return oItems;
+	},
+	getFilteredExamples: function () {
+		var aItems = [],
+			oAllExamples = this.getAllExamples(),
+			mFilterCategories = this.fnGetFilterCategories(),
+			sFilterId = this.getProperty("filterId").toLowerCase(),
+			sFilterTitle = this.getProperty("filterTitle").toLowerCase(),
+			sKey, oExample, sTitle, sCategory;
+
+		for (sKey in oAllExamples) {
+			if (oAllExamples.hasOwnProperty(sKey)) {
+				oExample = oAllExamples[sKey];
+				sTitle = this.fnGetExampleTitle(oExample);
+				sCategory = this.fnGetExampleCategory(oExample);
+
+				if ((!mFilterCategories || mFilterCategories[sCategory])
+					&& (sFilterId === "" || sKey.toLowerCase().indexOf(sFilterId) >= 0)
+					&& (sFilterTitle === "" || sTitle.toLowerCase().indexOf(sFilterTitle) >= 0)) { // filter
+					aItems.push(oExample);
+				} else if (Utils.debug > 1) {
+					Utils.console.debug("DEBUG: getFilteredExamples: item " + sKey + " filtered");
+				}
+			}
+		}
+		return aItems;
 	},
 	getExample: function (sKey) {
 		var selectedDatabase = this.getProperty("database");

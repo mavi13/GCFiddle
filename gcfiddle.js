@@ -96,10 +96,7 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 			Utils.objectAssign(oStartConfig, gcFiddleExternalConfig || {}); // merge external config from gcconfig.js
 			oInitialConfig = Utils.objectAssign({}, oStartConfig); // save config
 			this.fnParseUri(oStartConfig); // modify config with URL parameters
-			this.model = new Model({
-				config: oStartConfig,
-				initialConfig: oInitialConfig
-			});
+			this.model = new Model(oStartConfig, oInitialConfig);
 			this.view = new View({});
 			oModel = this.model;
 			if (oModel.getProperty("showConsole")) {

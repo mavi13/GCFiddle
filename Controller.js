@@ -11,19 +11,20 @@ function Controller(oModel, oView) {
 Controller.prototype = {
 	init: function (oModel, oView) {
 		var that = this,
-			sFilterId, sFilterTitle, sVariableType, sWaypointFormat, sMapType, sExample, sDatabaseIndex,
+			sFilterId, sFilterTitle, sVariableType, sWaypointFormat, sMapType, sExample, sUrl,
 			onDatabaseIndexLoaded = function () {
-				Utils.console.log(sDatabaseIndex + " loaded");
+				Utils.console.log(sUrl + " loaded");
 				that.fnSetDatabaseSelect();
 				that.commonEventHandler.onDatabaseSelectChange();
+			},
+			onDatabaseIndexError = function () {
+				Utils.console.log(sUrl + " error");
 			};
 
 		this.model = oModel;
 		this.view = oView;
 
 		this.sJsonMarker = "#GC_INFO:";
-
-		this.pendingScripts = []; //TTT
 
 		this.commonEventHandler = new CommonEventHandler(this.model, this.view, this);
 
@@ -79,9 +80,9 @@ Controller.prototype = {
 		}
 		this.commonEventHandler.onMapTypeSelectChange();
 
-		sDatabaseIndex = this.model.getProperty("exampleDir") + "/" + this.model.getProperty("databaseIndex");
-		if (sDatabaseIndex) {
-			Utils.loadScript(sDatabaseIndex, onDatabaseIndexLoaded);
+		sUrl = this.model.getProperty("exampleDir") + "/" + this.model.getProperty("databaseIndex");
+		if (sUrl) {
+			Utils.loadScript(sUrl, onDatabaseIndexLoaded, onDatabaseIndexError);
 		} else {
 			Utils.console.error("DatabaseIndex not set");
 		}
@@ -137,7 +138,7 @@ Controller.prototype = {
 	// Also called from file 0index.js
 	fnAddIndex: function (sItemSrc, input) {
 		var oVariables = {},
-			sInput, oOutput, oError, iEndPos, oFile, sDatabase, oDatabase;
+			sInput, oOutput, oError, iEndPos, oDatabase;
 
 		sInput = (typeof input === "string") ? input.trim() : this.fnHereDoc(input).trim();
 		oOutput = new ScriptParser().calculate(sInput, oVariables);
@@ -145,13 +146,8 @@ Controller.prototype = {
 			oError = oOutput.error;
 			iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
 			oOutput.text = oError.message + ": '" + oError.value + "' (pos " + oError.pos + "-" + iEndPos + ")";
-			if (this.pendingScripts.length) {
-				oFile = this.pendingScripts.pop();
-				oOutput.text += " " + oFile.url;
-			}
-			Utils.console.error("fnAddIndex: " + oOutput.text);
-			sDatabase = this.model.getProperty("database");
-			oDatabase = this.model.getDatabase(sDatabase);
+			Utils.console.error("fnAddIndex: " + oOutput.text + " (src=" + sItemSrc + ")");
+			oDatabase = this.model.getDatabase();
 			if (oDatabase) {
 				oDatabase.error = oOutput.text;
 				oDatabase.script = sInput;
@@ -297,57 +293,22 @@ Controller.prototype = {
 		this.view.setSelectOptions(sSelect, aItems);
 	},
 
-	fnGetAllCategories: function () {
-		var oItems = {},
-			oExamples = this.model.getAllExamples(),
-			iIndex, sValue, sTitle, sCategory;
-
-		// Get all categories from example titles
-		for (sValue in oExamples) {
-			if (oExamples.hasOwnProperty(sValue)) {
-				sTitle = oExamples[sValue].position.getComment(); // category and title
-				iIndex = sTitle.indexOf("!");
-				if (iIndex >= 0) {
-					sCategory = sTitle.substring(0, iIndex); // get category prefix
-				} else {
-					sCategory = "";
-				}
-				oItems[sCategory] = true;
-			}
-		}
-		return oItems;
-	},
-
-	fnGetFilterCategory: function () {
-		var mFilterCategory, sFilterCategory, aFilterCategory, i;
-
-		sFilterCategory = this.model.getProperty("filterCategory");
-		if (sFilterCategory !== "") { // split: empty string returns array with empty string
-			aFilterCategory = sFilterCategory.split(",");
-			mFilterCategory = {};
-			for (i = 0; i < aFilterCategory.length; i += 1) {
-				mFilterCategory[aFilterCategory[i]] = true;
-			}
-		}
-		return mFilterCategory; // for empty list return undefined
-	},
-
 	fnSetFilterCategorySelectOptions: function () {
 		var sSelect = "filterCategorySelect",
-			oItems = {},
+			oAllCategories = {},
 			aItems = [],
-			mFilterCategory, sValue, oItem;
+			oFilterCategories, sValue, oItem;
 
-		oItems = this.fnGetAllCategories();
-		mFilterCategory = this.fnGetFilterCategory();
-		if (mFilterCategory) { // check if selected categories are valid, otherwise remove them all from selected
-			for (sValue in mFilterCategory) {
-				if (mFilterCategory.hasOwnProperty(sValue)) {
-					if (!oItems[sValue]) {
+		oAllCategories = this.model.fnGetAllExampleCategories();
+		oFilterCategories = this.model.fnGetFilterCategories();
+		if (oFilterCategories) { // check if selected categories are valid, otherwise remove them all from selected
+			for (sValue in oFilterCategories) {
+				if (oFilterCategories.hasOwnProperty(sValue)) {
+					if (!oAllCategories[sValue]) {
 						if (Utils.debug > 1) { // eslint-disable-line max-depth
 							Utils.console.debug("fnSetFilterCategorySelectOptions: category selection removed, so all are selected");
 						}
-						mFilterCategory = null;
+						oFilterCategories = null;
 						this.model.setProperty("filterCategory", "");
 						break;
 					}
@@ -355,12 +316,12 @@ Controller.prototype = {
 			}
 		}
 
-		for (sValue in oItems) {
-			if (oItems.hasOwnProperty(sValue)) {
+		for (sValue in oAllCategories) {
+			if (oAllCategories.hasOwnProperty(sValue)) {
 				oItem = {
 					value: sValue.substr(0, 30),
 					title: sValue.substr(0, 160),
-					selected: (!mFilterCategory || mFilterCategory[sValue])
+					selected: (!oFilterCategories || oFilterCategories[sValue])
 				};
 				oItem.text = oItem.value;
 				if (sValue === "") {
@@ -376,44 +337,21 @@ Controller.prototype = {
 	fnSetExampleSelectOptions: function () {
 		var sSelect = "exampleSelect",
 			aItems = [],
-			oExamples = this.model.getAllExamples(),
 			sExample = this.model.getProperty("example"),
-			mFilterCategory, sFilterId, sFilterTitle,
-			iIndex, sValue, sTitle, sCategory, oItem;
+			aFilteredExamples = this.model.getFilteredExamples(),
+			i, oExample, oItem;
 
-		mFilterCategory = this.fnGetFilterCategory();
-
-		sFilterId = this.model.getProperty("filterId");
-		sFilterId = sFilterId.toLowerCase();
-
-		sFilterTitle = this.model.getProperty("filterTitle");
-		sFilterTitle = sFilterTitle.toLowerCase();
-
-		for (sValue in oExamples) {
-			if (oExamples.hasOwnProperty(sValue)) {
-				sTitle = oExamples[sValue].position.getComment(); // category and title
-				iIndex = sTitle.indexOf("!");
-				if (iIndex < 0) { // no prefix marker found?
-					sTitle = "!" + sTitle; // set prefix marker
-				}
-				sCategory = sTitle.substring(0, iIndex);
-				sTitle = sTitle.substring(iIndex + 1); // remove category prefix
-				if ((!mFilterCategory || mFilterCategory[sCategory])
-					&& (sFilterId === "" || sValue.toLowerCase().indexOf(sFilterId) >= 0)
-					&& (sFilterTitle === "" || sTitle.toLowerCase().indexOf(sFilterTitle) >= 0)) { // filter
-					oItem = {
-						value: sValue,
-						title: (sValue + ": " + sTitle).substr(0, 160)
-					};
-					oItem.text = oItem.title.substr(0, 30);
-					if (sValue === sExample) {
-						oItem.selected = true;
-					}
-					aItems.push(oItem);
-				} else if (Utils.debug > 1) {
-					Utils.console.debug("DEBUG: fnSetExampleSelectOptions: item " + sValue + " filtered");
-				}
+		for (i = 0; i < aFilteredExamples.length; i += 1) {
+			oExample = aFilteredExamples[i];
+			oItem = {
+				value: oExample.key,
+				title: (oExample.key + ": " + this.model.fnGetExampleTitle(oExample)).substr(0, 160)
+			};
+			oItem.text = oItem.title.substr(0, 30);
+			if (oExample.key === sExample) {
+				oItem.selected = true;
 			}
+			aItems.push(oItem);
 		}
 		this.view.setSelectOptions(sSelect, aItems);
 		this.view.setSpanText("filterSelectedSpan", aItems.length);

@@ -230,7 +230,7 @@ View.prototype = {
 	setLegendText: function (sId, sText) {
 		var legend = document.getElementById(sId);
 
-		legend.textContent = sText;
+		legend.innerText = sText; // innerText works also on ond IE8, textContent not
 		return this;
 	},
 	getLabelText: function (sId) {
@@ -253,7 +253,7 @@ View.prototype = {
 	setSpanText: function (sId, sText) {
 		var span = document.getElementById(sId);
 
-		span.textContent = sText;
+		span.innerText = sText;
 		return this;
 	},
 

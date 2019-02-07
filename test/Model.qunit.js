@@ -19,13 +19,9 @@ QUnit.module("Model: Properties", function (hooks) {
 			oConfig = {
 				p1: "v1",
 				p2: "v2"
-			},
-			oOptions = {
-				config: oConfig,
-				initialConfig: oInitialConfig
 			};
 
-		that.model = new Model(oOptions);
+		that.model = new Model(oConfig, oInitialConfig);
 	});
 
 	QUnit.test("init without options", function (assert) {
@@ -112,8 +108,16 @@ QUnit.module("Model: Databases", function (hooks) {
 
 		assert.strictEqual(Object.keys(oDatabases).join(" "), "db1 db2", "two databases: db1, db2");
 
-		assert.strictEqual(oModel.getDatabase("db1"), mDatabases.db1, "databases db1");
-		assert.strictEqual(oModel.getDatabase("db2"), mDatabases.db2, "databases db2");
+		oModel.setProperty("database", "db1");
+
+		assert.strictEqual(oModel.getDatabase(), mDatabases.db1, "databases db1");
+
+		oModel.setProperty("database", "db2");
+
+		assert.strictEqual(oModel.getDatabase(), mDatabases.db2, "databases db2");
+
+		oModel.setProperty("database", "");
+
 		assert.strictEqual(oModel.getDatabase(), undefined, "databases undefined");
 	});
 });
@@ -121,49 +125,100 @@ QUnit.module("Model: Databases", function (hooks) {
 
 QUnit.module("Model: Examples", function (hooks) {
 	hooks.beforeEach(function (/* assert */) {
-		// var that = this, // eslint-disable-line no-invalid-this
-	});
-
-	QUnit.test("examples", function (assert) {
-		var oModel = new Model(),
+		var that = this, // eslint-disable-line no-invalid-this
 			mDatabases = {
 				db1: {
-					text: "text1",
-					title: "title1",
-					src: "src1"
+					text: "db1Text",
+					title: "db1Title",
+					src: "db1Src"
 				},
 				db2: {
-					text: "text2"
+					text: "db2text"
 				}
 			},
 			mExample1 = {
-				key: "example1"
+				key: "ex1",
+				position: {
+					getComment: function () {
+						return "ex1Cat!ex1Title";
+					}
+				}
 			},
 			mExample2 = {
-				key: "example2"
-			};
+				key: "ex2",
+				position: {
+					getComment: function () {
+						return "ex2Cat!ex2Title";
+					}
+				}
+			},
+			oModel;
 
+		oModel = new Model();
 		oModel.addDatabases(mDatabases);
-
-		oModel.setProperty("database", "db2");
-
-		assert.strictEqual(Object.keys(oModel.getAllExamples()).length, 0, "no examples in database");
-
+		oModel.setProperty("database", "db1");
 		oModel.setExample(mExample1);
-
-		assert.strictEqual(oModel.getExample("example1"), mExample1, "example 1");
-
 		oModel.setExample(mExample2);
+		that.model = oModel;
+	});
 
-		assert.strictEqual(oModel.getExample("example2"), mExample2, "example 2");
+	QUnit.test("examples", function (assert) {
+		var oModel = this.model; // eslint-disable-line no-invalid-this
 
-		assert.strictEqual(Object.keys(oModel.getAllExamples()).join(" "), "example1 example2", "two examples: example1, example2");
+		assert.strictEqual(oModel.getExample("ex1").key, "ex1", "ex1");
+		assert.strictEqual(oModel.getExample("ex2").key, "ex2", "ex2");
 
-		oModel.deleteExample("example2");
-		assert.strictEqual(oModel.getExample("example2"), undefined, "example 2 not found");
+		assert.strictEqual(Object.keys(oModel.getAllExamples()).join(), "ex1,ex2", "two examples: ex1,ex2");
 
-		oModel.deleteExample("example1");
+		oModel.deleteExample("ex2");
+		assert.strictEqual(oModel.getExample("ex2"), undefined, "example 2 not found");
+
+		oModel.deleteExample("ex1");
 		assert.strictEqual(Object.keys(oModel.getAllExamples()).length, 0, "no examples in database");
+	});
+
+	QUnit.test("examples: fnGetAllExampleCategories", function (assert) {
+		var oModel = this.model, // eslint-disable-line no-invalid-this
+			oCat;
+
+		oCat = oModel.fnGetAllExampleCategories();
+		assert.strictEqual(Object.keys(oCat).join(), "ex1Cat,ex2Cat", "two categories: ex1Cat,ex2Cat");
+	});
+
+	QUnit.test("examples: getFilteredExamples", function (assert) {
+		var oModel = this.model, // eslint-disable-line no-invalid-this
+			fnGetKey = function (obj) {
+				return obj.key;
+			},
+			aExamples;
+
+		oModel.setProperty("filterCategory", "");
+		oModel.setProperty("filterId", "");
+		oModel.setProperty("filterTitle", "");
+		aExamples = oModel.getFilteredExamples();
+		assert.strictEqual(aExamples.map(fnGetKey).join(), "ex1,ex2", "no filter: ex1,ex2");
+
+		oModel.setProperty("filterCategory", "ex1Cat");
+		oModel.setProperty("filterId", "ex1");
+		oModel.setProperty("filterTitle", "ex1Title");
+		aExamples = oModel.getFilteredExamples();
+		assert.strictEqual(aExamples.map(fnGetKey).join(), "ex1", "3 filters for 1: ex1");
+
+		oModel.setProperty("filterCategory", "ex2Cat");
+		oModel.setProperty("filterId", "2");
+		oModel.setProperty("filterTitle", "ex2tit");
+		aExamples = oModel.getFilteredExamples();
+		assert.strictEqual(aExamples.map(fnGetKey).join(), "ex2", "3 filters for 2: ex2");
+
+		oModel.setProperty("filterId", "1");
+		aExamples = oModel.getFilteredExamples();
+		assert.strictEqual(aExamples.map(fnGetKey).join(), "", "2 filters for 2, one for 1: no examples");
+
+		oModel.setProperty("filterCategory", "ex1Cat,ex2Cat");
+		oModel.setProperty("filterId", "Ex");
+		oModel.setProperty("filterTitle", "Title");
+		aExamples = oModel.getFilteredExamples();
+		assert.strictEqual(aExamples.map(fnGetKey).join(), "ex1,ex2", "3 filters for both: ex1,ex2");
 	});
 });
 // end
