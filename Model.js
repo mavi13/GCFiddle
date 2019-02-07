@@ -1,8 +1,14 @@
 // Model.js - Model
 //
-/* globals Utils */
+/* globals */
 
 "use strict";
+
+var Utils;
+
+if (typeof require !== "undefined") {
+	Utils = require("./Utils.js"); // eslint-disable-line global-require
+}
 
 function Model(options) {
 	this.init(options);
@@ -10,11 +16,13 @@ function Model(options) {
 
 Model.prototype = {
 	init: function (options) {
-		this.config = options.config; // store only a reference
-		this.initialConfig = options.initialConfig;
-
+		this.config = {};
+		if (options) {
+			this.config = options.config; // store only a reference
+			this.initialConfig = options.initialConfig;
+		}
 		this.databases = {};
-		this.examples = { }; // loaded examples per database (properties: database, key, script, title)
+		this.examples = {}; // loaded examples per database (properties: database, key, script, title)
 
 		this.initVariables();
 	},
@@ -37,7 +45,7 @@ Model.prototype = {
 	},
 	initVariables: function () {
 		this.variables = {
-			gcfOriginal: { }
+			gcfOriginal: {}
 		};
 		return this;
 	},
@@ -54,21 +62,19 @@ Model.prototype = {
 		}
 		return this;
 	},
-
 	getAllDatabases: function () {
 		return this.databases;
 	},
-
 	getDatabase: function (sKey) {
 		return this.databases[sKey];
 	},
+
 
 	getAllExamples: function () {
 		var selectedDatabase = this.getProperty("database");
 
 		return this.examples[selectedDatabase];
 	},
-
 	getExample: function (sKey) {
 		var selectedDatabase = this.getProperty("database");
 
@@ -97,4 +103,8 @@ Model.prototype = {
 	}
 };
 
+
+if (typeof module !== "undefined" && module.exports) {
+	module.exports = Model;
+}
 // end

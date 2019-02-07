@@ -181,14 +181,6 @@ ScriptParser.prototype = {
 				if (led) {
 					oSymbol.led = led;
 				}
-				/*
-				var oSym = oSymbols[id] || {};
-				oSymbols[id] = {
-					lbp: oSym.lbp || lbp,
-					nud: oSym.nud || nud,
-					led: oSym.lef || led   //correct: oSym.lef => oSym.led!
-				};
-				*/
 			},
 
 			interpretToken = function (oToken) {

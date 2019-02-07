@@ -65,48 +65,39 @@ var gcMock = { // eslint-disable-line vars-on-top,one-var
 };
 
 
-QUnit.module("CommonEventHandler test", {
-	before: function () {
-		// prepare something once for all tests
-	},
-	beforeEach: function () {
-		// prepare something before each test
-	},
-	afterEach: function () {
-		// clean up after each test
-	},
-	after: function () {
-		// clean up once after all tests are done
-	}
-});
+QUnit.module("CommonEventHandler test", function (hooks) {
+	hooks.beforeEach(function (/* assert */) {
+		// var that = this; // eslint-disable-line no-invalid-this
+	});
 
-QUnit.test("Properties", function (assert) {
-	var commonEventHandler = new CommonEventHandler(gcMock.model, gcMock.view, gcMock.controller),
-		sScript = '$W0="N 49° 18.071 E 008° 42.167" a=213 b=289	$W1=["N 49° 18." a " E 008° 42." b]	#$W2=project($W0,0,50)';
+	QUnit.test("Properties", function (assert) {
+		var commonEventHandler = new CommonEventHandler(gcMock.model, gcMock.view, gcMock.controller),
+			sScript = '$W0="N 49° 18.071 E 008° 42.167" a=213 b=289	$W1=["N 49° 18." a " E 008° 42." b]	#$W2=project($W0,0,50)';
 
-	// commonEventHandler.onExecuteButtonClick();
+		// commonEventHandler.onExecuteButtonClick();
 
-	commonEventHandler.detachEventHandler();
-	assert.strictEqual(sScript, sScript, "TODO");
-});
+		commonEventHandler.detachEventHandler();
+		assert.strictEqual(sScript, sScript, "TODO");
+	});
 
-QUnit.test("Load test script", function (assert) {
-	var commonEventHandler = new CommonEventHandler(gcMock.model, gcMock.view, gcMock.controller);
+	QUnit.test("Load test script", function (assert) {
+		var commonEventHandler = new CommonEventHandler(gcMock.model, gcMock.view, gcMock.controller);
 
-	/*
-	fnLoadScript = Utils.loadScript;
-	Utils.loadScript = function (url, callback, arg) {
-		fnLoadScript("../../" + url, callback, arg); // cannot go back
-	};
-	*/
+		/*
+		fnLoadScript = Utils.loadScript;
+		Utils.loadScript = function (url, callback, arg) {
+			fnLoadScript("../../" + url, callback, arg); // cannot go back
+		};
+		*/
 
-	//	commonEventHandler.onDatabaseSelectChange(); // TODO
+		//	commonEventHandler.onDatabaseSelectChange(); // TODO
 
-	/*
-	Utils.loadScript = fnLoadScript;
-	*/
+		/*
+		Utils.loadScript = fnLoadScript;
+		*/
 
-	commonEventHandler.detachEventHandler();
-	assert.strictEqual("", "", "TODO");
+		commonEventHandler.detachEventHandler();
+		assert.strictEqual("", "", "TODO");
+	});
 });
 // end

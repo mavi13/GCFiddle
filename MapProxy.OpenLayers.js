@@ -30,7 +30,7 @@ MapProxy.OpenLayers.Map.prototype = {
 		var that = this,
 			oView, sProtocol, sUrl;
 
-		this.options = Utils.objectAssign({ }, options);
+		this.options = Utils.objectAssign({}, options);
 		oView = this.options.view;
 		this.registeredMarkers = {};
 		sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
@@ -43,7 +43,7 @@ MapProxy.OpenLayers.Map.prototype = {
 
 			bHidden = oView.getHidden(sMapDivId);
 			oView.setHidden(sMapDivId, false); // make sure canvas is not hidden (allows to get width, height)
-			that.map = new OpenLayers.Map(sMapDivId, { });
+			that.map = new OpenLayers.Map(sMapDivId, {});
 			oView.setHidden(sMapDivId, bHidden); // restore hidden
 			that.doInit2();
 
@@ -209,7 +209,7 @@ MapProxy.OpenLayers.LatLngBounds = function (options) {
 
 MapProxy.OpenLayers.LatLngBounds.prototype = {
 	init: function (options) {
-		this.options = Utils.objectAssign({	}, options);
+		this.options = Utils.objectAssign({}, options);
 		this.bounds = new OpenLayers.Bounds(options);
 	},
 	getBounds: function () {
@@ -233,7 +233,7 @@ MapProxy.OpenLayers.FeatureGroup.prototype = {
 			strokeWidth: 2
 		};
 
-		this.options = Utils.objectAssign({	}, options);
+		this.options = Utils.objectAssign({}, options);
 		this.aMarkerPool = [];
 		this.aMarkers = [];
 		this.polyLine = new MapProxy.OpenLayers.Polyline(oPolyLineOptions);
@@ -338,7 +338,7 @@ MapProxy.OpenLayers.Marker.prototype = {
 	init: function (options) {
 		var oMarkerOptions, oTransformedPosition;
 
-		this.options = Utils.objectAssign({	}, options);
+		this.options = Utils.objectAssign({}, options);
 		oMarkerOptions = this.options;
 
 		oTransformedPosition = MapProxy.OpenLayers.position2openlayers(oMarkerOptions.position);
@@ -488,7 +488,7 @@ MapProxy.OpenLayers.Polyline.prototype = {
 		return this.map;
 	},
 	setMap: function (map) {
-		var oLines,	oFeature;
+		var oLines, oFeature;
 
 		if (map) {
 			oFeature = new OpenLayers.Feature.Vector(this.polyline, {}, this.options);
@@ -515,7 +515,7 @@ MapProxy.OpenLayers.InfoWindow.prototype = {
 				OpenLayers.Event.stop(event);
 			};
 
-		this.options = Utils.objectAssign({	}, options);
+		this.options = Utils.objectAssign({}, options);
 		this.infoWindow = new OpenLayers.Popup.FramedCloud(null, null, null, null, null, true, fncloseBoxCallback);
 	},
 	setContent: function (sContent) {

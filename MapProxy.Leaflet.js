@@ -23,7 +23,7 @@ MapProxy.Leaflet.Map.prototype = {
 		var that = this,
 			sProtocol, sUrl, sUrl2;
 
-		this.options = Utils.objectAssign({ }, options);
+		this.options = Utils.objectAssign({}, options);
 		sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
 		sUrl = this.options.leafletUrl.replace(/^http(s)?:/, sProtocol).replace(/(-src)?\.js$/, ".css");
 		Utils.loadStyle(sUrl, function () {
@@ -111,7 +111,7 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 				}
 			};
 
-		this.options = Utils.objectAssign({	}, options);
+		this.options = Utils.objectAssign({}, options);
 		this.iPopupSourceId = null; // current marker id with popup
 		this.markerGroup = L.featureGroup(); // featureGroup for markers
 		this.polylineGroup = L.featureGroup(); // featureGroup for polyline
@@ -277,7 +277,7 @@ MapProxy.Leaflet.Marker.prototype = {
 	init: function (options) {
 		var oMarkerOptions;
 
-		this.options = Utils.objectAssign({	}, options);
+		this.options = Utils.objectAssign({}, options);
 		oMarkerOptions = this.options;
 		this.marker = new L.Marker(MapProxy.Leaflet.position2leaflet(oMarkerOptions.position), {
 			draggable: true,

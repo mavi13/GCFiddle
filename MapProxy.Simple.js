@@ -4,7 +4,7 @@
 
 "use strict";
 
-MapProxy.Simple = { };
+MapProxy.Simple = {};
 
 MapProxy.Simple.Map = function (options) {
 	this.init(options);
@@ -336,7 +336,7 @@ MapProxy.Simple.FeatureGroup.prototype = {
 			strokeWidth: 2
 		};
 
-		this.options = Utils.objectAssign({	}, options);
+		this.options = Utils.objectAssign({}, options);
 		this.aMarkers = [];
 		this.polyLine = new MapProxy.Simple.Polyline(oPolyLineOptions);
 	},
@@ -412,7 +412,7 @@ MapProxy.Simple.Marker = function (options) {
 
 MapProxy.Simple.Marker.prototype = {
 	init: function (options) {
-		this.options = Utils.objectAssign({	}, options); // position, title, label, map
+		this.options = Utils.objectAssign({}, options); // position, title, label, map
 	},
 	getPosition: function () {
 		return this.options.position;

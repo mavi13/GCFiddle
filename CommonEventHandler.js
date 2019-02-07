@@ -334,7 +334,7 @@ CommonEventHandler.prototype = {
 					Utils.console.warn("fnDatabaseLoaded: wrong database: " + sDatabase + ", " + sDatabase2);
 				}
 				oDatabase.loaded = true;
-				Utils.console.log("database loaded: " + sDatabase2 + ": " + sName);
+				Utils.console.log("fnDatabaseLoaded: database loaded: " + sDatabase2 + ": " + sName);
 				that.controller.fnSetFilterCategorySelectOptions();
 				that.controller.fnSetExampleSelectOptions();
 				if (oDatabase.error) {

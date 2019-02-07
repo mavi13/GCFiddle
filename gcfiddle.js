@@ -9,7 +9,7 @@
 var gcFiddleExternalConfig, // set in gcconfig.js
 	gcFiddle = {
 		config: {
-			database: "testDB", // database
+			database: "test", // database
 			databaseIndex: "0dbindex.js", // database index relative to exampleDir
 			debug: 0,
 			example: "", // GCNEW1, GCTEST1, GCJVT3

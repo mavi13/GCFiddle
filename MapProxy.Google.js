@@ -23,7 +23,7 @@ MapProxy.Google.Map.prototype = {
 		var that = this,
 			sProtocol, sUrl;
 
-		this.options = Utils.objectAssign({ }, options);
+		this.options = Utils.objectAssign({}, options);
 		sProtocol = (window.location.protocol === "https:") ? window.location.protocol : "http:";
 		sUrl = sProtocol + "//maps.googleapis.com/maps/api/js" + ((this.options.googleKey) ? "?key=" + this.options.googleKey : "");
 		Utils.loadScript(sUrl, function () {
@@ -86,7 +86,7 @@ MapProxy.Google.LatLngBounds = function (options) {
 
 MapProxy.Google.LatLngBounds.prototype = {
 	init: function (options) {
-		this.options = Utils.objectAssign({	}, options);
+		this.options = Utils.objectAssign({}, options);
 		this.bounds = new google.maps.LatLngBounds();
 	},
 	getBounds: function () {
@@ -110,7 +110,7 @@ MapProxy.Google.FeatureGroup.prototype = {
 			strokeWeight: 1.5
 		};
 
-		this.options = Utils.objectAssign({	}, options);
+		this.options = Utils.objectAssign({}, options);
 		this.aMarkerPool = []; // pool of created markers
 		this.aMarkers = []; // visible markers
 		this.polyLine = new MapProxy.Google.Polyline(oPolyLineOptions);
@@ -207,7 +207,7 @@ MapProxy.Google.Marker.prototype = {
 	init: function (options) {
 		var oMarkerOptions;
 
-		this.options = Utils.objectAssign({	}, options);
+		this.options = Utils.objectAssign({}, options);
 		oMarkerOptions = this.options;
 
 		this.marker = new google.maps.Marker({
@@ -297,7 +297,7 @@ MapProxy.Google.Polyline = function (options) {
 
 MapProxy.Google.Polyline.prototype = {
 	init: function (options) {
-		this.options = Utils.objectAssign({	}, options);
+		this.options = Utils.objectAssign({}, options);
 		this.polyline = new google.maps.Polyline(this.options);
 	},
 	setPath: function (path) {

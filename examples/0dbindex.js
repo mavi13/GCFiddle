@@ -5,12 +5,14 @@
 
 gcFiddle.addDatabases(
 	{
-		testDB: {
-			title: "test DB",
+		test: {
+			text: "Test DB",
+			title: "Test Database",
 			src: "./0index.js"
 		},
 		saved: {
-			title: "Saved",
+			text: "Saved DB",
+			title: "Saved Database",
 			// type: "localstorage",
 			src: ""
 		}

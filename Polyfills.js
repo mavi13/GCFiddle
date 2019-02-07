@@ -214,7 +214,7 @@ if (!Array.prototype.forEach) { // currently not used
 // https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/indexOf
 if (!Array.prototype.indexOf) {
 	Array.prototype.indexOf = function indexOf(member, startFrom) { // eslint-disable-line no-extend-native,func-names
-		var	index = isFinite(startFrom) ? Math.floor(startFrom) : 0,
+		var index = isFinite(startFrom) ? Math.floor(startFrom) : 0,
 			that = this instanceof Object ? this : new Object(this), // eslint-disable-line consistent-this,no-new-object
 			length = isFinite(that.length) ? Math.floor(that.length) : 0;
 

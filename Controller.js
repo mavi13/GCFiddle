@@ -11,17 +11,11 @@ function Controller(oModel, oView) {
 Controller.prototype = {
 	init: function (oModel, oView) {
 		var that = this,
-			sFilterId, sFilterTitle, sVariableType, sWaypointFormat, sMapType, sExample, sDatabase, sDatabaseIndex,
+			sFilterId, sFilterTitle, sVariableType, sWaypointFormat, sMapType, sExample, sDatabaseIndex,
 			onDatabaseIndexLoaded = function () {
 				Utils.console.log(sDatabaseIndex + " loaded");
-				sDatabase = oModel.getProperty("database");
-				if (sDatabase) {
-					that.fnSetDatabaseSelect();
-					that.view.setSelectValue("databaseSelect", sDatabase);
-					that.commonEventHandler.onDatabaseSelectChange();
-				} else {
-					that.commonEventHandler.onExampleSelectChange();
-				}
+				that.fnSetDatabaseSelect();
+				that.commonEventHandler.onDatabaseSelectChange();
 			};
 
 		this.model = oModel;
@@ -109,7 +103,6 @@ Controller.prototype = {
 			key: "",
 			position: null, // position and comment (category and title)
 			script: "",
-			//title: "",
 			src: null,
 			loaded: false
 		};
@@ -134,9 +127,7 @@ Controller.prototype = {
 				oItem = this.fnCreateNewExample({ // database, key, script, title, ...
 					key: sKey,
 					position: oPosition, // position and comment
-					//title: oPosition.getComment(),
 					src: sItemSrc
-					//loaded: false
 				});
 				this.model.setExample(oItem);
 			}
@@ -195,9 +186,7 @@ Controller.prototype = {
 
 		if (!sKey) {
 			sKey = this.model.getProperty("example"); // no key specified, take selected example (does not work if multiple examples in one file)
-			//sKey = sKey || "DRAFT"; //TTT
 			Utils.console.warn("fnAddItem: No key detected. Taking selected key: " + sKey);
-			//sInput = "# Warning: No key detected, assuming selected key: " + sKey + "\n\n" + sInput;
 		}
 		oExample = this.model.getExample(sKey);
 		if (!oExample) {
@@ -211,7 +200,6 @@ Controller.prototype = {
 		oExample.key = sKey; // maybe changed
 		oExample.script = sInput;
 		oExample.position = oPosition || oExample.position || new LatLng();
-		//oExample.title = oPosition.getComment();
 		oExample.loaded = true;
 		Utils.console.log("fnAddItem: " + sKey);
 		return sKey;
@@ -289,23 +277,24 @@ Controller.prototype = {
 		var sSelect = "databaseSelect",
 			aItems = [],
 			oDatabases = this.model.getAllDatabases(),
-			sPar, oDb, sValue, oItem, sSelectedValue;
+			sDatabase = this.model.getProperty("database"),
+			sValue, oDb, oItem;
 
-		for (sPar in oDatabases) {
-			if (oDatabases.hasOwnProperty(sPar)) {
-				oDb = oDatabases[sPar];
+		for (sValue in oDatabases) {
+			if (oDatabases.hasOwnProperty(sValue)) {
+				oDb = oDatabases[sValue];
 				oItem = {
-					value: sPar,
+					value: sValue,
+					text: oDb.text,
 					title: oDb.title
 				};
-				oItem.text = oItem.title;
-				aItems.push(oItem);
-				if (!sSelectedValue || sValue === this.model.getProperty("database")) {
-					sSelectedValue = sValue;
+				if (sValue === sDatabase) {
+					oItem.selected = true;
 				}
+				aItems.push(oItem);
 			}
 		}
-		this.view.setSelectOptions(sSelect, aItems).setSelectValue(sSelect, sSelectedValue);
+		this.view.setSelectOptions(sSelect, aItems);
 	},
 
 	fnGetAllCategories: function () {
@@ -388,9 +377,9 @@ Controller.prototype = {
 		var sSelect = "exampleSelect",
 			aItems = [],
 			oExamples = this.model.getAllExamples(),
-			sCurrentExample = this.model.getProperty("example"),
+			sExample = this.model.getProperty("example"),
 			mFilterCategory, sFilterId, sFilterTitle,
-			iIndex, sValue, sTitle, sCategory, oItem, sSelectedValue;
+			iIndex, sValue, sTitle, sCategory, oItem;
 
 		mFilterCategory = this.fnGetFilterCategory();
 
@@ -417,16 +406,16 @@ Controller.prototype = {
 						title: (sValue + ": " + sTitle).substr(0, 160)
 					};
 					oItem.text = oItem.title.substr(0, 30);
-					aItems.push(oItem);
-					if (!sSelectedValue || sValue === sCurrentExample) {
-						sSelectedValue = sValue;
+					if (sValue === sExample) {
+						oItem.selected = true;
 					}
+					aItems.push(oItem);
 				} else if (Utils.debug > 1) {
 					Utils.console.debug("DEBUG: fnSetExampleSelectOptions: item " + sValue + " filtered");
 				}
 			}
 		}
-		this.view.setSelectOptions(sSelect, aItems).setSelectValue(sSelect, sSelectedValue);
+		this.view.setSelectOptions(sSelect, aItems);
 		this.view.setSpanText("filterSelectedSpan", aItems.length);
 	},
 
