@@ -4,20 +4,32 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="gcfiddle.css" />
-<title id="title">GCFiddle v0.57</title>
+<title id="title">GCFiddle v0.58</title>
 </head>
 
 <body>
 	<fieldset class="flexBox">
 		<legend>
-			<span id="filterLegend" class="legendButton" title="Show/Hide Filter & Sorting">Filter</span>
+			<span id="specialLegend" class="legendButton" title="Show/Hide GCFiddle advanced">GCFiddle</span>
 			<select id="databaseSelect" title="Select Database">
 			</select>
+			<button id="reloadButton" title="Reload page with URL parameter settings">Reload</button>
+			<button id="helpButton" title="Help">Help</button>
+		</legend>
+		<div id="specialArea" class="area">
+			<button id="indexButton" title="Create example index and show it as result">Index</button>
+			<button id="removeLogsButton" title="Remove log entries from input">Remove Logs</button>
+			<button id="consoleButton" title="Toogle console box">Console</button>
+		</div>
+	</fieldset>
+	<fieldset class="flexBox">
+		<legend>
+			<span id="filterLegend" class="legendButton" title="Show/Hide Filtering for Examples">Filter</span>
 		</legend>
 		<div id="filterArea" class="area">
 			<div class="field">
-				<label id="filterCategoryLabel" for="filterCategorySelect" class="label" title="Category Filter (multi select)">Category</label>
-				<select id="filterCategorySelect" title="Category" size="4" multiple>
+				<label id="filterCategoryLabel" for="filterCategorySelect" class="label" title="Category Filter (Multi Select)">Category</label>
+				<select id="filterCategorySelect" title="Category" size="2" multiple>
 				</select>
 			</div>
 			<div class="field clearLeft">
@@ -28,43 +40,52 @@
 				<label id="filterTitleLabel" for="filterTitleInput" class="label" title="Title Filter">Title</label>
 				<input id="filterTitleInput" value="" size="10" type="text" title="Title" placeholder="value">
 			</div>
-			<div class="field clearLeft">
-				<label id="filterSelectedLabel" for="filterSelectedSpan" class="label" title="Selected Eamples">Selected</label>
-				<span id="filterSelectedSpan">0</span>
-			</div>
 			<div class="clearLeft"> <!-- clearleft needed for IE -->
-				<button id="filterApplyButton" title="Apply Filter">Apply</button>
 				<button id="filterResetButton" title="Reset Filter">Reset</button>
 			</div>
 		</div>
-		<div class="clearLeft"> <!-- clearleft needed for IE -->
-			Special:
-			<button id="reloadButton" title="Reload page with URL parameter settings">Reload</button>
-			<button id="indexButton" title="Recreate example index and dump it out">Index</button>
-		</div>
 	</fieldset>
 	<fieldset class="flexBox">
 		<legend>
-			<span id="inputLegend" class="legendButton" title="Show/Hide Example Script">Script</span>
+			<span id="sortLegend" class="legendButton" title="Show/Hide Sorting of Examples">Sort</span>
+			<select id="sortSelect" title="Sort">
+				<option value="" title="None" selected="selected">None</option>
+				<option value="id" title="Id">Id</option>
+				<option value="title" title="Title">Title</option>
+				<option value="distance" title="Distance from Location">Distance</option>
+			</select>
+		</legend>
+		<div id="sortArea" class="area">
+			<input id="locationInput" value="" size="26" type="text" placeholder="value" title="Location for sorting by distance">
+		</div>
+	</fieldset>
+	<fieldset class="flexBox clearLeft">
+		<legend>
+			<span id="scriptLegend" class="legendButton" title="Show/Hide Script">Script</span>
 			<select id="exampleSelect" title="Load Example">
 			</select>
 		</legend>
-		<textarea id="inputArea" rows="15" cols="40"></textarea>
-		<div>
+		<div id="scriptArea" class="area">
+			<textarea id="inputArea" rows="15" cols="40"></textarea>
+			<div>
+				<button id="preprocessButton" title="Preprocess input">Preprocess</button>
+				<button id="undoButton" title="Undo changes" disabled>Undo</button>
+				<button id="redoButton" title="Redo changes" disabled>Redo</button>
+			</div>
+		</div>
+		<div class="clearLeft"> <!-- clearleft needed for IE -->
 			<button id="executeButton" title="Execute script">Execute</button>
-			<button id="undoButton" title="Undo changes" disabled>Undo</button>
-			<button id="redoButton" title="Redo changes" disabled>Redo</button>
-			<br>
-			<button id="preprocessButton" title="Preprocess input">Preprocess</button>
 			<button id="saveButton" title="Save input to local storage">Save</button>
 			<button id="deleteButton" title="Delete input from local storage" disabled>Del</button>
-		</div>
+	</div>
 	</fieldset>
 	<fieldset class="flexBox">
 		<legend>
-			<span id="outputLegend" class="legendButton" title="Show/Hide Output">Output</span>
+			<span id="resultLegend" class="legendButton" title="Show/Hide Result">Result</span>
 		</legend>
-		<textarea id="outputArea" placeholder="Use input field, press 'Execute'" rows="12" cols="40" readonly></textarea>
+		<div id="resultArea" class="area">
+			<textarea id="outputArea" placeholder="Use input field, press 'Execute'" rows="12" cols="40" readonly></textarea>
+		</div>
 	</fieldset>
 	<fieldset class="flexBox">
 			<legend>
@@ -87,15 +108,9 @@
 				</div>
 			</div>
 	</fieldset>
-	<fieldset class="flexBox">
-		<legend>
-			<span id="notesLegend" class="legendButton" title="Show/Hide Notes">Notes</span>
-		</legend>
-		<div id="notesArea" contenteditable="true" class="area editable">&nbsp;</div>
-	</fieldset>
 	<fieldset class="flexBox clearLeft">
 		<legend>
-			<span id="waypointLegend" class="legendButton" title="Show/Hide Waypoints">Waypoints</span>
+			<span id="waypointLegend" class="legendButton" title="Show/Hide Waypoints in Rs">Waypoints</span>
 			<select id="waypointSelect" title="Select waypoint">
 			</select>
 		</legend>
@@ -144,9 +159,12 @@
 			<span id="logsLegend" class="legendButton" title="Show/Hide Logs">Logs</span>
 		</legend>
 		<textarea id="logsArea" placeholder="Show logs if available" rows="12" cols="40" readonly></textarea>
-		<div>
-			<button id="removeLogsButton" title="Remove log entries from input">Remove Logs</button>
-		</div>
+	</fieldset>
+	<fieldset class="flexBox">
+		<legend>
+			<span id="notesLegend" class="legendButton" title="Show/Hide Notes">Notes</span>
+		</legend>
+		<div id="notesArea" contenteditable="true" class="area editable">&nbsp;</div>
 	</fieldset>
 	<fieldset class="flexBox clearLeft" id="consoleLogBox" hidden>
 		<legend id="consoleLogLegend" class="legendButton" title="Show/Hide Console log">Console log</legend>

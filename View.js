@@ -197,10 +197,9 @@ View.prototype = {
 		input.value = sValue;
 		return this;
 	},
-	setInputValueTitle: function (sId, sValue, sTitle) {
+	setInputTitle: function (sId, sTitle) {
 		var input = document.getElementById(sId);
 
-		input.value = sValue;
 		input.title = sTitle;
 		return this;
 	},
@@ -269,6 +268,8 @@ View.prototype = {
 		return this;
 	},
 
+	bWindowConsoleRedirected: false,
+
 	// https://stackoverflow.com/questions/6604192/showing-console-errors-and-alerts-in-a-div-inside-the-page
 	redirectConsole: function () {
 		var aVerbs = [
@@ -299,9 +300,12 @@ View.prototype = {
 				};
 			};
 
-		for (i = 0; i < aVerbs.length; i += 1) {
-			sVerb = aVerbs[i];
-			window.console[sVerb] = fnConsoleGenerator(window.console[sVerb], sVerb, consoleLogArea);
+		if (!this.bWindowConsoleRedirected) {
+			for (i = 0; i < aVerbs.length; i += 1) {
+				sVerb = aVerbs[i];
+				window.console[sVerb] = fnConsoleGenerator(window.console[sVerb], sVerb, consoleLogArea);
+			}
+			this.bWindowConsoleRedirected = true;
 		}
 	},
 	showConfirmPopup: function (message) {

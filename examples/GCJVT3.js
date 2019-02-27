@@ -10,7 +10,7 @@ $GCJVT3="N 49° 18.071 E 008° 42.167!archived!Irren ist menschlich - To err is 
 #This is an archived cache.
 #
 # Parking
-$W0="N 49° 18.071 E 008° 42.167"
+$P0="N 49° 18.071 E 008° 42.167"
 #
 $W1="N 49° 18.213 E 008° 42.289"
 people=2000

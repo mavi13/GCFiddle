@@ -18,8 +18,8 @@ GCFiddle Links:
 - Calculation language similar to "Wolf Language" used by CacheWolf's solver
 - Modify variables temporarily and see its effect on the calculation
 - Show waypoints on a simple map, Open Street Map or with Google Maps (needs [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key))
-- Extract waypoints and variables from geocache descriptions
-- Load geocache scripts from an archive
+- Extract waypoints and variables from geocache descriptions (preprocessing)
+- Load geocache example scripts stored in files or in local storage of the browser
 - Runs locally without a server, also on mobile devices
 - HTML5 / JavaScript without external libraries
 
@@ -27,42 +27,55 @@ GCFiddle Links:
 
 - Simply open gcfiddle.html in a browser.
   The user interface shows several boxes which can be shrunk and expanded by pressing the green buttons.
-  There are boxes for input, output, variable, note, waypoint and map.
+  There are boxes for Script, Result, Variables, Waypoints, Map and some special boxes
+  for GCFiddle andvanced, Filter, Sort, Logs and Notes.
 
 ![A sample with GCJVT3](./img/gcjvt3.png)
 
-### Input box
+### GCFiddle box
 
-- The first selection field selects the database. The default is the read only "testDB" defined in file system or on the server and "Saved" in Browser local storage.
-- The second selection field loads a geocache calculation script and executes it
-- The input field contains the editable script
-- The "Execute" button executes the input script and fills the other boxes with the output.
-   It also puts changed input in a history which can be accessed by the "Undo" and "Redo" buttons.
-- The "Preprocess" button processes the input text (not a script but a textual geocache description) and
-   tries to convert it to a script. This means it comments lines and tries to find variables and waypoints.
-   The resulting script is put in the history and executed.
+- The first selection field selects the database. The default is the read only "test DB" defined in file system or on the server and "Saved" in Browser local storage.
 - The "Reload" button reloads the page with the current settings. (Please note that changes to the script are lost!)
    See the list of URL parameters below.
+- The "Help" button opens the Readme on the server.
+- There are additional buttons with some advanced functionality, which will be shown when you click on "GCFiddle" (not shown here, you can skip it for first reading):
+  - The "Index" button create an example index and shows it as result. This can be copied into an example index file.
+  - The "Remove Logs" button removes the log entries from the scripts metadata "#GC_INFO", if available.
+    This could be useful, if you want to shrink the script metadata comment.
+  - The "Console" button activates the console for debugging
+
+### Filter box
+
+- Allows to filter the script examples by category, id or title. For example, 7 out of 7 are shown.
+
+### Sort box
+
+- Allows to sort the script examples by id, title or distance. The distance is computed from a location waypoint which can be filled by the location button below.
+
+### Script box
+
+- The selection field loads a geocache calculation script and executes it
+- The input field contains the editable script
+- The "Preprocess" button processes the input text (not a script but a textual geocache description copied from geocaching.com) and tries to convert it to a script. This means it comments lines and tries to find variables (e.g. a=...) and waypoints (e.g. N...°...E...°). If the input starts with "<?xml", is is assumed to be a gpx file and parsed as XML (currently to extract waypoints).
+  The resulting script is put in the history and executed.
+- The "Execute" button executes the input script and fills the other boxes with the output.
+   It also puts changed input in a history which can be accessed by the "Undo" and "Redo" buttons.
 - The "Save" button saves the current input in "Saved" database and selects it.
    It is stored in browser local storage which means that it is kept also during page reloads.
 - The "Delete" button deletes the current geocache in "Saved" database. There is a confirmation dialog to prevent accidential delete.
 
-### Output box
+### Result box
 
-- Shows the output of the script execution
-- If you mark a variable or a waypoint, it will be selected in the variable box or in the waypoint box, respectively. The map is centered to the selected waypoint.
+- Shows the result of the script execution
+- If you mark a variable or a waypoint, it will be selected in the variable box or in the waypoint box, respectively. If you do so, the map is centered to the selected waypoint.
 
 ### Variable box
 
 - Allows you to select a variable that is found during script execution and fiddle with it.
    That means you can change it temporarily without changing the script.
    Changed variables are marked with "[c]".
-- Also, the general view type of the variable can be changed. If a variable is not a number, it is displayed as text.
+- Also, the general view type of the variable can be changed. If view type "number" is selected but a variable is not a number, it is still displayed as text.
    The range slider currently uses the interval 0 to 9999.
-
-### Note box
-
-- Allows you to write some notes. (Currently notes are not stored.)
 
 ### Waypoint box
 
@@ -70,12 +83,12 @@ GCFiddle Links:
    Changed waypoints are marked with "[c]".
 - Waypoints are variables that begin with a dollar sign "$": e.g. `$W1`.
 
-- The waypoint format can be changed. This affects the hover popup for the waypoint input field and the marker popups on the map. Usually waypoints are output in the same format as they were defined. Possible formats:
+- The waypoint format can be changed. This affects the hover popup for the waypoint input field and the marker popups on the map. Usually waypoints are shown in the same format as they were defined. Possible formats:
   - "" (Automatic, as input)
   - dmm (deg-min.min), e.g. `N 49° 16.130 E 008° 40.453`
   - dms (deg-min-sec), e.g. `N 49° 16' 07.80" E 008° 40' 27.18"`
   - dd (decimal degrees), e.g. `N 49.26883° E 008.67422°`
-  - dmmc (deg-min.min with comment), e.g. `N 49° 16.130 E 008° 40.453!comment1`
+  - dmmc (deg-min.min with comment), e.g. `N 49° 16.130 E 008° 40.453!category!title`
   - dmsc (deg-min-sec with comment)
   - ddc (decimal degrees with comment)
 
@@ -90,7 +103,15 @@ GCFiddle Links:
 
 ### Log box
 
-- To show log entries. These are created during preprocessing.
+- To show log entries. These are created during preprocessing and put in the scripts metadata.
+
+### Note box
+
+- Allows you to write some notes. (Currently notes are not stored.)
+
+### Console box
+
+- Advanced, usually not visible. Can be activated for debugging.
 
 ## Calculation language
 
@@ -233,7 +254,6 @@ $W2="N 49° 15.903 E 008° 40.777"
 - Geodetic calculation of waypoints uses another model with other formulas, so there are slightly different results
 - No statement separator, especially no semicolon `;`
 - Functions must be used exactly as they are defined, there are no abbreviations or aliases (e.g. `crosstotal` is always `ct`)
-- No error check for incorrect number of arguments for functions
 - No function: `goto(wp)`, `sk(n)`, `deg()`, `rad()`
 - No statements: `IF`, `THEN`, `ENDIF`, `STOP`
 
@@ -243,8 +263,8 @@ URL parameters override settings in file `gcconfig.js` or `gcfiddle.js`.
 
 - `database=testDB`: Set the database
 - `databaseIndex=0dbindex.js`: database index in `exampleDir`
-- `debug=0`: Set the debug level, 0=off, 1=some, 2=some more,...
-- `example=GCNEW1`: Set example
+- `debug=0`: Set the debug level, 0=off, 1=some messages, 2=some more,...
+- `example=`: Set example script
 - `exampleDir=examples`: example base directory
 - `filterCategory`: filter by categories (comma separated list, empty means all)
 - `filterId`: filter by ID (substring, ignore-case)
@@ -264,12 +284,14 @@ URL parameters override settings in file `gcconfig.js` or `gcfiddle.js`.
       or "lib/OpenLayers.js" (if available locally)  
       or "lib/OpenLayers.light.js" (light version with some features missing, e.g. Overview map, keyboard defaults)
 - `showConsole=false`: Show console box (for debugging messages)
-- `showFilter=true`: Show the filter box
-- `showInput=true`: Show the input box
+- `showFilter=false`: Show the filter box
 - `showLogs=true`: Show Example Logs
 - `showMap=true`: Show the map box
 - `showNotes=true`: Show the notes box
-- `showOutput=true`: Show the output box
+- `showResult=true`: Show the result box
+- `showScript=true`: Show the script box
+- `showSort=false`: Show the sort details
+- `showSpecial=false`: Show special functionality
 - `showVariable=true`: Show the variable box
 - `showWaypoint=true`: Show waypoint box
 - `testIndexedDb=false`: test Index Database (experimental)
@@ -285,6 +307,7 @@ QUnit test [testsuite.qunit.html](https://mavi13.github.io/GCFiddle/test/testsui
 - [LatLng.qunit.html](https://mavi13.github.io/GCFiddle/test/LatLng.qunit.html)
 - [Preprocessor.qunit.html](https://mavi13.github.io/GCFiddle/test/Preprocessor.qunit.html)
 - [ScriptParser.qunit.html](https://mavi13.github.io/GCFiddle/test/ScriptParser.qunit.html)
+- ...
 
 ## Acknowledgements
 
@@ -308,4 +331,4 @@ QUnit test [testsuite.qunit.html](https://mavi13.github.io/GCFiddle/test/testsui
 
 - [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/)
 
-### **mavi13, 01/2019**
+### **mavi13, 02/2019**

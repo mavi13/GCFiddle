@@ -11,7 +11,7 @@ function Controller(oModel, oView) {
 Controller.prototype = {
 	init: function (oModel, oView) {
 		var that = this,
-			sFilterId, sFilterTitle, sVariableType, sWaypointFormat, sMapType, sExample, sUrl,
+			sFilterId, sFilterTitle, sSort, sVariableType, sWaypointFormat, sMapType, sExample, sUrl,
 			onDatabaseIndexLoaded = function () {
 				Utils.console.log(sUrl + " loaded");
 				that.fnSetDatabaseSelect();
@@ -44,6 +44,11 @@ Controller.prototype = {
 			this.view.setInputValue("filterTitleInput", sFilterTitle);
 		}
 
+		sSort = oModel.getProperty("sort");
+		if (sSort) {
+			this.view.setSelectValue("sortSelect", sSort);
+		}
+
 		sVariableType = oModel.getProperty("variableType");
 		if (sVariableType) {
 			this.view.setSelectValue("varViewSelect", sVariableType);
@@ -54,9 +59,11 @@ Controller.prototype = {
 			this.view.setSelectValue("waypointViewSelect", sWaypointFormat);
 		}
 
+		this.view.setHidden("specialArea", !oModel.getProperty("showSpecial"));
 		this.view.setHidden("filterArea", !oModel.getProperty("showFilter"));
-		this.view.setHidden("inputArea", !oModel.getProperty("showInput"));
-		this.view.setHidden("outputArea", !oModel.getProperty("showOutput"));
+		this.view.setHidden("sortArea", !oModel.getProperty("showSort"));
+		this.view.setHidden("scriptArea", !oModel.getProperty("showScript"));
+		this.view.setHidden("resultArea", !oModel.getProperty("showResult"));
 		this.view.setHidden("varArea", !oModel.getProperty("showVariable"));
 		this.view.setHidden("notesArea", !oModel.getProperty("showNotes"));
 		this.view.setHidden("waypointArea", !oModel.getProperty("showWaypoint"));
@@ -339,7 +346,42 @@ Controller.prototype = {
 			aItems = [],
 			sExample = this.model.getProperty("example"),
 			aFilteredExamples = this.model.getFilteredExamples(),
-			i, oExample, oItem;
+			sSort = this.model.getProperty("sort"),
+			i, oExample, oItem, sLocationInput, oReferencePosition, iAllExamples,
+			fnSorter = null,
+			fnSortByNumber = function (a, b) {
+				return a.fSort - b.fSort;
+			},
+			fnSortByString = function (a, b) {
+				var x = a.sSort,
+					y = b.sSort;
+
+				if (x < y) {
+					return -1;
+				} else if (x > y) {
+					return 1;
+				}
+				return 0;
+			};
+
+		switch (sSort) {
+		case "id":
+			fnSorter = fnSortByString;
+			break;
+		case "title":
+			fnSorter = fnSortByString;
+			break;
+		case "distance":
+			fnSorter = fnSortByNumber;
+			sLocationInput = this.view.getInputValue("locationInput");
+			oReferencePosition = new LatLng().parse(String(sLocationInput));
+			break;
+		case "": // none
+			break;
+		default:
+			Utils.console.warn("fnSetExampleSelectOptions: Unknown sort: " + sSort);
+			break;
+		}
 
 		for (i = 0; i < aFilteredExamples.length; i += 1) {
 			oExample = aFilteredExamples[i];
@@ -347,14 +389,35 @@ Controller.prototype = {
 				value: oExample.key,
 				title: (oExample.key + ": " + this.model.fnGetExampleTitle(oExample)).substr(0, 160)
 			};
-			oItem.text = oItem.title.substr(0, 30);
+			oItem.text = oItem.title.substr(0, 34);
 			if (oExample.key === sExample) {
 				oItem.selected = true;
 			}
+			switch (sSort) {
+			case "id":
+				oItem.sSort = oExample.key.toLowerCase();
+				break;
+			case "title":
+				oItem.sSort = this.model.fnGetExampleTitle(oExample);
+				break;
+			case "distance":
+				oItem.fSort = oExample.position.distanceTo(oReferencePosition);
+				oItem.title += " (" + Math.round(oItem.fSort) + ")";
+				break;
+			default:
+				break;
+			}
 			aItems.push(oItem);
 		}
+
+		if (fnSorter) {
+			aItems = aItems.sort(fnSorter);
+		}
+
 		this.view.setSelectOptions(sSelect, aItems);
-		this.view.setSpanText("filterSelectedSpan", aItems.length);
+
+		iAllExamples = Object.keys(this.model.getAllExamples()).length;
+		this.view.setLegendText("filterLegend", "Filter (" + aItems.length + "/" + iAllExamples + ")");
 	},
 
 	fnSetLogsAreaValue: function (sValue) {
@@ -416,7 +479,7 @@ Controller.prototype = {
 			oXml = oParser.parseFromString(sXml, "text/xml"),
 			mInfo = {},
 			sWaypointFormat = this.model.getProperty("waypointFormat"),
-			oJson, aWpt, iWp, oWpt;
+			oJson, oGpx, aWpt, iWp, oWpt, oGrCache, sName, sTitle, sCmt, oTrk;
 
 		// based on: http://blogs.sitepointstatic.com/examples/tech/xml2json/index.html, https://codepen.io/KurtWM/pen/JnLak
 		function xml2json(node) {
@@ -455,20 +518,68 @@ Controller.prototype = {
 			return data;
 		}
 
+		function fnReplaceUmlauts(str) {
+			var umlautMap = {
+					\u00dc: "UE",
+					\u00c4: "AE",
+					\u00d6: "OE",
+					\u00fc: "ue",
+					\u00e4: "ae",
+					\u00f6: "oe",
+					\u00df: "ss"
+				},
+				sKeys, oReg;
+
+			sKeys = Object.keys(umlautMap).join("");
+			oReg = new RegExp("[" + sKeys + "]", "g");
+
+			return str.replace(oReg, function (a) {
+				return umlautMap[a];
+			});
+		}
+
 		oJson = xml2json(oXml);
-		if (oJson.gpx && oJson.gpx.wpt && oJson.gpx.wpt.length) {
-			aWpt = oJson.gpx.wpt;
+		oGpx = oJson.gpx;
+		if (oGpx) {
 			mInfo.script = "";
-			for (iWp = 0; iWp < aWpt.length; iWp += 1) {
-				oWpt = aWpt[iWp];
-				mInfo.script += "$W" + iWp + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(sWaypointFormat) + '" # ' + oWpt.name + ", " + oWpt.cmt + "\n";
+			if (oGpx.wpt) { // waypoint export from e.g. geocaching.com, CacheWolf
+				aWpt = (oGpx.wpt.length) ? oGpx.wpt : [oGpx.wpt]; // array of wp or single wp
+				for (iWp = 0; iWp < aWpt.length; iWp += 1) {
+					oWpt = aWpt[iWp];
+
+					sName = oWpt.name;
+					sName = fnReplaceUmlauts(sName);
+					sName = sName.replace(/[^A-Za-z0-9]/g, ""); // keep only "normal" characters (needed for e.g. poi-service.de)
+
+					// First try name from groundspeak extension, then try description and finally take the wp name
+					oGrCache = oWpt["groundspeak:cache"];
+					if (oGrCache && oGrCache["groundspeak:name"]) {
+						sTitle = oGrCache["groundspeak:name"];
+					} else if (oWpt.desc) {
+						sTitle = oWpt.desc;
+					} else {
+						sTitle = oWpt.name;
+					}
+					sTitle = sTitle.replace(/"/g, '\\"'); // escape apostrophes
+
+					sCmt = oWpt.cmt; // used for e.g. poi-service.de
+					mInfo.script += "$" + sName + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(sWaypointFormat) + "!!" + sTitle + '"' + ((sCmt) ? " # " + sCmt : "") + "\n";
+					if (Utils.stringStartsWith(sName, "GC")) {
+						mInfo.script += "#https://coord.info/" + oWpt.name + "\n";
+					}
+				}
 			}
-		} else if (oJson.gpx && oJson.gpx.trk && oJson.gpx.trk.trkseg && oJson.gpx.trk.trkseg.trkpt && oJson.gpx.trk.trkseg.trkpt.length) {
-			aWpt = oJson.gpx.trk.trkseg.trkpt;
-			mInfo.script = "";
-			for (iWp = 0; iWp < aWpt.length; iWp += 1) {
-				oWpt = aWpt[iWp];
-				mInfo.script += "$W" + iWp + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(sWaypointFormat) + '" # ' + oWpt.ele + ", " + oWpt.time + "\n";
+			oTrk = oGpx.trk;
+			if (oTrk) {
+				mInfo.script += "#" + oTrk.name + "\n";
+				if (oTrk.trkseg && oTrk.trkseg.trkpt && oTrk.trkseg.trkpt.length) { // track export from e.g. komoot.de
+					aWpt = oTrk.trkseg.trkpt;
+					for (iWp = 0; iWp < aWpt.length; iWp += 1) {
+						oWpt = aWpt[iWp];
+						sName = "W" + iWp;
+						mInfo.script += "$" + sName + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(sWaypointFormat) + '" # ' + oWpt.ele + ", " + oWpt.time + "\n";
+					}
+				}
 			}
 		}
 		return mInfo;
@@ -506,14 +617,14 @@ Controller.prototype = {
 	fnDoPreprocess: function () {
 		var sInput = this.view.getAreaValue("inputArea"),
 			sOutput = "",
-			oProcessor, mInfo, aCategory;
+			oProcessor, mInfo, aCategory, sTitle;
 
-		oProcessor = new Preprocessor({
-			scriptParser: new ScriptParser()
-		});
 		if (sInput.substr(0, 6) === "<?xml ") {
 			mInfo = this.fnParseXml(sInput);
 		} else {
+			oProcessor = new Preprocessor({
+				scriptParser: new ScriptParser()
+			});
 			mInfo = oProcessor.processText(sInput);
 		}
 		sOutput = mInfo.script;
@@ -527,7 +638,9 @@ Controller.prototype = {
 				if (mInfo.archived) {
 					aCategory.push("archived");
 				}
-				sOutput = "$" + mInfo.id + '="' + (mInfo.waypoint || "") + "!" + aCategory.join(" ") + "!" + mInfo.title + '"\n'
+				sTitle = mInfo.title;
+				sTitle = sTitle.replace(/"/g, '\\"'); // escape apostrophes
+				sOutput = "$" + mInfo.id + '="' + (mInfo.waypoint || "") + "!" + aCategory.join(" ") + "!" + sTitle + '"\n'
 					+ "#https://coord.info/" + mInfo.id + "\n"
 					+ sOutput
 					+ "#\n";

@@ -23,14 +23,17 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 			mapType: "leaflet", // simple, google, leaflet, openlayers, none
 			openlayersUrl: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js",
 			showConsole: false, // for debugging
-			showFilter: true,
-			showInput: true,
+			showFilter: false,
 			showLogs: false,
 			showMap: true,
-			showNotes: true,
-			showOutput: true,
+			showNotes: false,
+			showResult: true,
+			showScript: true,
+			showSort: false,
+			showSpecial: false,
 			showVariable: true,
 			showWaypoint: true,
+			sort: "",
 			testIndexedDb: false, // Test
 			variableType: "number", // number, text, range
 			waypointFormat: "", // waypoint output format: "", dmm, dms, dd, dmmc, dmsc, ddc

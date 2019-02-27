@@ -10,77 +10,176 @@ if (typeof require !== "undefined") {
 	CommonEventHandler = require("../CommonEventHandler.js"); // eslint-disable-line global-require
 }
 
-var gcMock = { // eslint-disable-line vars-on-top,one-var
-	config: {
-		example: "GCTEST1"
-	},
-	model: {
+
+function TestModel() {
+	this.testData = {
+		config: {},
 		variables: {},
-		exampleIndex: {},
-		examples: {},
-		initVariables: function () {
-			return this;
-		},
-		getExampleIndex: function (sDatabase) {
-			return this.exampleIndex[sDatabase];
-		}
+		examples: {}
+	};
+}
+
+TestModel.prototype = {
+	setTestData: function (sGroup, sId, value) {
+		this.testData[sGroup][sId] = value;
+		return this;
 	},
-	view: {
-		data: {
-			databaseSelect: "GCTEST1"
-		},
-		setDisabled: function () {
-			// empty
-		},
-		getSelectValue: function (sId) {
-			return this.data[sId];
-		},
-		setSelectValue: function (sId, value) {
-			this.data[sId] = value;
-		},
-		setAreaValue: function (sId, value) {
-			this.data[sId] = value;
-		},
-		setSelectTitleFromSelectedOption: function () {
-			// empty
-		},
-		attachEventHandler: function () {
-			// empty
-		},
-		detachEventHandler: function () {
-			// empty
+	getTestData: function (sGroup, sId) {
+		if (sId === undefined) {
+			return this.testData[sGroup];
 		}
+		return this.testData[sGroup][sId];
 	},
-	controller: {
-		categories: {},
-		examples: {},
-		fnPutChangedInputOnStack: function () {
-			// empty
-		},
-		fnCalculate2: function () {
-			// empty
-		}
+
+	getProperty: function (sProperty) {
+		return this.getTestData("config", sProperty);
+	},
+	setProperty: function (sProperty, sValue) {
+		return this.setTestData("config", sProperty, sValue);
+	},
+	initVariables: function () {
+		return this;
+	},
+	getVariables: function () {
+		return this.getTestData("variables");
+	}
+};
+
+
+function TestView() {
+	this.testData = {};
+}
+
+TestView.prototype = {
+	setTestData: function (sId, value) {
+		this.testData[sId] = value;
+		return this;
+	},
+	getTestData: function (sId) {
+		return this.testData[sId];
+	},
+	setDisabled: function () {
+		// empty
+	},
+	getSelectValue: function (sId) {
+		return this.getTestData(sId + "Value");
+	},
+	setSelectValue: function (sId, value) {
+		return this.setTestData(sId + "Value", value);
+	},
+	setAreaValue: function (sId, value) {
+		return this.setTestData(sId + "Value", value);
+	},
+	setSelectTitleFromSelectedOption: function (sId) {
+		// empty
+	},
+	setLabelText: function (sId, value) {
+		return this.setTestData(sId + "Text", value);
+	},
+	setLabelTitle: function (sId, value) {
+		return this.setTestData(sId + "Title", value);
+	},
+	setInputType: function (sId, value) {
+		return this.setTestData(sId + "Type", value);
+	},
+	setInputValue: function (sId, value) {
+		return this.setTestData(sId + "Value", value);
+	},
+	setInputTitle: function (sId, value) {
+		return this.setTestData(sId + "Title", value);
+	},
+	getSelectLength: function (sId) {
+		return this.getTestData(sId + "Length"); //TTT
+	},
+	setLegendText: function (sId, value) {
+		return this.setTestData(sId + "Text", value);
+	},
+	attachEventHandler: function () {
+		// empty
+	},
+	detachEventHandler: function () {
+		// empty
+	}
+};
+
+
+function TestController() {
+	// empty
+}
+
+TestController.prototype = {
+	fnPutChangedInputOnStack: function () {
+		// empty
+	},
+	fnCalculate2: function () {
+		// empty
 	}
 };
 
 
 QUnit.module("CommonEventHandler test", function (hooks) {
 	hooks.beforeEach(function (/* assert */) {
-		// var that = this; // eslint-disable-line no-invalid-this
+		var that = this; // eslint-disable-line no-invalid-this
+
+		that.oMock = {
+			model: new TestModel(),
+			view: new TestView(),
+			controller: new TestController()
+		};
 	});
 
-	QUnit.test("Properties", function (assert) {
-		var commonEventHandler = new CommonEventHandler(gcMock.model, gcMock.view, gcMock.controller),
-			sScript = '$W0="N 49° 18.071 E 008° 42.167" a=213 b=289	$W1=["N 49° 18." a " E 008° 42." b]	#$W2=project($W0,0,50)';
+	QUnit.test("onVarSelectChange", function (assert) {
+		var oMock = this.oMock, // eslint-disable-line no-invalid-this
+			//sScript = '$W0="N 49° 18.071 E 008° 42.167" a=213 b=289	$W1=["N 49° 18." a " E 008° 42." b]	#$W2=project($W0,0,50)',
+			mResultA = {
+				varInputTitle: 12,
+				varInputType: "number",
+				varInputValue: 12,
+				varLabelText: "a",
+				varLabelTitle: "a",
+				varLegendText: "Variables (undefined)",
+				varSelectValue: "a"
+			},
+			mResultB = {
+				varInputTitle: "t1",
+				varInputType: "text",
+				varInputValue: "t1",
+				varLabelText: "b",
+				varLabelTitle: "b",
+				varLegendText: "Variables (2)",
+				varSelectLength: 2,
+				varSelectValue: "b"
+			},
+			commonEventHandler = new CommonEventHandler(oMock.model, oMock.view, oMock.controller);
 
-		// commonEventHandler.onExecuteButtonClick();
+		oMock.model.setTestData("config", "variableType", "number");
+		oMock.model.setTestData("variables", "a", 12);
+		oMock.model.setTestData("variables", "b", "t1");
+		oMock.model.setTestData("variables", "$w", "N 49° 18.071 E 008° 42.167");
+
+		oMock.view.setTestData("varSelectValue", "a");
+		commonEventHandler.onVarSelectChange();
+		assert.deepEqual(oMock.view.testData, mResultA, "variable a selected");
+
+
+		oMock.view.setTestData("varSelectLength", 2);
+		oMock.view.setTestData("varSelectValue", "b");
+		commonEventHandler.onVarSelectChange();
+		assert.deepEqual(oMock.view.testData, mResultB, "variable b selected");
+
+		/*
+		oMock.view.setTestData("varSelectValue", "$w");
+		commonEventHandler.onVarSelectChange();
+		assert.deepEqual(oMock.view.testData, mResultB, "variable $w selected");
+		*/
 
 		commonEventHandler.detachEventHandler();
-		assert.strictEqual(sScript, sScript, "TODO");
+		//assert.strictEqual(sScript, sScript, "TODO");
 	});
 
 	QUnit.test("Load test script", function (assert) {
-		var commonEventHandler = new CommonEventHandler(gcMock.model, gcMock.view, gcMock.controller);
+		var oMock = this.oMock, // eslint-disable-line no-invalid-this
+			commonEventHandler = new CommonEventHandler(oMock.model, oMock.view, oMock.controller);
 
 		/*
 		fnLoadScript = Utils.loadScript;

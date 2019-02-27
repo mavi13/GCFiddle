@@ -79,7 +79,7 @@ CommonEventHandler.prototype = {
 				sType = "text";
 			}
 		}
-		this.view.setInputType("varInput", sType).setInputValueTitle("varInput", sValue, sValue);
+		this.view.setInputType("varInput", sType).setInputValue("varInput", sValue).setInputTitle("varInput", sValue);
 
 		this.view.setSelectTitleFromSelectedOption("varSelect");
 		iSelectLength = this.view.getSelectLength("varSelect");
@@ -133,7 +133,7 @@ CommonEventHandler.prototype = {
 		oPos = new LatLng().parse(sValue);
 		sError = oPos.getError();
 		sTitle = sError || oPos.toFormattedString(sWaypointFormat);
-		this.view.setInputValueTitle("waypointInput", sValue, sTitle).setInputInvalid("waypointInput", Boolean(sError));
+		this.view.setInputValue("waypointInput", sValue).setInputTitle("waypointInput", sTitle).setInputInvalid("waypointInput", Boolean(sError));
 
 		this.view.setSelectTitleFromSelectedOption("waypointSelect");
 		iSelectLength = this.view.getSelectLength("waypointSelect");
@@ -374,20 +374,46 @@ CommonEventHandler.prototype = {
 		this.fnSetDeleteButtonStatus();
 	},
 
-	onFilterCategorySelectChange: function () {
-		var aSelectedCategories, sFilterCategory;
+	fnFilterExamples: function () {
+		this.controller.fnSetExampleSelectOptions();
+		this.fnSetDeleteButtonStatus();
+		this.onExampleSelectChange();
+	},
 
+	onFilterCategorySelectChange: function () {
+		var aAllCategories, aSelectedCategories, sFilterCategory, iAllCategories, sPar;
+
+		aAllCategories = this.view.getAllSelectOptionValues("filterCategorySelect");
 		aSelectedCategories = this.view.getMultiSelectValues("filterCategorySelect");
 		sFilterCategory = aSelectedCategories.join(",");
+		if (sFilterCategory === aAllCategories.join(",")) {
+			sFilterCategory = ""; // if all selected, set to empty
+		}
 		this.model.setProperty("filterCategory", sFilterCategory);
 		if (Utils.debug) {
 			Utils.console.debug("DEBUG: onFilterCategorySelectChange: filterCategory: " + sFilterCategory);
 		}
-
-		this.controller.fnSetExampleSelectOptions();
-		this.onExampleSelectChange();
+		iAllCategories = aAllCategories.length;
+		sPar = "Category (" + aSelectedCategories.length + "/" + iAllCategories + ")";
+		this.view.setLabelText("filterCategoryLabel", sPar).setLabelTitle("filterCategoryLabel", sPar);
+		this.fnFilterExamples();
 	},
 
+	onFilterIdInputChange: function () {
+		var sFilterId = this.view.getInputValue("filterIdInput");
+
+		this.model.setProperty("filterId", sFilterId);
+		this.fnFilterExamples();
+	},
+
+	onFilterTitleInputChange: function () {
+		var sFilterTitle = this.view.getInputValue("filterTitleInput");
+
+		this.model.setProperty("filterTitle", sFilterTitle);
+		this.fnFilterExamples();
+	},
+
+	/*
 	onFilterApplyButtonClick: function () {
 		var aSelectedCategories, sFilterCategory, sFilterTitle, sFilterId;
 
@@ -395,10 +421,10 @@ CommonEventHandler.prototype = {
 		sFilterCategory = aSelectedCategories.join(",");
 		this.model.setProperty("filterCategory", sFilterCategory);
 
-		sFilterId = this.view.getSelectValue("filterIdInput");
+		sFilterId = this.view.getInputValue("filterIdInput");
 		this.model.setProperty("filterId", sFilterId);
 
-		sFilterTitle = this.view.getSelectValue("filterTitleInput");
+		sFilterTitle = this.view.getInputValue("filterTitleInput");
 		this.model.setProperty("filterTitle", sFilterTitle);
 
 		if (Utils.debug) {
@@ -409,6 +435,7 @@ CommonEventHandler.prototype = {
 		this.onExampleSelectChange();
 		this.fnSetDeleteButtonStatus();
 	},
+	*/
 
 	onFilterResetButtonClick: function () {
 		var sFilterCategory = "", // or take from saved config
@@ -423,46 +450,67 @@ CommonEventHandler.prototype = {
 
 		this.model.setProperty("filterCategory", sFilterCategory);
 		this.controller.fnSetFilterCategorySelectOptions();
+		this.onFilterCategorySelectChange();
+
+		this.fnFilterExamples();
+	},
+
+	onSortSelectChange: function () {
+		var sSort = this.view.getSelectValue("sortSelect");
+
+		this.model.setProperty("sort", sSort);
+		this.view.setSelectTitleFromSelectedOption("sortSelect");
 
 		this.controller.fnSetExampleSelectOptions();
 		this.onExampleSelectChange();
-		this.fnSetDeleteButtonStatus();
+	},
+
+	onSpecialLegendClick: function () {
+		var bShow = !this.view.toogleHidden("specialArea").getHidden("specialArea");
+
+		this.model.setProperty("showSpecial", bShow);
 	},
 
 	onFilterLegendClick: function () {
-		var bShowFilter = !this.view.toogleHidden("filterArea").getHidden("filterArea");
+		var bShow = !this.view.toogleHidden("filterArea").getHidden("filterArea");
 
-		this.model.setProperty("showFilter", bShowFilter);
+		this.model.setProperty("showFilter", bShow);
 	},
 
-	onInputLegendClick: function () {
-		var bShowInput = !this.view.toogleHidden("inputArea").getHidden("inputArea");
+	onSortLegendClick: function () {
+		var bShow = !this.view.toogleHidden("sortArea").getHidden("sortArea");
 
-		this.model.setProperty("showInput", bShowInput);
+		this.model.setProperty("showSort", bShow);
 	},
 
-	onOutputLegendClick: function () {
-		var bShowOutput = !this.view.toogleHidden("outputArea").getHidden("outputArea");
+	onScriptLegendClick: function () {
+		var bShow = !this.view.toogleHidden("scriptArea").getHidden("scriptArea");
 
-		this.model.setProperty("showOutput", bShowOutput);
+		this.model.setProperty("showScript", bShow);
+	},
+
+	onResultLegendClick: function () {
+		var bShow = !this.view.toogleHidden("resultArea").getHidden("resultArea");
+
+		this.model.setProperty("showResult", bShow);
 	},
 
 	onVarLegendClick: function () {
-		var bShowVariable = !this.view.toogleHidden("varArea").getHidden("varArea");
+		var bShow = !this.view.toogleHidden("varArea").getHidden("varArea");
 
-		this.model.setProperty("showVariable", bShowVariable);
+		this.model.setProperty("showVariable", bShow);
 	},
 
 	onNotesLegendClick: function () {
-		var bShowNotes = !this.view.toogleHidden("notesArea").getHidden("notesArea");
+		var bShow = !this.view.toogleHidden("notesArea").getHidden("notesArea");
 
-		this.model.setProperty("showNotes", bShowNotes);
+		this.model.setProperty("showNotes", bShow);
 	},
 
 	onWaypointLegendClick: function () {
-		var bShowWaypoint = !this.view.toogleHidden("waypointArea").getHidden("waypointArea");
+		var bShow = !this.view.toogleHidden("waypointArea").getHidden("waypointArea");
 
-		this.model.setProperty("showWaypoint", bShowWaypoint);
+		this.model.setProperty("showWaypoint", bShow);
 	},
 
 	onMapLegendClick: function () {
@@ -494,6 +542,15 @@ CommonEventHandler.prototype = {
 		this.controller.maFa.fitBounds();
 	},
 
+	onLocationInputChange: function () {
+		var sSort = this.model.getProperty("sort");
+
+		if (sSort === "distance") {
+			this.controller.fnSetExampleSelectOptions();
+			this.onExampleSelectChange();
+		}
+	},
+
 	onLocationButtonClick: function () {
 		var that = this;
 
@@ -505,11 +562,15 @@ CommonEventHandler.prototype = {
 					position: new LatLng(position.coords.latitude, position.coords.longitude),
 					label: sLabel,
 					title: "W" + sLabel
-				};
+				},
+				sPosition;
 
-			Utils.console.log("Location: " + oMarker.position.toFormattedString(sWaypointFormat));
+			sPosition = oMarker.position.toFormattedString(sWaypointFormat);
+			Utils.console.log("Location: " + sPosition);
 			that.controller.maFa.addMarkers([oMarker]);
 			// already done in addMarkers; that.onFitBoundsButtonClick();
+			that.view.setInputValue("locationInput", sPosition);
+			that.onLocationInputChange();
 		}
 
 		function showError(error) {
@@ -853,6 +914,18 @@ CommonEventHandler.prototype = {
 			this.view.setAreaValue("inputArea", sInput);
 			this.onExecuteButtonClick();
 		}
+	},
+
+	onConsoleButtonClick: function () {
+		var bShow = !this.view.toogleHidden("consoleLogBox").getHidden("consoleLogBox");
+
+		if (bShow) {
+			this.view.redirectConsole(); // if not done yet
+		}
+	},
+
+	onHelpButtonClick: function () {
+		window.open("https://github.com/mavi13/GCFiddle/#readme");
 	}
 };
 
