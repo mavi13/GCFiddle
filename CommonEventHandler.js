@@ -32,15 +32,17 @@ CommonEventHandler.prototype = {
 			sType, sHandler;
 
 		if (sId) {
-			sType = event.type; // click or change
-			sHandler = "on" + Utils.stringCapitalize(sId) + Utils.stringCapitalize(sType);
-			if (Utils.debug) {
-				Utils.console.debug("DEBUG: fnCommonEventHandler: sHandler=" + sHandler);
-			}
-			if (sHandler in this) {
-				this[sHandler](event);
-			} else if (!Utils.stringEndsWith(sHandler, "SelectClick") && !Utils.stringEndsWith(sHandler, "InputClick")) { // do not print all messages
-				Utils.console.log("Event handler not found: " + sHandler);
+			if (!oTarget.disabled) { // check needed for IE which also fires for disabled buttons
+				sType = event.type; // click or change
+				sHandler = "on" + Utils.stringCapitalize(sId) + Utils.stringCapitalize(sType);
+				if (Utils.debug) {
+					Utils.console.debug("DEBUG: fnCommonEventHandler: sHandler=" + sHandler);
+				}
+				if (sHandler in this) {
+					this[sHandler](event);
+				} else if (!Utils.stringEndsWith(sHandler, "SelectClick") && !Utils.stringEndsWith(sHandler, "InputClick")) { // do not print all messages
+					Utils.console.log("Event handler not found: " + sHandler);
+				}
 			}
 		} else if (Utils.debug) {
 			Utils.console.debug("DEBUG: Event handler for " + event.type + " unknown target " + oTarget);
@@ -412,30 +414,6 @@ CommonEventHandler.prototype = {
 		this.model.setProperty("filterTitle", sFilterTitle);
 		this.fnFilterExamples();
 	},
-
-	/*
-	onFilterApplyButtonClick: function () {
-		var aSelectedCategories, sFilterCategory, sFilterTitle, sFilterId;
-
-		aSelectedCategories = this.view.getMultiSelectValues("filterCategorySelect");
-		sFilterCategory = aSelectedCategories.join(",");
-		this.model.setProperty("filterCategory", sFilterCategory);
-
-		sFilterId = this.view.getInputValue("filterIdInput");
-		this.model.setProperty("filterId", sFilterId);
-
-		sFilterTitle = this.view.getInputValue("filterTitleInput");
-		this.model.setProperty("filterTitle", sFilterTitle);
-
-		if (Utils.debug) {
-			Utils.console.debug("DEBUG: onFilterApplyButtonClick: filterCategory: " + sFilterCategory + " filterId: " + sFilterId + " filterTitle: " + sFilterTitle);
-		}
-
-		this.controller.fnSetExampleSelectOptions();
-		this.onExampleSelectChange();
-		this.fnSetDeleteButtonStatus();
-	},
-	*/
 
 	onFilterResetButtonClick: function () {
 		var sFilterCategory = "", // or take from saved config

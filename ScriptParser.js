@@ -210,7 +210,7 @@ ScriptParser.prototype = {
 					t = token();
 
 				if (Utils.debug > 3) {
-					Utils.console.debug("DEBUG: expression rbp=" + rbp + " type=" + t.type + " t=%o", t);
+					Utils.console.debug("DEBUG: parse: expression rbp=" + rbp + " type=" + t.type + " t=%o", t);
 				}
 				advance();
 				if (!t.nud) {
@@ -275,7 +275,7 @@ ScriptParser.prototype = {
 						aArgs.push(expression(2));
 					} while (token().type === ",");
 					if (token().type !== ")") {
-						throw new ScriptParser.ErrorObject("Expected closing parenthesis for function", ")", tokens[iParseIndex].pos);
+						throw new ScriptParser.ErrorObject("Expected closing parenthesis for function", tokens[iParseIndex - 1].value, tokens[iParseIndex].pos);
 					}
 				}
 				advance();
@@ -417,7 +417,7 @@ ScriptParser.prototype = {
 
 			mFunctions = Utils.objectAssign({}, functions), // create copy of predefined functions so that they can be redefined
 
-			oArgs = { },
+			aFunctionScope = [],
 
 			checkArgs = function (name, aArgs, iPos) {
 				var oFunction = mFunctions[name],
@@ -443,10 +443,10 @@ ScriptParser.prototype = {
 			},
 
 			parseNode = function (node) {
-				var i, sValue, aNodeArgs;
+				var i, sValue, oVars, aNodeArgs;
 
 				if (Utils.debug > 3) {
-					Utils.console.debug("DEBUG: parseNode node=%o type=" + node.type + " name=" + node.name + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+					Utils.console.debug("DEBUG: evaluate: parseNode node=%o type=" + node.type + " name=" + node.name + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
 				}
 				if (node.type === "number" || node.type === "string") {
 					sValue = node.value;
@@ -457,7 +457,8 @@ ScriptParser.prototype = {
 						sValue = mOperators[node.type](parseNode(node.right));
 					}
 				} else if (node.type === "identifier") {
-					sValue = oArgs.hasOwnProperty(node.value) ? oArgs[node.value] : variables[node.value];
+					oVars = aFunctionScope[aFunctionScope.length - 1];
+					sValue = (oVars && oVars.hasOwnProperty(node.value)) ? oVars[node.value] : variables[node.value];
 					if (sValue === undefined) {
 						throw new ScriptParser.ErrorObject("Variable is undefined", node.value, node.pos);
 					}
@@ -485,11 +486,14 @@ ScriptParser.prototype = {
 					sValue = mFunctions[node.name].apply(node, aNodeArgs);
 				} else if (node.type === "function") {
 					mFunctions[node.name] = function () { // varargs
+						var oArgs = {};
+
 						for (i = 0; i < node.args.length; i += 1) {
 							oArgs[node.args[i].value] = arguments[i];
 						}
+						aFunctionScope.push(oArgs);
 						sValue = parseNode(node.value);
-						// do not reset oArgs here!
+						aFunctionScope.pop();
 						return sValue;
 					};
 				} else if (node.type === "formatter") {
@@ -507,12 +511,16 @@ ScriptParser.prototype = {
 
 		for (i = 0; i < parseTree.length; i += 1) {
 			if (Utils.debug > 2) {
-				Utils.console.debug("DEBUG: parseTree i=%d, node=%o", i, parseTree[i]);
+				Utils.console.debug("DEBUG: evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
 			}
 			sNode = parseNode(parseTree[i]);
 			if ((sNode !== undefined) && (sNode !== "")) {
 				if (sNode !== null) {
-					sOutput += sNode + "\n";
+					if (sOutput.length === 0) {
+						sOutput = sNode;
+					} else {
+						sOutput += "\n" + sNode;
+					}
 				} else {
 					sOutput = ""; // cls (clear output when sNode is set to null)
 				}
@@ -647,13 +655,13 @@ ScriptParser.prototype = {
 				cb: function (w1, angle1, w2, angle2) {
 					var oPosition1 = new LatLng().parse(w1),
 						oPosition2 = new LatLng().parse(w2),
-						oPosition3,	sValue;
+						oPosition3,	sError, sValue;
 
 					oPosition3 = LatLng.prototype.intersection(oPosition1, angle1, oPosition2, angle2);
-					if (oPosition3) {
-						sValue = oPosition3.toFormattedString();
-					} else {
-						sValue = String(sValue); // "undefined"
+					sError = oPosition3.getError();
+					sValue = oPosition3.toFormattedString();
+					if (sError) {
+						sValue += "!error!" + sError;
 					}
 					return sValue;
 				},
@@ -848,7 +856,8 @@ ScriptParser.prototype = {
 
 				// replace(s, s1, r1): replace all occurrences of s1 in s by r1
 				replace: function (s, search, replace) {
-					var oPattern = new RegExp(search, "g");
+					var sEscaped = Utils.regExpEscape(search),
+						oPattern = new RegExp(sEscaped, "g");
 
 					return String(s).replace(oPattern, replace);
 				},

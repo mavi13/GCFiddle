@@ -41,10 +41,13 @@ f(x)=floor(x) #function calling pre-defined function
 assert(f(3.14), 3)
 assert(f(3.14), f(3.99)) #two function calls
 #f(radians) = radians * 180 / pi #f(2 * pi)
+f(x)=x
+f2(x)=f(x)*x #function calling defined function
+assert(f2(2), 4)
 f(x,y)=x*y #two parameters
 assert(f(2,3), 6)
-f2(i)=f(i,i*i)*i #function calling newly defined function
-assert(f2(2), 16)
+f2(i)=f(i,i*i)*f(i,a3)*i #function calling defined function, with global variable
+assert(f2(2), 32)
 #
 #
 #Pre-defined functions
@@ -300,15 +303,19 @@ assert(parse("/"), "Unexpected token: '/' (pos 0-1)")
 assert(parse("a"), "Variable is undefined: 'a' (pos 0-1)")
 assert(parse("a="), "Unexpected end of file: '' (pos 2-2)")
 assert(parse("a=b"), "Variable is undefined: 'b' (pos 2-3)")
+assert(parse("f(x)=x f(1) x"), "Variable is undefined: 'x' (pos 12-13)")
 assert(parse("1=1"), "Invalid lvalue at: '=' (pos 1-2)")
 assert(parse("1+5-28="), "Invalid lvalue at: '=' (pos 6-7)")
 assert(parse("1*f="), "Invalid lvalue at: '=' (pos 3-4)")
 assert(parse("2^ f(9,u)+8 * 9="), "Invalid lvalue at: '=' (pos 15-16)")
-assert(parse("a(5*10)="), "Invalid argument 1 for function: 'a' (pos 0-1)")
-assert(parse("a(b,5*10)="), "Invalid argument 2 for function: 'a' (pos 0-1)")
-assert(parse("a()"), "Function is undefined: 'a' (pos 0-1)")
+assert(parse("f(5*10)=1"), "Invalid argument 1 for function: 'f' (pos 0-1)")
+assert(parse("f(b,5*10)=1"), "Invalid argument 2 for function: 'f' (pos 0-1)")
+assert(parse("f()"), "Function is undefined: 'f' (pos 0-1)")
 assert(parse("(a"), "Expected closing parenthesis: ')' (pos 1-2)")
-assert(parse("a(1"), "Expected closing parenthesis for function: ')' (pos 1-2)")
+assert(parse("f(1"), "Expected closing parenthesis for function: 'f' (pos 1-2)")
+assert(parse("int()"), "Wrong number of arguments for function: 'int' (pos 0-3)")
+assert(parse("int(1,2)"), "Wrong number of arguments for function: 'int' (pos 0-3)")
+assert(parse("cb(\"N 49° 16.130 E 008° 40.453\", 180, \"N 49° 15.903 E 008° 40.777\", 0)"), "N 00° 00.000 E 000° 00.000!error!ambiguous intersection")
 #
 #assert(parse("\""), "Unterminated string: '' (pos 1-1)")
 #assert(parse(999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999), "Number is too large or too small: 'Infinity' (pos 12-20)")

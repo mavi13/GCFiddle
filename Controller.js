@@ -442,16 +442,21 @@ Controller.prototype = {
 	fnCalculate2: function () {
 		var sInput = this.view.getAreaValue("inputArea"),
 			oVariables = this.model.getVariables(), // current variables
-			oOutput, oError, iEndPos;
+			oOutput, oError, iEndPos, sOutput;
 
 		oOutput = new ScriptParser().calculate(sInput, oVariables);
 		if (oOutput.error) {
 			oError = oOutput.error;
 			iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
 			this.view.setAreaSelection("inputArea", oError.pos, iEndPos);
-			oOutput.text = oError.message + ": '" + oError.value + "' (pos " + oError.pos + "-" + iEndPos + ")";
+			sOutput = oError.message + ": '" + oError.value + "' (pos " + oError.pos + "-" + iEndPos + ")";
+		} else {
+			sOutput = oOutput.text;
 		}
-		this.view.setAreaValue("outputArea", oOutput.text);
+		if (sOutput && sOutput.length > 0) {
+			sOutput += "\n";
+		}
+		this.view.setAreaValue("outputArea", sOutput);
 	},
 
 	fnUpdateUndoRedoButtons: function () {

@@ -1112,7 +1112,7 @@ QUnit.module("ScriptParser.parse", function (hooks) {
 			mError = {
 				message: "Expected closing parenthesis for function",
 				pos: 1,
-				value: ")"
+				value: "f"
 			},
 			sText = "f(2",
 			aParse = [
@@ -1161,7 +1161,7 @@ QUnit.module("ScriptParser.evaluate", function (hooks) {
 			sOut;
 
 		sOut = oParser.evaluate(aParse);
-		assert.equal(sOut, sResult, "empty");
+		assert.strictEqual(sOut, sResult, "empty");
 	});
 
 	QUnit.test("Number: 5", function (assert) {
@@ -1173,11 +1173,11 @@ QUnit.module("ScriptParser.evaluate", function (hooks) {
 					value: 5
 				}
 			],
-			sResult = "5\n",
+			iResult = 5,
 			sOut;
 
 		sOut = oParser.evaluate(aParse);
-		assert.equal(sOut, sResult, "5");
+		assert.strictEqual(sOut, iResult, "5");
 	});
 
 	QUnit.test("String: '5'", function (assert) {
@@ -1189,11 +1189,11 @@ QUnit.module("ScriptParser.evaluate", function (hooks) {
 					value: "5"
 				}
 			],
-			sResult = "5\n",
+			sResult = "5",
 			sOut;
 
 		sOut = oParser.evaluate(aParse);
-		assert.equal(sOut, sResult, '"5"');
+		assert.strictEqual(sOut, sResult, '"5"');
 	});
 
 	QUnit.test("Operators: + - * % / ^", function (assert) {
@@ -1230,7 +1230,7 @@ QUnit.module("ScriptParser.evaluate", function (hooks) {
 				aParse[0].type = sTest;
 				sResult = mTests[sTest];
 				sOut = oParser.evaluate(aParse);
-				assert.equal(sOut, sResult, iValue1 + sTest + iValue2 + "=" + mTests[sTest]);
+				assert.strictEqual(sOut, sResult, iValue1 + sTest + iValue2 + "=" + mTests[sTest]);
 			}
 		}
 	});
@@ -1247,11 +1247,11 @@ QUnit.module("ScriptParser.evaluate", function (hooks) {
 					}
 				}
 			],
-			sResult = "-5\n",
+			iResult = -5,
 			sOut;
 
 		sOut = oParser.evaluate(aParse);
-		assert.equal(sOut, sResult, "-5");
+		assert.strictEqual(sOut, iResult, "-5");
 	});
 
 	QUnit.test("Multiple operators: (2+4*7-3^2)/3%2", function (assert) {
@@ -1311,11 +1311,11 @@ QUnit.module("ScriptParser.evaluate", function (hooks) {
 					}
 				}
 			],
-			sResult = "1\n",
+			iResult = 1,
 			sOut;
 
 		sOut = oParser.evaluate(aParse);
-		assert.equal(sOut, sResult, "(2+4*7-3^2)/3%2=1");
+		assert.strictEqual(sOut, iResult, "(2+4*7-3^2)/3%2=1");
 	});
 
 	QUnit.test("Identifier: a", function (assert) {
@@ -1330,11 +1330,11 @@ QUnit.module("ScriptParser.evaluate", function (hooks) {
 			oVariables = {
 				a: 5
 			},
-			sResult = "5\n",
+			iResult = 5,
 			sOut;
 
 		sOut = oParser.evaluate(aParse, oVariables);
-		assert.equal(sOut, sResult, "a=5");
+		assert.strictEqual(sOut, iResult, "a=5");
 	});
 
 	QUnit.test("Variable is undefined: a", function (assert) {
@@ -1376,14 +1376,14 @@ QUnit.module("ScriptParser.evaluate", function (hooks) {
 				}
 			],
 			oVariables = {},
-			sResult = "a=5\n",
+			sResult = "a=5",
 			oResult = {
 				a: 5
 			},
 			sOut;
 
 		sOut = oParser.evaluate(aParse, oVariables);
-		assert.equal(sOut, sResult, "a=5");
+		assert.strictEqual(sOut, sResult, "a=5");
 		assert.deepEqual(oVariables, oResult, "a: 5");
 	});
 
@@ -1407,7 +1407,7 @@ QUnit.module("ScriptParser.evaluate", function (hooks) {
 					a: 2
 				}
 			},
-			sResult = "a=3\n",
+			sResult = "a=3",
 			oResult = {
 				a: 3,
 				gcfOriginal: {
@@ -1417,7 +1417,7 @@ QUnit.module("ScriptParser.evaluate", function (hooks) {
 			sOut;
 
 		sOut = oParser.evaluate(aParse, oVariables);
-		assert.equal(sOut, sResult, "a=2");
+		assert.strictEqual(sOut, sResult, "a=2");
 		assert.deepEqual(oVariables, oResult, "a: 2");
 	});
 
@@ -1441,11 +1441,11 @@ QUnit.module("ScriptParser.evaluate", function (hooks) {
 			oFunctions = {
 				floor: Math.floor
 			},
-			sResult = "3\n",
+			iResult = 3,
 			sOut;
 
 		sOut = oParser.evaluate(aParse, oVariables, oFunctions);
-		assert.equal(sOut, sResult, "floor(3.54)=3");
+		assert.strictEqual(sOut, iResult, "floor(3.54)=3");
 	});
 
 	QUnit.test("Function is undefined: f()", function (assert) {
@@ -1495,11 +1495,11 @@ QUnit.module("ScriptParser.evaluate", function (hooks) {
 			],
 			oVariables = {},
 			oFunctions = {},
-			sResult = "5\n",
+			iResult = 5,
 			sOut;
 
 		sOut = oParser.evaluate(aParse, oVariables, oFunctions);
-		assert.equal(sOut, sResult, "f()=5: f()=5");
+		assert.strictEqual(sOut, iResult, "f()=5: f()=5");
 	});
 
 	QUnit.test("Formatter 0.19:#.#:", function (assert) {
@@ -1534,11 +1534,11 @@ QUnit.module("ScriptParser.evaluate", function (hooks) {
 					return oFunctions.zformat(s, format.length);
 				}
 			},
-			sResult = "0.2\n",
+			sResult = "0.2",
 			sOut;
 
 		sOut = oParser.evaluate(aParse, oVariables, oFunctions);
-		assert.equal(sOut, sResult, "0.19:#.#:=0.2");
+		assert.strictEqual(sOut, sResult, "0.19:#.#:=0.2");
 	});
 });
 
@@ -1572,7 +1572,7 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 				'"5"+3.14': 8.14, // String+Number=Number
 				'"5"+"3.14"': 8.14, // #String+String=Number
 
-				"[5]": "5",
+				"[5]": 5,
 				'["5" "3.14"]': "53.14", // String String=String
 				'["5" 3.14]': "53.14", // String Number=String
 				"[5 3.14]": "53.14", // Number Number=String
@@ -1693,21 +1693,21 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 				"zformat(0,3)": "000",
 				"zformat(8.2,5)": "008.2",
 
-				"isEqual(1,1)": "true",
-				"isEqual(1,2)": "false",
+				"isEqual(1,1)": true,
+				"isEqual(1,2)": false,
 
-				"ic()": "false",
+				"ic()": false,
 				"ic(1)": "",
 
 				'getConst("PI")': 3.141592653589793,
 				'getConst("E")': 2.718281828459045,
 
-				"10^309": "Infinity",
+				"10^309": Infinity,
 				"10^310": Math.pow(10, 309), // both Infinity
 
 				"assert(1+4,5)": "",
 
-				'parse("3+4 cls() 5")': "5\n" // Why additional \n?
+				'parse("3+4 cls() 5")': 5
 			},
 			sTest, oResult, sOut;
 
@@ -1716,9 +1716,6 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 				oResult = {
 					text: mTests[sTest]
 				};
-				if (oResult.text !== "") {
-					oResult.text += "\n";
-				}
 				sOut = oParser.calculate(sTest);
 				assert.deepEqual(sOut, oResult, sTest + "=" + mTests[sTest]);
 			}
@@ -1763,9 +1760,6 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 				oResult = {
 					text: mTests[sTest]
 				};
-				if (oResult.text !== "") {
-					oResult.text += "\n";
-				}
 				sOut = oParser.calculate(sTest);
 				assert.deepEqual(sOut, oResult, sTest + "=" + mTests[sTest]);
 			}
@@ -1775,6 +1769,7 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 	QUnit.test("Calculations: Waypoints", function (assert) {
 		var oParser = this.parser, // eslint-disable-line no-invalid-this
 			w0 = "N 49° 16.130 E 008° 40.453",
+			w0c = w0 + "!category0!title0",
 			w1 = "N 49° 15.903 E 008° 40.777",
 			w2 = "N 49° 16.182 E 008° 40.830",
 			wm1 = "N 49° 16.017 E 008° 40.615",
@@ -1818,7 +1813,13 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 
 				'format(midpoint($W2,$W0),"dd")': wm3,
 				'format($WM3,"dmm")': "N 49° 16.156 E 008° 40.641",
-				'format($WM3,"dms")': "N 49° 16' 09.37\" E 008° 40' 38.46\""
+				'format($WM3,"dms")': "N 49° 16' 09.37\" E 008° 40' 38.46\"",
+
+				'format($W0C,"dmmc")': w0c, // waypoint with comment and title
+				'format($W0C,"dmm")': w0,
+				'format($W0C,"ddc")': "N 49.26883° E 008.67422°!category0!title0",
+
+				'$WP="N 49° 16.130 E 008° 40.453"': "$WP=\"N 49° 16.130 E 008° 40.453\""
 			},
 			sTest, oVar, oResult, sOut;
 
@@ -1827,11 +1828,9 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 				oResult = {
 					text: mTests[sTest]
 				};
-				if (oResult.text !== "") {
-					oResult.text += "\n";
-				}
 				oVar = {
 					$W0: w0,
+					$W0C: w0c,
 					$W1: w1,
 					$W2: w2,
 					$WM1: wm1,
@@ -1862,9 +1861,6 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 				oResult = {
 					text: mTests[sTest]
 				};
-				if (oResult.text !== "") {
-					oResult.text += "\n";
-				}
 				sOut = oParser.calculate(sTest);
 				assert.deepEqual(sOut, oResult, sTest + "=" + mTests[sTest]);
 			}
@@ -1879,6 +1875,7 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 				'parse("a")': "Variable is undefined: 'a' (pos 0-1)",
 				'parse("a=")': "Unexpected end of file: '' (pos 2-2)",
 				'parse("a=b")': "Variable is undefined: 'b' (pos 2-3)",
+				'parse("f(x)=x f(1) x")': "Variable is undefined: 'x' (pos 12-13)",
 				'parse("1=1")': "Invalid lvalue at: '=' (pos 1-2)",
 				'parse("1+5-28=")': "Invalid lvalue at: '=' (pos 6-7)",
 				'parse("1*a=")': "Invalid lvalue at: '=' (pos 3-4)",
@@ -1887,12 +1884,13 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 				'parse("f(b,5*10)=")': "Invalid argument 2 for function: 'f' (pos 0-1)",
 				'parse("f()")': "Function is undefined: 'f' (pos 0-1)",
 				'parse("(a")': "Expected closing parenthesis: ')' (pos 1-2)",
-				'parse("f(1")': "Expected closing parenthesis for function: ')' (pos 1-2)",
+				'parse("f(1")': "Expected closing parenthesis for function: 'f' (pos 1-2)",
 				'parse("format(\\"N 49° 16.130 E 008° 40.453\\",\\"x1\\")")': "Unknown format: 'x1' (pos 0-2)",
 				'parse("getConst(\\"FOO\\")")': "Unknown constant: 'FOO' (pos 0-3)",
 				'parse("assert(1,2)")': "Assertion failed: '1 != 2': 'assert' (pos 0-6)",
-				'parse("cls(1)")': "Wrong number of arguments for function: 'cls' (pos 0-3)",
-				'parse("len()")': "Wrong number of arguments for function: 'len' (pos 0-3)"
+				'parse("int()")': "Wrong number of arguments for function: 'int' (pos 0-3)",
+				'parse("int(1,2)")': "Wrong number of arguments for function: 'int' (pos 0-3)",
+				'parse("cls(1)")': "Wrong number of arguments for function: 'cls' (pos 0-3)"
 			},
 			sTest, oResult, sOut;
 
@@ -1901,9 +1899,6 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 				oResult = {
 					text: mTests[sTest]
 				};
-				if (oResult.text !== "") {
-					oResult.text += "\n";
-				}
 				sOut = oParser.calculate(sTest);
 				assert.deepEqual(sOut, oResult, sTest + "=" + mTests[sTest]);
 			}

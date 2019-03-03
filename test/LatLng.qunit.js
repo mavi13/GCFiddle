@@ -449,7 +449,8 @@ QUnit.module("LatLng Geodesy Tools", function (hooks) {
 			data = this.data, // eslint-disable-line no-invalid-this
 			w = data.aPos;
 
-		assert.strictEqual(LatLng.prototype.intersection(w[0], 0, w[0], 0, bSuppressWarnings), null, "w0->w0 (null)");
+		assert.strictEqual(LatLng.prototype.intersection(w[0], 0, w[0], 0, bSuppressWarnings).getError(), "intersection distance=0", "w0,0°->w0,0° (intersection distance=0)");
+		assert.strictEqual(LatLng.prototype.intersection(w[0], 180, w[3], 0, bSuppressWarnings).getError(), "ambiguous intersection", "w0,180°->w3,0° (ambiguous intersection)");
 	});
 
 	QUnit.test("midpointTo", function (assert) {

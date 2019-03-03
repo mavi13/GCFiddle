@@ -171,6 +171,9 @@ var Utils = {
 	stringCapitalize: function (str) {
 		return str.charAt(0).toUpperCase() + str.substring(1);
 	},
+	regExpEscape: function (s) {
+		return s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&"); // (github.com/benjamingr/RegExp.escape), one / removed
+	},
 	getChangedParameters: function (current, initial) {
 		var oChanged = {},
 			sName;

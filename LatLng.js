@@ -67,6 +67,10 @@ LatLng.prototype = {
 	getError: function () {
 		return this.error;
 	},
+	setError: function (sError) {
+		this.error = sError;
+		return this;
+	},
 	toString: function () {
 		var aValues = [],
 			sKey;
@@ -139,24 +143,33 @@ LatLng.prototype = {
 			theta23 = Utils.toRadians(Number(bearing2)),
 			deltaphi = phi2 - phi1,
 			deltalambda = lambda2 - lambda1,
-			delta12, thetaa, thetab, theta12, theta21, alpha1, alpha2, alpha3, delta13, phi3, deltalambda13, lambda3;
+			delta12, cosThetaa, cosThetab, thetaa, thetab, theta12, theta21, alpha1, alpha2, alpha3, delta13, phi3, deltalambda13, lambda3;
 
 		delta12 = 2 * Math.asin(Math.sqrt(Math.sin(deltaphi / 2) * Math.sin(deltaphi / 2)
-			+ Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltalambda / 2) * Math.sin(deltalambda / 2)));
+			+ Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltalambda / 2) * Math.sin(deltalambda / 2))); // distance
 
 		if (delta12 === 0) {
 			if (!bSuppressWarnings) {
-				Utils.console.warn("intersection: delta12=" + delta12);
+				Utils.console.warn("intersection: distance=" + delta12);
 			}
-			return null;
+			return new LatLng(0, 0).setError("intersection distance=0");
 		}
 
 		// initial/final bearings between points
+		/*
 		thetaa = Math.acos((Math.sin(phi2) - Math.sin(phi1) * Math.cos(delta12)) / (Math.sin(delta12) * Math.cos(phi1)));
 		if (isNaN(thetaa)) { // protect against rounding
 			thetaa = 0;
 		}
 		thetab = Math.acos((Math.sin(phi1) - Math.sin(phi2) * Math.cos(delta12)) / (Math.sin(delta12) * Math.cos(phi2)));
+		if (isNaN(thetab)) { // need this?
+			thetab = 0;
+		}
+		*/
+		cosThetaa = (Math.sin(phi2) - Math.sin(phi1) * Math.cos(delta12)) / (Math.sin(delta12) * Math.cos(phi1));
+		cosThetab = (Math.sin(phi1) - Math.sin(phi2) * Math.cos(delta12)) / (Math.sin(delta12) * Math.cos(phi2));
+		thetaa = Math.acos(Math.min(Math.max(cosThetaa, -1), 1)); // protect against rounding errors
+		thetab = Math.acos(Math.min(Math.max(cosThetab, -1), 1)); // protect against rounding errors
 
 		theta12 = Math.sin(lambda2 - lambda1) > 0 ? thetaa : 2 * Math.PI - thetaa;
 		theta21 = Math.sin(lambda2 - lambda1) > 0 ? 2 * Math.PI - thetab : thetab;
@@ -164,17 +177,17 @@ LatLng.prototype = {
 		alpha1 = (theta13 - theta12 + Math.PI) % (2 * Math.PI) - Math.PI; // angle 2-1-3
 		alpha2 = (theta21 - theta23 + Math.PI) % (2 * Math.PI) - Math.PI; // angle 1-2-3
 
-		if (Math.sin(alpha1) === 0 && Math.sin(alpha2) === 0) { // infinite intersections
+		if (Math.sin(alpha1) === 0 && Math.sin(alpha2) === 0) {
 			if (!bSuppressWarnings) {
 				Utils.console.warn("intersection: infinite intersections");
 			}
-			return null;
+			return new LatLng(0, 0).setError("infinite intersections");
 		}
-		if (Math.sin(alpha1) * Math.sin(alpha2) < 0) { // ambiguous intersection
+		if (Math.sin(alpha1) * Math.sin(alpha2) < 0) {
 			if (!bSuppressWarnings) {
-				Utils.console.warn("intersection: ambiguous intersections");
+				Utils.console.warn("intersection: ambiguous intersection");
 			}
-			return null;
+			return new LatLng(0, 0).setError("ambiguous intersection");
 		}
 
 		alpha3 = Math.acos(-Math.cos(alpha1) * Math.cos(alpha2) + Math.sin(alpha1) * Math.sin(alpha2) * Math.cos(delta12));
