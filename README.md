@@ -140,7 +140,7 @@ GCFiddle Links:
 
 #### Helper functions
 
-- getConst(s): get constant "PI" or "E": `getConst("PI")` = `3.141592653589793`, `getConst("E")` = `2.718281828459045` [+]
+- getconst(s): get constant "PI" or "E": `getconst("PI")` = `3.141592653589793`, `getconst("E")` = `2.718281828459045` [+]
 - d2r(d): convert degrees to radians (d * Math.PI / 180)
 - r2d(r): convert radians to degrees (r * 180 / Math.PI)
 
@@ -231,12 +231,13 @@ $W2="N 49° 15.903 E 008° 40.777"
 
 #### Other functions
 
-- isEqual(x, y): ... [+]
+- ic(x): ignore case for variables, 0=false (default), 1 (or number <>0)=true; without x returns status "true" or "false".
+  The default can also be changed with the setting `ignoreVarCase`.
+- isequal(x, y): ... [+]
 - assert(s1, s2): asserts that s1 is equal to s2 [+]
 - parse(s): Parses script in s; returns output and possible error messages [+]
 - cls(): clear output
-- ic(x): no effect (WolfLanguage: Ignore case)
-- concat(s1, s2, ...): internal function to concatenate strings (use brackets to concatenate strings)
+- concat(s1, s2, ...): internal function to concatenate strings (use brackets to concatenate strings) [+]
 
 ### Differences in the calculation language of GCFiddle and WolfLanguage from CacheWolf
 
@@ -248,14 +249,41 @@ $W2="N 49° 15.903 E 008° 40.777"
 
 - Strings can also be surrounded by apostrophes `'` (no character escaping).
 - To concatenate strings, they must be placed in brackets `[`...`]`. Separation by spaces is not enough
-- Variables are case-sensitive (In WolfLanguage this can be set with `ic(0)`)
-- Possibility to define new functions, e.g. `s(x, y)=x+y`
+- Per default, functions and variables are case-sensitive. This can be changed with a setting or with `ic(0)` for variables. (In WolfLanguage, ignore case is the default.)
+- Possibility to define new functions, e.g. `f(x,y)=x+y`
 - Number formatting with suffix pattern may contain zero `0` and dot `.` but no hash `#`
 - Geodetic calculation of waypoints uses another model with other formulas, so there are slightly different results
 - No statement separator, especially no semicolon `;`
-- Functions must be used exactly as they are defined, there are no abbreviations or aliases (e.g. `crosstotal` is always `ct`)
+- Functions must be used exactly as they are defined, there are no abbreviations or aliases (e.g. `crosstotal` is always `ct`). Also the case is relevent.
 - No function: `goto(wp)`, `sk(n)`, `deg()`, `rad()`
 - No statements: `IF`, `THEN`, `ENDIF`, `STOP`
+
+## Preprocessing
+
+The preprocessing feature allows to scan the input, extract information and convert it into a script.  Usually the input is a Copy&Paste text from a geocache description on [geocaching.com](https://geocaching.com/). It is also possible to use any text or xml or gpx file content with waypoints.
+
+During preprocessing the following steps are done:
+
+- Convert all text into comments
+- Extract variables
+  - If there is an equal `=` character, the left part is assumed to be a variable, the right part can be a single value or an expression without spaces\
+    `<variable><space(s)>=<space(s)><exprWithoutSpace>`
+  - Examples:
+    - `some text a=12 more text`\
+      =>`#some text a=12 more text`\
+      `a=12`
+- Extract waypoints
+  - Waypoints (especially with formulas) must have some characteristics to be detected:\
+  `N<expr>°<expr>.<expr>E<expr>°<expr>.<exprWithoutSpace>`
+    - `<expr>` is an expression which may contain spaces, `<exprWithoutSpace>` not.
+    - Expressions are not checked for validity.
+  - Examples:
+    - `N 49° 16.130 E 008° 40.453`
+    - `N 49° (A-1)(B).(4*A)(B)(A) E 008° (2*A)(5).(A/2)(3*A)(3*A)`\
+      => `$W1=["N 49° " (A-1)(B) "." (4*A)(B)(A) " E 008° " (2*A)(5) "." (A/2)(3*A)(3*A)]`
+    - (For more examples, see Preprocessor.qunit.js)
+  - If necessary, modify the input before using preprocessing.
+- Extract cache information from the sections and put it JSON encoded in a comment line marked with `#GC_INFO:`
 
 ## URL parameters as settings
 
@@ -271,6 +299,8 @@ URL parameters override settings in file `gcconfig.js` or `gcfiddle.js`.
 - `filterTitle`: filter by title (substring, ignore-case)
 - `googleKey`: Set [Google API key](https://developers.google.com/maps/documentation/geocoding/get-api-key)
   - Can also be set in file `gcconfig.js` or `gcfiddle.js`
+- `ignoreFuncCase=false`: ignore case for functions
+- `ignoreVarCase=false`: ignore case for variables
 - `leafletMapboxKey`: mapbox access token (for leaflet maps, currently unused)
 - `leafletUrl`: Set URL for the Leaflet library
   - [leaflet, https]("https://unpkg.com/leaflet@1.3.1/dist/leaflet.js") (default)
@@ -331,4 +361,4 @@ QUnit test [testsuite.qunit.html](https://mavi13.github.io/GCFiddle/test/testsui
 
 - [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/)
 
-### **mavi13, 02/2019**
+### **mavi13, 03/2019**

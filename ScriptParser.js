@@ -16,11 +16,14 @@ if (typeof require !== "undefined") {
 // (and: http://crockford.com/javascript/tdop/tdop.html ; test online: http://jsfiddle.net/h3xwj/embedded/result/)
 // How to write a simple interpreter in JavaScript
 // Peter_Olson, 30 Oct 2014
-function ScriptParser(/* options */) {
-	// empty
+function ScriptParser(options) {
+	this.init(options);
 }
 
 ScriptParser.prototype = {
+	init: function (options) {
+		this.options = options || {}; // ignoreFuncCase, ignoreVarCase
+	},
 	lex: function (input) {
 		var isComment = function (c) {
 				return (/[#]/).test(c);
@@ -390,7 +393,8 @@ ScriptParser.prototype = {
 	// evaluate
 	//
 	evaluate: function (parseTree, variables, functions) {
-		var sOutput = "",
+		var that = this,
+			sOutput = "",
 			mOperators = {
 				"+": function (a, b) {
 					return Number(a) + Number(b);
@@ -442,8 +446,16 @@ ScriptParser.prototype = {
 				}
 			},
 
+			fnAdaptFunctionName = function (sName) {
+				return that.options.ignoreFuncCase ? sName.toLowerCase() : sName;
+			},
+
+			fnAdaptVariableName = function (sName) {
+				return that.options.ignoreVarCase ? sName.toLowerCase() : sName;
+			},
+
 			parseNode = function (node) {
-				var i, sValue, oVars, aNodeArgs;
+				var i, sValue, sName, oVars, aNodeArgs;
 
 				if (Utils.debug > 3) {
 					Utils.console.debug("DEBUG: evaluate: parseNode node=%o type=" + node.type + " name=" + node.name + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
@@ -458,34 +470,38 @@ ScriptParser.prototype = {
 					}
 				} else if (node.type === "identifier") {
 					oVars = aFunctionScope[aFunctionScope.length - 1];
-					sValue = (oVars && oVars.hasOwnProperty(node.value)) ? oVars[node.value] : variables[node.value];
+					sName = fnAdaptVariableName(node.value); // here we use node.value
+					sValue = (oVars && oVars.hasOwnProperty(sName)) ? oVars[sName] : variables[sName];
 					if (sValue === undefined) {
 						throw new ScriptParser.ErrorObject("Variable is undefined", node.value, node.pos);
 					}
 				} else if (node.type === "assign") {
 					sValue = parseNode(node.value);
-					if (variables.gcfOriginal && variables.gcfOriginal[node.name] !== undefined && variables.gcfOriginal[node.name] !== variables[node.name]) {
-						Utils.console.log("Variable is set to hold: " + node.name + "=" + variables[node.name] + " (" + sValue + ")");
-						sValue = variables[node.name]; // take existing value
+					sName = fnAdaptVariableName(node.name);
+					if (variables.gcfOriginal && variables.gcfOriginal[sName] !== undefined && variables.gcfOriginal[sName] !== variables[sName]) {
+						Utils.console.log("Variable is set to hold: " + sName + "=" + variables[sName] + " (" + sValue + ")");
+						sValue = variables[sName]; // take existing value
 					} else {
-						variables[node.name] = sValue; // set new value
+						variables[sName] = sValue; // set new value
 					}
 					if (isNaN(parseFloat(sValue))) {
 						sValue = '"' + sValue + '"'; // value is not a number
 					}
-					sValue = node.name + "=" + sValue;
+					sValue = node.name + "=" + sValue; // use original node.name here
 				} else if (node.type === "call") {
 					aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
 					for (i = 0; i < node.args.length; i += 1) {
 						aNodeArgs[i] = parseNode(node.args[i]);
 					}
-					if (mFunctions[node.name] === undefined) {
-						throw new ScriptParser.ErrorObject("Function is undefined", node.name, node.pos);
+					sName = fnAdaptFunctionName(node.name);
+					if (mFunctions[sName] === undefined) {
+						throw new ScriptParser.ErrorObject("Function is undefined", sName, node.pos);
 					}
-					checkArgs(node.name, aNodeArgs, node.pos);
-					sValue = mFunctions[node.name].apply(node, aNodeArgs);
+					checkArgs(sName, aNodeArgs, node.pos);
+					sValue = mFunctions[sName].apply(node, aNodeArgs);
 				} else if (node.type === "function") {
-					mFunctions[node.name] = function () { // varargs
+					sName = fnAdaptFunctionName(node.name);
+					mFunctions[sName] = function () { // varargs
 						var oArgs = {};
 
 						for (i = 0; i < node.args.length; i += 1) {
@@ -529,7 +545,8 @@ ScriptParser.prototype = {
 		return sOutput;
 	},
 	calculate: function (input, variables) {
-		var mFunctions = {
+		var that = this,
+			mFunctions = {
 				// concat(s1, s2, ...) concatenate strings (called by operator [..] )
 				concat: function () { // varargs
 					var	s = "",
@@ -798,9 +815,9 @@ ScriptParser.prototype = {
 				// ic(n) Ignore variable case (not implemented, we are always case sensitive)
 				ic: function (mode) { // optional args 1: mode
 					if (typeof mode === "undefined") { // no parameter, return status
-						return false;
+						return Boolean(that.options.ignoreVarCase);
 					}
-					Utils.console.warn("ic(mode) not implemented.");
+					that.options.ignoreVarCase = Boolean(mode);
 					return "";
 				},
 
@@ -891,12 +908,12 @@ ScriptParser.prototype = {
 					}
 					return s;
 				},
-				// isEqual - or return 0,1?
-				isEqual: function (a, b) {
+				// isequal - or return 0,1?
+				isequal: function (a, b) {
 					return a === b;
 				},
-				// getConst(): get constant
-				getConst: function (name) {
+				// getconst(): get constant
+				getconst: function (name) {
 					switch (name) {
 					case "PI":
 						return Math.PI;

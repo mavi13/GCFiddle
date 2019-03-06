@@ -442,9 +442,13 @@ Controller.prototype = {
 	fnCalculate2: function () {
 		var sInput = this.view.getAreaValue("inputArea"),
 			oVariables = this.model.getVariables(), // current variables
-			oOutput, oError, iEndPos, sOutput;
+			oParseOptions, oOutput, oError, iEndPos, sOutput;
 
-		oOutput = new ScriptParser().calculate(sInput, oVariables);
+		oParseOptions = {
+			ignoreFuncCase: this.model.getProperty("ignoreFuncCase"),
+			ignoreVarCase: this.model.getProperty("ignoreVarCase")
+		};
+		oOutput = new ScriptParser(oParseOptions).calculate(sInput, oVariables);
 		if (oOutput.error) {
 			oError = oOutput.error;
 			iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);

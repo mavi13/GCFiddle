@@ -1693,14 +1693,16 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 				"zformat(0,3)": "000",
 				"zformat(8.2,5)": "008.2",
 
-				"isEqual(1,1)": true,
-				"isEqual(1,2)": false,
+				"isequal(1,1)": true,
+				"isequal(1,2)": false,
 
 				"ic()": false,
+				"ic(0)": "",
 				"ic(1)": "",
+				"ic(1) ic()": true,
 
-				'getConst("PI")': 3.141592653589793,
-				'getConst("E")': 2.718281828459045,
+				'getconst("PI")': 3.141592653589793,
+				'getconst("E")': 2.718281828459045,
 
 				"10^309": Infinity,
 				"10^310": Math.pow(10, 309), // both Infinity
@@ -1717,6 +1719,30 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 					text: mTests[sTest]
 				};
 				sOut = oParser.calculate(sTest);
+				assert.deepEqual(sOut, oResult, sTest + "=" + mTests[sTest]);
+			}
+		}
+	});
+
+	QUnit.test("Calculations: With variables", function (assert) {
+		var oParser = this.parser, // eslint-disable-line no-invalid-this
+			mTests = {
+				a: 5,
+				"ic(1) A ic(0)": 5,
+				'parse("a=6 A")': "Variable is undefined: 'A' (pos 4-5)",
+				"a=6": "a=6"
+			},
+			sTest, oVar, oResult, sOut;
+
+		for (sTest in mTests) {
+			if (mTests.hasOwnProperty(sTest)) {
+				oResult = {
+					text: mTests[sTest]
+				};
+				oVar = {
+					a: 5
+				};
+				sOut = oParser.calculate(sTest, oVar);
 				assert.deepEqual(sOut, oResult, sTest + "=" + mTests[sTest]);
 			}
 		}
@@ -1886,7 +1912,7 @@ QUnit.module("ScriptParser.calculate", function (hooks) {
 				'parse("(a")': "Expected closing parenthesis: ')' (pos 1-2)",
 				'parse("f(1")': "Expected closing parenthesis for function: 'f' (pos 1-2)",
 				'parse("format(\\"N 49° 16.130 E 008° 40.453\\",\\"x1\\")")': "Unknown format: 'x1' (pos 0-2)",
-				'parse("getConst(\\"FOO\\")")': "Unknown constant: 'FOO' (pos 0-3)",
+				'parse("getconst(\\"FOO\\")")': "Unknown constant: 'FOO' (pos 0-3)",
 				'parse("assert(1,2)")': "Assertion failed: '1 != 2': 'assert' (pos 0-6)",
 				'parse("int()")': "Wrong number of arguments for function: 'int' (pos 0-3)",
 				'parse("int(1,2)")': "Wrong number of arguments for function: 'int' (pos 0-3)",

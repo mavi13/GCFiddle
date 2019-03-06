@@ -18,6 +18,8 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 			filterId: "", // filter by ID (substring, ignore-case)
 			filterTitle: "", // filter by title (substring, ignore-case)
 			googleKey: "", // Google API key
+			ignoreFuncCase: false,
+			ignoreVarCase: false,
 			leafletMapboxKey: "", // mapbox access token (for leaflet maps, currently unused)
 			leafletUrl: "https://unpkg.com/leaflet@1.3.1/dist/leaflet.js",
 			mapType: "leaflet", // simple, google, leaflet, openlayers, none

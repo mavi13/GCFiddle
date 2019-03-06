@@ -285,12 +285,12 @@ assert(8.2:000.000:, "008.200")
 assert(zformat(0, 3), "000")
 assert(zformat(8.2, 5), "008.2")
 
-#isEqual
+#isequal
 
-#getConst(type): Get constant
-assert(getConst("PI"), 3.141592653589793)
-assert(getConst("E"), 2.718281828459045)
-assert(parse("getConst('e1')"), "Unknown constant: 'e1' (pos 0-2)")
+#getconst(type): Get constant
+assert(getconst("PI"), 3.141592653589793)
+assert(getconst("E"), 2.718281828459045)
+assert(parse("getconst('e1')"), "Unknown constant: 'e1' (pos 0-2)")
 #
 #assert (assertEqual)
 #
