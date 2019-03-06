@@ -308,32 +308,35 @@ Preprocessor.prototype = {
 		}
 		return sOut;
 	},
-	fnWaypoints: function (str) {
-		var that = this,
-			sExpression = "[ ]*([0-9A-Za-z()\\[\\]+\\-*/]+)[ ]*",
-			rWaypoint = new RegExp("N" + sExpression + "°" + sExpression + "[.,]" + sExpression + "(?:\\n#)?E" + sExpression + "°" + sExpression + "[.,]" + sExpression + "([#\\n ])", "g"),
-			iWpIndex = 1;
 
-		if (!Utils.stringEndsWith(str, "\n")) {
-			str += "\n";
-		}
+	iWpIndex: 0,
 
-		str = str.replace(rWaypoint, function (sMatch) { // varargs
-			var aArgs = [],
-				iLength, sArg, aRes, i, sRemain;
+	fnWaypointMatcher: function (sMatch) { // varargs
+		var oVariables = this.mVariables,
+			aArguments = [],
+			aParts = [],
+			iLength, sParts, aRes, i, sLastPart, iRemain, sRemain,
+			fnGetArgsUntil = function (str) {
+				var sArgs = "",
+					oRegExp = new RegExp("^" + str + "$");
 
-			iLength = Math.min(arguments.length, 6 + 1); // we need at most 6 arguments starting with index 1
-			for (i = 1; i < iLength; i += 1) {
-				sArg = arguments[i];
+				while (i < iLength && !oRegExp.test(aArguments[i])) {
+					sArgs += aArguments[i];
+					i += 1;
+				}
+				return sArgs;
+			},
+			fnWaypointPart = function (sArg, bLastPart) {
 				sArg = String(sArg).replace(/['"]/, ""); // remove apostropthes, quotes //TTT global?
-				if (i === iLength - 1) { // last argument?
+				sArg = sArg.trim();
+				if (bLastPart) { // last argument?
 					if (Utils.stringEndsWith(sArg, ")") && sArg.indexOf("(") < 0) { // sometimes a waypoint is surrounded by parenthesis, remove closing parenthesis
 						sArg = sArg.substring(0, sArg.length - 1);
 					}
 				}
 				if ((/^\d+$/).test(sArg)) { // number?
 					// sArg
-				} else if (sArg in that.mVariables) { // variable?
+				} else if (sArg in oVariables) { // variable?
 					sArg = '" ' + sArg + ' "';
 				} else { // e.g. expression
 					aRes = sArg.match(/^(\d+)(\w+)$/); // number and variable?
@@ -345,29 +348,74 @@ Preprocessor.prototype = {
 						sArg = '" ' + sArg + ' "';
 					}
 				}
-				aArgs.push(sArg);
-			}
-			sArg = "N " + aArgs[0] + "° " + aArgs[1] + "." + aArgs[2] + " E " + aArgs[3] + "° " + aArgs[4] + "." + aArgs[5];
-			if (sArg.indexOf('"') >= 0) {
-				sArg = '["' + sArg + '"]';
-			} else {
-				sArg = '"' + sArg + '"';
-			}
-			sArg = sArg.replace(/\s*""\s*/, ""); // remove double quotes
-			sMatch = sMatch.trim();
-			if (!Utils.stringEndsWith(sMatch, "\n")) {
-				sMatch += "\n";
-			}
-			sRemain = arguments[7];
-			if (sRemain === " ") {
-				sRemain = "\n#";
-			}
-			sMatch += "$W" + iWpIndex + "=" + sArg + sRemain;
-			iWpIndex += 1;
-			return sMatch;
-		});
+				return sArg;
+			};
+
+		for (i = 1; i < arguments.length - 2; i += 1) { // copy arguments, starting with index 1 (not complete match), ignoring ending count and complete string
+			aArguments.push(arguments[i]);
+		}
+
+		iLength = aArguments.length;
+		i = 0;
+		aParts.push(aArguments[i] + " "); // N
+		i += 1;
+		aParts.push(fnWaypointPart(fnGetArgsUntil("°")));
+		aParts.push(aArguments[i] + " "); // "°"
+		i += 1;
+		aParts.push(fnWaypointPart(fnGetArgsUntil("[.,]")));
+		aParts.push(aArguments[i]); // . or ,
+		i += 1;
+		aParts.push(fnWaypointPart(fnGetArgsUntil("E")));
+		aParts.push(" " + aArguments[i] + " "); // E
+		i += 1;
+		aParts.push(fnWaypointPart(fnGetArgsUntil("°")));
+		aParts.push(aArguments[i] + " "); // "°"
+		i += 1;
+		aParts.push(fnWaypointPart(fnGetArgsUntil("[.,]")));
+		aParts.push(aArguments[i]); // . or ,
+		i += 1;
+
+		// how to detect end of wp?
+		// currently last part of wp must not contain spaces!
+		sLastPart = fnGetArgsUntil(""); // until end?
+		iRemain = sLastPart.indexOf(" ");
+		if (iRemain >= 0) {
+			sRemain = "\n#" + sLastPart.substring(iRemain + 1);
+			sLastPart = sLastPart.substring(0, iRemain);
+		} else {
+			sRemain = Utils.stringEndsWith(sLastPart, "\n") ? "\n" : "";
+		}
+		aParts.push(fnWaypointPart(sLastPart, true)); // last part
+
+		sParts = aParts.join("");
+		if (sParts.indexOf('"') >= 0) {
+			sParts = '["' + sParts + '"]';
+		} else {
+			sParts = '"' + sParts + '"';
+		}
+		sParts = sParts.replace(/\s*""\s*/, ""); // remove double quotes
+		sMatch = sMatch.trim();
+		if (!Utils.stringEndsWith(sMatch, "\n")) {
+			sMatch += "\n";
+		}
+		sMatch += "$W" + this.iWpIndex + "=" + sParts + sRemain;
+		this.iWpIndex += 1;
+		return sMatch;
+	},
+	fnWaypoints: function (str) {
+		var	sExpression = "[ ]*([0-9A-Za-z()\\[\\]+\\-*/ ]+)[ ]*",
+			sLastExpression = "[ ]*([0-9A-Za-z()\\[\\]+\\-*/]+)[ ]*", // no space inside, otherwise we cannot etect wp in same line
+			rWaypoint = new RegExp("(N)" + sExpression + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#)?(E)" + sExpression + "(°)" + sExpression + "([.,])" + sLastExpression + "([#\\n ])", "g");
+
+		if (!Utils.stringEndsWith(str, "\n")) {
+			str += "\n";
+		}
+
+		this.iWpIndex = 1;
+		str = str.replace(rWaypoint, this.fnWaypointMatcher.bind(this));
 		return str;
 	},
+
 	fnPrefixHash: function (str) {
 		// Prefix lines with hash (if not already there)
 		str = "#" + str.replace(/\n(?!#)/g, "\n#");

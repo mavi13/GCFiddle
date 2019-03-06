@@ -1,6 +1,6 @@
 {
   "name": "gcfiddle",
-  "version": "0.58.1",
+  "version": "0.58.2",
   "description": "Fiddle with Geocaching Waypoints",
   "main": "gcfiddle.js",
   "directories": {
