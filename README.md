@@ -325,7 +325,10 @@ URL parameters override settings in file `gcconfig.js` or `gcfiddle.js`.
 - `showVariable=true`: Show the variable box
 - `showWaypoint=true`: Show waypoint box
 - `testIndexedDb=false`: test Index Database (experimental)
-- `variableType=number`: Set general type of variables in the variable box to `number`, `text` or `range`
+- `varMin=0`: minimum value for variable
+- `varMax=9999`: maximum value for variable
+- `varStep=1`: Increment for variable change
+- `varType=number`: Set general type of variables in the variable box to `number`, `text` or `range`
   - If a variable is not a number, `text` is used
 - `waypointFormat`: Set waypoint output format: `(empty string)`, `dmm`, `dms`, `dd`,  `dmmc`, `dmsc`, `ddc`
 - `zoom=15`: Set initial zoom level for Google Maps (usually automatically set)

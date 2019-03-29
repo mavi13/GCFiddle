@@ -186,6 +186,24 @@ View.prototype = {
 		}
 		return this;
 	},
+	setInputMin: function (sId, sMin) {
+		var input = document.getElementById(sId);
+
+		input.min = sMin;
+		return this;
+	},
+	setInputMax: function (sId, sMax) {
+		var input = document.getElementById(sId);
+
+		input.max = sMax;
+		return this;
+	},
+	setInputStep: function (sId, sStep) {
+		var input = document.getElementById(sId);
+
+		input.step = sStep;
+		return this;
+	},
 	getInputValue: function (sId) {
 		var input = document.getElementById(sId);
 

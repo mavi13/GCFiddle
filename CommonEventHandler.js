@@ -61,39 +61,33 @@ CommonEventHandler.prototype = {
 
 	onVarSelectChange: function () {
 		var sPar = this.view.getSelectValue("varSelect"),
-			variables = this.model.getVariables(),
-			sType = this.model.getProperty("variableType"),
+			sType = this.model.getProperty("varType"),
+			iMin = this.model.getProperty("varMin"),
+			iMax = this.model.getProperty("varMax"),
+			iStep = this.model.getProperty("varStep"),
 			sValue, iSelectLength;
 
 		if (!sPar) {
 			sPar = "";
 			sValue = sPar;
 		} else {
-			sValue = variables[sPar];
+			sValue = this.model.getVariable(sPar);
 		}
 		this.view.setLabelText("varLabel", sPar).setLabelTitle("varLabel", sPar);
 
 		if (sType !== "text") {
-			if (!(/^[\d]+$/).test(sValue)) { // currently only digits (without -,.) are numbers
+			if (!(/^-?[\d]+$/).test(sValue)) { // currently only digits and minus (without dot .) are numbers
 				if (Utils.debug) {
 					Utils.console.debug("DEBUG: onVarSelectChange: Using type=text for non-numerical variable " + sValue);
 				}
 				sType = "text";
 			}
 		}
-		this.view.setInputType("varInput", sType).setInputValue("varInput", sValue).setInputTitle("varInput", sValue);
+		this.view.setInputType("varInput", sType).setInputMin("varInput", iMin).setInputMax("varInput", iMax).setInputStep("varInput", iStep).setInputValue("varInput", sValue).setInputTitle("varInput", sValue);
 
 		this.view.setSelectTitleFromSelectedOption("varSelect");
 		iSelectLength = this.view.getSelectLength("varSelect");
 		this.view.setLegendText("varLegend", "Variables (" + iSelectLength + ")");
-	},
-
-	onVarViewSelectChange: function () {
-		var sVariableType = this.view.getSelectValue("varViewSelect");
-
-		this.model.setProperty("variableType", sVariableType);
-		this.view.setSelectTitleFromSelectedOption("varViewSelect");
-		this.onVarSelectChange();
 	},
 
 	onWaypointViewSelectChange: function () {
@@ -119,7 +113,6 @@ CommonEventHandler.prototype = {
 
 	onWaypointSelectChange: function (event) {
 		var sPar = this.view.getSelectValue("waypointSelect"),
-			oVariables = this.model.getVariables(),
 			sWaypointFormat = this.model.getProperty("waypointFormat"),
 			sValue,	oPos, sError, sTitle, iSelectLength;
 
@@ -127,7 +120,7 @@ CommonEventHandler.prototype = {
 			sPar = "";
 			sValue = sPar;
 		} else {
-			sValue = oVariables[sPar];
+			sValue = this.model.getVariable(sPar);
 		}
 
 		this.view.setLabelText("waypointLabel", sPar).setLabelTitle("waypointLabel", sPar);
@@ -149,7 +142,7 @@ CommonEventHandler.prototype = {
 	onVarInputChange: function () {
 		var sValue = this.view.getInputValue("varInput"),
 			sPar = this.view.getLabelText("varLabel"),
-			oVariables = this.model.getVariables(),
+			oVariables = this.model.getAllVariables(),
 			nValueAsNumber;
 
 		if (sPar) {
@@ -157,7 +150,7 @@ CommonEventHandler.prototype = {
 			if (oVariables.gcfOriginal[sPar] === undefined) {
 				oVariables.gcfOriginal[sPar] = oVariables[sPar];
 			}
-			oVariables[sPar] = isNaN(nValueAsNumber) ? sValue : nValueAsNumber;
+			oVariables[sPar] = (String(nValueAsNumber) === sValue) ? nValueAsNumber : sValue;
 			this.controller.fnCalculate2();
 			this.controller.fnSetVarSelectOptions();
 			this.onVarSelectChange(); // title change?
@@ -167,10 +160,60 @@ CommonEventHandler.prototype = {
 		}
 	},
 
+	onVarMinInputChange: function () {
+		var sValue = this.view.getInputValue("varMinInput");
+
+		this.model.setProperty("varMin", sValue);
+		this.onVarSelectChange();
+	},
+
+	onVarMaxInputChange: function () {
+		var sValue = this.view.getInputValue("varMaxInput");
+
+		this.model.setProperty("varMax", sValue);
+		this.onVarSelectChange();
+	},
+
+	onVarTypeSelectChange: function () {
+		var sVarType = this.view.getSelectValue("varTypeSelect");
+
+		this.model.setProperty("varType", sVarType);
+		this.view.setSelectTitleFromSelectedOption("varTypeSelect");
+		this.onVarSelectChange();
+	},
+
+	onVarStepInputChange: function () {
+		var sValue = this.view.getInputValue("varStepInput");
+
+		this.model.setProperty("varStep", sValue);
+		this.onVarSelectChange();
+	},
+
+	onVarResetButtonClick: function () {
+		var iMin = 0,
+			iMax = 9999,
+			iStep = 1,
+			sType = "number";
+
+		this.model.setProperty("varMin", iMin);
+		this.view.setInputValue("varMinInput", iMin);
+
+		this.model.setProperty("varMax", iMax);
+		this.view.setInputValue("varMaxInput", iMax);
+
+		this.model.setProperty("varStep", iStep);
+		this.view.setInputValue("varStepInput", iStep);
+
+		this.model.setProperty("varType", sType);
+		this.view.setSelectValue("varTypeSelect", sType);
+
+		this.onVarSelectChange();
+	},
+
 	onWaypointInputChange: function () {
 		var sValue = this.view.getInputValue("waypointInput"),
 			sPar = this.view.getLabelText("waypointLabel"),
-			oVariables = this.model.getVariables(),
+			oVariables = this.model.getAllVariables(),
 			nValueAsNumber;
 
 		if (sPar) {
@@ -178,7 +221,7 @@ CommonEventHandler.prototype = {
 			if (oVariables.gcfOriginal[sPar] === undefined) {
 				oVariables.gcfOriginal[sPar] = oVariables[sPar];
 			}
-			oVariables[sPar] = isNaN(nValueAsNumber) ? sValue : nValueAsNumber;
+			oVariables[sPar] = (String(nValueAsNumber) === sValue) ? nValueAsNumber : sValue;
 			this.controller.fnCalculate2();
 			this.controller.fnSetVarSelectOptions();
 			this.controller.fnSetWaypointSelectOptions();
@@ -197,7 +240,7 @@ CommonEventHandler.prototype = {
 		this.model.initVariables();
 		this.controller.fnCalculate2();
 		this.controller.maFa.deleteMarkers();
-		this.controller.fnSetMarkers(this.model.getVariables());
+		this.controller.fnSetMarkers(this.model.getAllVariables());
 		this.controller.fnSetVarSelectOptions();
 		this.onVarSelectChange();
 		this.controller.fnSetWaypointSelectOptions();
@@ -588,8 +631,7 @@ CommonEventHandler.prototype = {
 	},
 
 	onOutputAreaClick: function () {
-		var variables = this.model.getVariables(),
-			sPar = "",
+		var sPar = "",
 			oSelection,	sOutput, iSelStart,	iLineStart,	iLineEnd, iEqual;
 
 		oSelection = this.view.getAreaSelection("outputArea"); // also in event.target
@@ -615,7 +657,7 @@ CommonEventHandler.prototype = {
 			if (Utils.debug) {
 				Utils.console.debug("DEBUG: onOutputAreaClick: line='" + sOutput + "' var=" + sPar);
 			}
-			if (sPar && variables[sPar] !== undefined) {
+			if (sPar && this.model.getVariable(sPar) !== undefined) {
 				if (this.controller.fnIsWaypoint(sPar)) {
 					if (sPar !== this.view.getSelectValue("waypointSelect")) {
 						this.view.setSelectValue("waypointSelect", sPar);

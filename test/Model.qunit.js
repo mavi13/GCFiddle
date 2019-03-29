@@ -74,7 +74,7 @@ QUnit.module("Model: Variables", function (hooks) {
 
 		oModel.initVariables();
 
-		oVariables = oModel.getVariables();
+		oVariables = oModel.getAllVariables();
 		assert.propEqual(oVariables, mResult, "variables with gcfOriginal");
 	});
 });

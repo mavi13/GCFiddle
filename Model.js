@@ -37,7 +37,10 @@ Model.prototype = {
 		return this.initialConfig;
 	},
 
-	getVariables: function () {
+	getVariable: function (sVar) {
+		return this.variables[sVar];
+	},
+	getAllVariables: function () {
 		return this.variables;
 	},
 	initVariables: function () {

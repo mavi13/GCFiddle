@@ -37,7 +37,10 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 			showWaypoint: true,
 			sort: "",
 			testIndexedDb: false, // Test
-			variableType: "number", // number, text, range
+			varMin: 0, // minimum value
+			varMax: 9999, // maximum value
+			varStep: 1, // step value
+			varType: "number", // number, text, range
 			waypointFormat: "", // waypoint output format: "", dmm, dms, dd, dmmc, dmsc, ddc
 			zoom: 15 // default zoom level
 		},

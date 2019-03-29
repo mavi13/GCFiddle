@@ -12,15 +12,14 @@ if (typeof require !== "undefined") {
 
 
 function TestModel() {
-	this.testData = {
-		config: {},
-		variables: {},
-		examples: {}
-	};
+	this.testData = {}; // contains: config: {}, variables: {}, examples: {}
 }
 
 TestModel.prototype = {
 	setTestData: function (sGroup, sId, value) {
+		if (!this.testData[sGroup]) {
+			this.testData[sGroup] = {};
+		}
 		this.testData[sGroup][sId] = value;
 		return this;
 	},
@@ -40,7 +39,10 @@ TestModel.prototype = {
 	initVariables: function () {
 		return this;
 	},
-	getVariables: function () {
+	getVariable: function (sVar) {
+		return this.getTestData("variables", sVar);
+	},
+	getAllVariables: function () {
 		return this.getTestData("variables");
 	}
 };
@@ -70,7 +72,7 @@ TestView.prototype = {
 	setAreaValue: function (sId, value) {
 		return this.setTestData(sId + "Value", value);
 	},
-	setSelectTitleFromSelectedOption: function (sId) {
+	setSelectTitleFromSelectedOption: function (/* sId */) {
 		// empty
 	},
 	setLabelText: function (sId, value) {
@@ -82,17 +84,38 @@ TestView.prototype = {
 	setInputType: function (sId, value) {
 		return this.setTestData(sId + "Type", value);
 	},
+	setInputMin: function (sId, value) {
+		return this.setTestData(sId + "Min", value);
+	},
+	setInputMax: function (sId, value) {
+		return this.setTestData(sId + "Max", value);
+	},
+	setInputStep: function (sId, value) {
+		return this.setTestData(sId + "Step", value);
+	},
 	setInputValue: function (sId, value) {
 		return this.setTestData(sId + "Value", value);
 	},
 	setInputTitle: function (sId, value) {
 		return this.setTestData(sId + "Title", value);
 	},
+	setInputInvalid: function () {
+		// empty
+	},
 	getSelectLength: function (sId) {
-		return this.getTestData(sId + "Length"); //TTT
+		return this.getTestData(sId + "Length");
 	},
 	setLegendText: function (sId, value) {
 		return this.setTestData(sId + "Text", value);
+	},
+	getHidden: function (sId) {
+		return this.getTestData(sId + "Hidden");
+	},
+	setHidden: function (sId, value) {
+		return this.setTestData(sId + "Hidden", value);
+	},
+	toogleHidden: function (sId) {
+		return this.setTestData(sId + "Hidden", !this.getHidden(sId + "Hidden"));
 	},
 	attachEventHandler: function () {
 		// empty
@@ -130,8 +153,23 @@ QUnit.module("CommonEventHandler test", function (hooks) {
 
 	QUnit.test("onVarSelectChange", function (assert) {
 		var oMock = this.oMock, // eslint-disable-line no-invalid-this
-			//sScript = '$W0="N 49° 18.071 E 008° 42.167" a=213 b=289	$W1=["N 49° 18." a " E 008° 42." b]	#$W2=project($W0,0,50)',
-			mResultA = {
+			mModelResultA = {
+				config: {
+					varMax: 20,
+					varMin: 0,
+					varStep: 1,
+					varType: "number"
+				},
+				variables: {
+					$w: "N 49° 18.071 E 008° 42.167",
+					a: 12,
+					b: "t1"
+				}
+			},
+			mViewResultA = {
+				varInputMax: 20,
+				varInputMin: 0,
+				varInputStep: 1,
 				varInputTitle: 12,
 				varInputType: "number",
 				varInputValue: 12,
@@ -140,7 +178,10 @@ QUnit.module("CommonEventHandler test", function (hooks) {
 				varLegendText: "Variables (undefined)",
 				varSelectValue: "a"
 			},
-			mResultB = {
+			mViewResultB = {
+				varInputMax: 20,
+				varInputMin: 0,
+				varInputStep: 1,
 				varInputTitle: "t1",
 				varInputType: "text",
 				varInputValue: "t1",
@@ -152,29 +193,81 @@ QUnit.module("CommonEventHandler test", function (hooks) {
 			},
 			commonEventHandler = new CommonEventHandler(oMock.model, oMock.view, oMock.controller);
 
-		oMock.model.setTestData("config", "variableType", "number");
+		oMock.model.setTestData("config", "varMin", 0);
+		oMock.model.setTestData("config", "varMax", 20);
+		oMock.model.setTestData("config", "varStep", 1);
+		oMock.model.setTestData("config", "varType", "number");
 		oMock.model.setTestData("variables", "a", 12);
 		oMock.model.setTestData("variables", "b", "t1");
 		oMock.model.setTestData("variables", "$w", "N 49° 18.071 E 008° 42.167");
 
 		oMock.view.setTestData("varSelectValue", "a");
 		commonEventHandler.onVarSelectChange();
-		assert.deepEqual(oMock.view.testData, mResultA, "variable a selected");
-
+		assert.deepEqual(oMock.model.testData, mModelResultA, "variable a selected (model)");
+		assert.deepEqual(oMock.view.testData, mViewResultA, "variable a selected");
 
 		oMock.view.setTestData("varSelectLength", 2);
 		oMock.view.setTestData("varSelectValue", "b");
 		commonEventHandler.onVarSelectChange();
-		assert.deepEqual(oMock.view.testData, mResultB, "variable b selected");
-
-		/*
-		oMock.view.setTestData("varSelectValue", "$w");
-		commonEventHandler.onVarSelectChange();
-		assert.deepEqual(oMock.view.testData, mResultB, "variable $w selected");
-		*/
+		assert.deepEqual(oMock.model.testData, mModelResultA, "variable b selected (model no change)"); // no change
+		assert.deepEqual(oMock.view.testData, mViewResultB, "variable b selected");
 
 		commonEventHandler.detachEventHandler();
-		//assert.strictEqual(sScript, sScript, "TODO");
+	});
+
+	QUnit.test("onWaypointSelectChange", function (assert) {
+		var oMock = this.oMock, // eslint-disable-line no-invalid-this
+			//sScript = '$W0="N 49° 18.071 E 008° 42.167" a=213 b=289	$W1=["N 49° 18." a " E 008° 42." b]	#$W2=project($W0,0,50)',
+			mModelResultA = {
+				config: {
+					waypointFormat: "dmmc"
+				},
+				variables: {
+					$w: "N 49° 18.071 E 008° 42.167!test!Title 1"
+				}
+			},
+			mViewResultA = {
+				waypointInputTitle: "N 49° 18.071 E 008° 42.167!test!Title 1",
+				waypointInputValue: "N 49° 18.071 E 008° 42.167!test!Title 1",
+				waypointLabelText: "$w",
+				waypointLabelTitle: "$w",
+				waypointSelectLength: 1,
+				waypointLegendText: "Waypoints (1)",
+				waypointSelectValue: "$w"
+			},
+			commonEventHandler = new CommonEventHandler(oMock.model, oMock.view, oMock.controller);
+
+		oMock.model.setTestData("config", "waypointFormat", "dmmc");
+
+		oMock.model.setTestData("variables", "$w", "N 49° 18.071 E 008° 42.167!test!Title 1");
+		oMock.view.setTestData("waypointSelectLength", 1);
+		oMock.view.setTestData("waypointSelectValue", "$w");
+		commonEventHandler.onWaypointSelectChange(null);
+		assert.deepEqual(oMock.model.testData, mModelResultA, "waypoint $w selected (model)");
+		assert.deepEqual(oMock.view.testData, mViewResultA, "waypoint $w selected");
+
+		commonEventHandler.detachEventHandler();
+	});
+
+	QUnit.test("onXXXLegendClick", function (assert) {
+		var oMock = this.oMock, // eslint-disable-line no-invalid-this
+			mModelResultA = {
+				config: {
+					showScript: false
+				}
+			},
+			mViewResultA = {
+				scriptAreaHidden: true
+			},
+			commonEventHandler = new CommonEventHandler(oMock.model, oMock.view, oMock.controller);
+
+		oMock.model.setTestData("config", "showScript", true);
+		oMock.view.setTestData("scriptAreaHidden", false);
+		commonEventHandler.onScriptLegendClick();
+		assert.deepEqual(oMock.model.testData, mModelResultA, "onScriptLegendClick: Model");
+		assert.deepEqual(oMock.view.testData, mViewResultA, "onScriptLegendClick: View");
+
+		commonEventHandler.detachEventHandler();
 	});
 
 	QUnit.test("Load test script", function (assert) {

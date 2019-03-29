@@ -455,39 +455,39 @@ ScriptParser.prototype = {
 			},
 
 			parseNode = function (node) {
-				var i, sValue, sName, oVars, aNodeArgs;
+				var i, value, sName, oVars, aNodeArgs;
 
 				if (Utils.debug > 3) {
 					Utils.console.debug("DEBUG: evaluate: parseNode node=%o type=" + node.type + " name=" + node.name + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
 				}
 				if (node.type === "number" || node.type === "string") {
-					sValue = node.value;
+					value = node.value;
 				} else if (mOperators[node.type]) {
 					if (node.left) {
-						sValue = mOperators[node.type](parseNode(node.left), parseNode(node.right));
+						value = mOperators[node.type](parseNode(node.left), parseNode(node.right));
 					} else {
-						sValue = mOperators[node.type](parseNode(node.right));
+						value = mOperators[node.type](parseNode(node.right));
 					}
 				} else if (node.type === "identifier") {
 					oVars = aFunctionScope[aFunctionScope.length - 1];
 					sName = fnAdaptVariableName(node.value); // here we use node.value
-					sValue = (oVars && oVars.hasOwnProperty(sName)) ? oVars[sName] : variables[sName];
-					if (sValue === undefined) {
+					value = (oVars && oVars.hasOwnProperty(sName)) ? oVars[sName] : variables[sName];
+					if (value === undefined) {
 						throw new ScriptParser.ErrorObject("Variable is undefined", node.value, node.pos);
 					}
 				} else if (node.type === "assign") {
-					sValue = parseNode(node.value);
+					value = parseNode(node.value);
 					sName = fnAdaptVariableName(node.name);
 					if (variables.gcfOriginal && variables.gcfOriginal[sName] !== undefined && variables.gcfOriginal[sName] !== variables[sName]) {
-						Utils.console.log("Variable is set to hold: " + sName + "=" + variables[sName] + " (" + sValue + ")");
-						sValue = variables[sName]; // take existing value
+						Utils.console.log("Variable is set to hold: " + sName + "=" + variables[sName] + " (" + value + ")");
+						value = variables[sName]; // take existing value
 					} else {
-						variables[sName] = sValue; // set new value
+						variables[sName] = value; // set new value
 					}
-					if (isNaN(parseFloat(sValue))) {
-						sValue = '"' + sValue + '"'; // value is not a number
+					if (String(parseFloat(value)) !== String(value)) {
+						value = '"' + value + '"'; // value is not a number
 					}
-					sValue = node.name + "=" + sValue; // use original node.name here
+					value = node.name + "=" + value; // use original node.name here
 				} else if (node.type === "call") {
 					aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
 					for (i = 0; i < node.args.length; i += 1) {
@@ -498,7 +498,7 @@ ScriptParser.prototype = {
 						throw new ScriptParser.ErrorObject("Function is undefined", sName, node.pos);
 					}
 					checkArgs(sName, aNodeArgs, node.pos);
-					sValue = mFunctions[sName].apply(node, aNodeArgs);
+					value = mFunctions[sName].apply(node, aNodeArgs);
 				} else if (node.type === "function") {
 					sName = fnAdaptFunctionName(node.name);
 					mFunctions[sName] = function () { // varargs
@@ -508,18 +508,18 @@ ScriptParser.prototype = {
 							oArgs[node.args[i].value] = arguments[i];
 						}
 						aFunctionScope.push(oArgs);
-						sValue = parseNode(node.value);
+						value = parseNode(node.value);
 						aFunctionScope.pop();
-						return sValue;
+						return value;
 					};
 				} else if (node.type === "formatter") {
-					sValue = parseNode(node.left);
-					sValue = mFunctions.nformat(sValue, node.value);
+					value = parseNode(node.left);
+					value = mFunctions.nformat(value, node.value);
 				} else {
 					Utils.console.error("parseNode node=%o unknown type=" + node.type, node);
-					sValue = node;
+					value = node;
 				}
-				return sValue;
+				return value;
 			},
 
 			i,

@@ -405,7 +405,7 @@ Preprocessor.prototype = {
 	fnWaypoints: function (str) {
 		var	sExpression = "[ ]*([0-9A-Za-z()\\[\\]+\\-*/ ]+)[ ]*",
 			sLastExpression = "[ ]*([0-9A-Za-z()\\[\\]+\\-*/]+)[ ]*", // no space inside, otherwise we cannot etect wp in same line
-			rWaypoint = new RegExp("(N)" + sExpression + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#)?(E)" + sExpression + "(°)" + sExpression + "([.,])" + sLastExpression + "([#\\n ])", "g");
+			rWaypoint = new RegExp("\\b(N)" + sExpression + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#)?(E)" + sExpression + "(°)" + sExpression + "([.,])" + sLastExpression + "([#\\n ])", "g");
 
 		if (!Utils.stringEndsWith(str, "\n")) {
 			str += "\n";

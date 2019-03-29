@@ -11,7 +11,7 @@ function Controller(oModel, oView) {
 Controller.prototype = {
 	init: function (oModel, oView) {
 		var that = this,
-			sFilterId, sFilterTitle, sSort, sVariableType, sWaypointFormat, sMapType, sExample, sUrl,
+			sFilterId, sFilterTitle, sSort, sVarType, iVarMin, iVarMax, iVarStep, sWaypointFormat, sMapType, sExample, sUrl,
 			onDatabaseIndexLoaded = function () {
 				Utils.console.log(sUrl + " loaded");
 				that.fnSetDatabaseSelect();
@@ -49,9 +49,18 @@ Controller.prototype = {
 			this.view.setSelectValue("sortSelect", sSort);
 		}
 
-		sVariableType = oModel.getProperty("variableType");
-		if (sVariableType) {
-			this.view.setSelectValue("varViewSelect", sVariableType);
+		iVarMin = oModel.getProperty("varMin");
+		this.view.setInputValue("varMinInput", iVarMin);
+
+		iVarMax = oModel.getProperty("varMax");
+		this.view.setInputValue("varMaxInput", iVarMax);
+
+		iVarStep = oModel.getProperty("varStep");
+		this.view.setInputValue("varStepInput", iVarStep);
+
+		sVarType = oModel.getProperty("varType");
+		if (sVarType) {
+			this.view.setSelectValue("varTypeSelect", sVarType);
 		}
 
 		sWaypointFormat = oModel.getProperty("waypointFormat");
@@ -104,6 +113,10 @@ Controller.prototype = {
 
 	fnIsWaypoint: function (s) {
 		return s.indexOf("$") === 0; // waypoints start with "$"
+	},
+
+	fnIsNotWaypoint: function (s) {
+		return s.indexOf("$") !== 0; // variable (or something else) does not start with "$"
 	},
 
 	fnCreateNewExample: function (options) {
@@ -229,18 +242,19 @@ Controller.prototype = {
 	},
 
 	fnSetWaypointVarSelectOptions: function (sSelect, fnSel, fnTextFormat) {
-		var oVariables = this.model.getVariables(),
+		var oVariables = this.model.getAllVariables(),
 			aItems = [],
-			oItem, sValue;
+			oItem, sKey, sValue;
 
-		for (sValue in oVariables) {
-			if (oVariables.hasOwnProperty(sValue) && (sValue !== "gcfOriginal") && fnSel(sValue)) {
+		for (sKey in oVariables) {
+			if (oVariables.hasOwnProperty(sKey) && (sKey !== "gcfOriginal") && fnSel(sKey)) {
+				sValue = oVariables[sKey];
 				oItem = {
-					value: sValue,
-					title: sValue + "=" + oVariables[sValue]
+					value: sKey,
+					title: sKey + "=" + sValue
 				};
-				oItem.text = (fnTextFormat) ? fnTextFormat(sValue, oVariables[sValue]) : oItem.title;
-				if (oVariables.gcfOriginal[sValue] !== undefined && oVariables.gcfOriginal[sValue] !== oVariables[sValue]) {
+				oItem.text = (fnTextFormat) ? fnTextFormat(sKey, sValue) : oItem.title;
+				if (oVariables.gcfOriginal[sKey] !== undefined && oVariables.gcfOriginal[sKey] !== sValue) {
 					oItem.text += " [c]";
 					oItem.title += " [changed]";
 				}
@@ -251,15 +265,19 @@ Controller.prototype = {
 	},
 
 	fnSetVarSelectOptions: function () {
-		var that = this;
+		var fnVariableTextFormat = function (parameter, value) {
+			var iMaxLength = 64,
+				sValue = String(value);
 
-		this.fnSetWaypointVarSelectOptions("varSelect",
-			function (s) { return !that.fnIsWaypoint(s); }
-		);
+			sValue = (sValue.length > iMaxLength) ? sValue.substr(0, iMaxLength) + "..." : sValue;
+			return parameter + "=" + sValue;
+		};
+
+		this.fnSetWaypointVarSelectOptions("varSelect", this.fnIsNotWaypoint, fnVariableTextFormat);
 	},
 
 	fnSetWaypointSelectOptions: function () {
-		var fnTextFormat = function (parameter, value) {
+		var fnWaypointTextFormat = function (parameter, value) {
 			var sValue = String(value),
 				iIndex;
 
@@ -273,7 +291,7 @@ Controller.prototype = {
 			return parameter + "=" + sValue;
 		};
 
-		this.fnSetWaypointVarSelectOptions("waypointSelect", this.fnIsWaypoint, fnTextFormat);
+		this.fnSetWaypointVarSelectOptions("waypointSelect", this.fnIsWaypoint, fnWaypointTextFormat);
 	},
 
 	fnSetDatabaseSelect: function () {
@@ -441,7 +459,7 @@ Controller.prototype = {
 
 	fnCalculate2: function () {
 		var sInput = this.view.getAreaValue("inputArea"),
-			oVariables = this.model.getVariables(), // current variables
+			oVariables = this.model.getAllVariables(), // current variables
 			oParseOptions, oOutput, oError, iEndPos, sOutput;
 
 		oParseOptions = {
