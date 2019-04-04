@@ -118,6 +118,9 @@ QUnit.module("Preprocessor", function (hooks) {
 		oOut = oPre.processText("#comment1\ntext1 N 49° 18.123 E 008° 42.456 text2\n#comment2\n");
 		assert.strictEqual(oOut.script, "#comment1\n#text1 N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#text2\n#comment2\n", "waypoint between text, with comment");
 
+		oOut = oPre.processText("Ntext textN N 49° 18.123 E 008° 42.456 text2\n");
+		assert.strictEqual(oOut.script, "#Ntext textN N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#text2\n", "waypoint between text, ignoring character N in words");
+
 		oOut = oPre.processText("text1 N 49° 18.123 E 008° 42.456 text2 N 49° 18.789 E 008° 42.987 text3");
 		assert.strictEqual(oOut.script, "#text1 N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#text2 N 49° 18.789 E 008° 42.987\n$W2=\"N 49° 18.789 E 008° 42.987\"\n#text3\n", "two waypoints between text");
 
@@ -125,13 +128,16 @@ QUnit.module("Preprocessor", function (hooks) {
 		assert.strictEqual(oOut.script, "#text1 N 49° 18.a E 008° 42.b\n$W1=[\"N 49° 18.\" a \" E 008° 42.\" b]\n#text2\n", "waypoint with varibles");
 
 		oOut = oPre.processText("text1 N 49° 18.1a7 E 008° 42.05b text2");
-		assert.strictEqual(oOut.script, "#text1 N 49° 18.1a7 E 008° 42.05b\n$W1=[\"N 49° 18.1\" a7 \" E 008° 42.05\" b]\n#text2\n", "waypoint with number and variable"); // TODO: do not know if a7 or a "7"
+		assert.strictEqual(oOut.script, "#text1 N 49° 18.1a7 E 008° 42.05b\n$W1=[\"N 49° 18.1\" a7 \" E 008° 42.05\" b]\n#text2\n", "waypoint with number and variable"); // ambiguity: do not know if "a7" or "a" "7"
 
 		oOut = oPre.processText("text1 N 49° 18+a.a+b E 008° 42+a.a*b text2");
 		assert.strictEqual(oOut.script, "#text1 N 49° 18+a.a+b E 008° 42+a.a*b\n$W1=[\"N 49° \" 18+a \".\" a+b \" E 008° \" 42+a \".\" a*b]\n#text2\n", "waypoint with simple expression");
 
 		oOut = oPre.processText("text1 N 49° (A-1)(B).(4*A)(B)(A) E 008° (2*A)(5).(A/2)(3*A)(3*A) text2");
 		assert.strictEqual(oOut.script, "#text1 N 49° (A-1)(B).(4*A)(B)(A) E 008° (2*A)(5).(A/2)(3*A)(3*A)\n$W1=[\"N 49° \" (A-1)(B) \".\" (4*A)(B)(A) \" E 008° \" (2*A)(5) \".\" (A/2)(3*A)(3*A)]\n#text2\n", "waypoint with variables in parenthesis");
+
+		oOut = oPre.processText("text1 N 49° A(A-1) B.A(4*A)B(A) E 008° (2*A)5.(A/2)A(3*A) text2");
+		assert.strictEqual(oOut.script, "#text1 N 49° A(A-1) B.A(4*A)B(A) E 008° (2*A)5.(A/2)A(3*A)\n$W1=[\"N 49° \" (A)(A-1) B \".\" (A)(4*A)(B)(A) \" E 008° \" (2*A)5 \".\" (A/2)(A)(3*A)]\n#text2\n", "waypoint with variables like function calls");
 
 		oOut = oPre.processText("text 1 N (49) ° (A+1)(B) . (4*A)(B)(A) E (8) ° (2*A)(5) . (A/2)(3*A)(3*A) text 2");
 		assert.strictEqual(oOut.script, "#text 1 N (49) ° (A+1)(B) . (4*A)(B)(A) E (8) ° (2*A)(5) . (A/2)(3*A)(3*A)\n$W1=[\"N \" (49) \"° \" (A+1)(B) \".\" (4*A)(B)(A) \" E \" (8) \"° \" (2*A)(5) \".\" (A/2)(3*A)(3*A)]\n#text 2\n", "waypoint with variables in parenthesis, with some spaces");
@@ -141,6 +147,12 @@ QUnit.module("Preprocessor", function (hooks) {
 
 		oOut = oPre.processText("N 49° 1B.940 E 008° 30.04[A+1]");
 		assert.strictEqual(oOut.script, "#N 49° 1B.940 E 008° 30.04[A+1]\n$W1=[\"N 49° 1\" B \".940 E 008° 30.\" 04[A+1]]\n", "waypoint with expression containing brackets in parenthesis"); // TODO: 0 before 4 is ignored during execution
+
+		oOut = oPre.processText("text1 N (A:2)° (B:A).(B:A) E B:3° B:4.8:4 text2");
+		assert.strictEqual(oOut.script, "#text1 N (A:2)° (B:A).(B:A) E B:3° B:4.8:4\n$W1=[\"N \" (A/2) \"° \" (B/A) \".\" (B/A) \" E \" B/3 \"° \" B/4 \".\" 8/4]\n#text2\n", "accept also colon : as division character");
+
+		oOut = oPre.processText("text1 N 49° 18.a:b E 008° 42.b: text2");
+		assert.strictEqual(oOut.script, "#text1 N 49° 18.a:b E 008° 42.b:\n$W1=[\"N 49° 18.\" a/b \" E 008° 42.\" b]\n#text2\n", "colon after waypoint is ignored");
 	});
 
 
