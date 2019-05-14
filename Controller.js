@@ -79,6 +79,8 @@ Controller.prototype = {
 		this.view.setHidden("logsArea", !oModel.getProperty("showLogs"));
 		this.view.setHidden("consoleLogArea", !oModel.getProperty("showConsole"));
 
+		this.view.setHidden("varOptionGroup", oModel.getProperty("varType") === "text");
+
 		sMapType = oModel.getProperty("mapType");
 		if (!document.getElementById("mapCanvas-" + sMapType)) {
 			sMapType = "none";
@@ -501,112 +503,162 @@ Controller.prototype = {
 		}
 	},
 
+
+	// based on: http://blogs.sitepointstatic.com/examples/tech/xml2json/index.html, https://codepen.io/KurtWM/pen/JnLak
+	xml2json: function (node) {
+		var data = {},
+			i, cn;
+
+		function addItem(name, value) { // append value
+			if (data[name]) {
+				if (data[name].constructor !== Array) {
+					data[name] = [data[name]];
+				}
+				data[name][data[name].length] = value;
+			} else {
+				data[name] = value;
+			}
+		}
+
+		if (node.nodeType === 1) { // element
+			for (i = 0; i < node.attributes.length; i += 1) { // element attributes
+				cn = node.attributes.item(i);
+				addItem(cn.name, cn.value);
+			}
+		}
+		// child elements
+		if (node.hasChildNodes()) {
+			for (i = 0; i < node.childNodes.length; i += 1) {
+				cn = node.childNodes[i];
+				if (cn.nodeType === 1) {
+					if (cn.childNodes.length === 1 && cn.firstChild.nodeType === 3) {
+						addItem(cn.nodeName, cn.firstChild.nodeValue); // text value
+					} else {
+						addItem(cn.nodeName, this.xml2json(cn)); // sub-object
+					}
+				}
+			}
+		}
+		return data;
+	},
+
+	fnReplaceUmlauts: function (str) {
+		var umlautMap = {
+				\u00dc: "UE",
+				\u00c4: "AE",
+				\u00d6: "OE",
+				\u00fc: "ue",
+				\u00e4: "ae",
+				\u00f6: "oe",
+				\u00df: "ss"
+			},
+			sKeys, oReg;
+
+		sKeys = Object.keys(umlautMap).join("");
+		oReg = new RegExp("[" + sKeys + "]", "g");
+
+		return str.replace(oReg, function (a) {
+			return umlautMap[a];
+		});
+	},
+
+	processDescription: function (sDescription) {
+		var oProcessor, mInfo;
+
+		sDescription = sDescription.replace(/<[^>]+>/g, ""); // stripe html
+		// sDescription = he.decode(sDescription); // TODO: decodedStripedHtml, e.g. https://github.com/mathiasbynens/he
+		oProcessor = new Preprocessor({
+			scriptParser: new ScriptParser()
+		});
+		mInfo = oProcessor.processText(sDescription);
+		return mInfo;
+	},
+
+	parseWpt: function (wpt, mInfo) {
+		var sWaypointFormat = this.model.getProperty("waypointFormat"),
+			aWpt, iWp, oWpt, oGrCache, sName, sTitle, sCmt, mInfoDescr;
+
+		aWpt = (wpt.length) ? wpt : [wpt]; // array of wp or single wp
+		for (iWp = 0; iWp < aWpt.length; iWp += 1) {
+			oWpt = aWpt[iWp];
+
+			sName = oWpt.name;
+			sName = this.fnReplaceUmlauts(sName);
+			sName = sName.replace(/[^A-Za-z0-9]/g, ""); // keep only "normal" characters (needed for e.g. poi-service.de)
+
+			// First try name from groundspeak extension, then try description and finally take the wp name
+			oGrCache = oWpt["groundspeak:cache"];
+			if (oGrCache && oGrCache["groundspeak:name"]) {
+				mInfo.id = oWpt.name;
+				mInfo.title = oGrCache["groundspeak:name"];
+				sTitle = ""; // suppress wp as additional wp
+				mInfo.archived = oGrCache.archived;
+				mInfo.available = oGrCache.available;
+				mInfo.country = oGrCache["groundspeak:country"];
+				mInfo.difficulty = parseFloat(oGrCache["groundspeak:difficulty"]);
+				mInfo.owner = oGrCache["groundspeak:owner"];
+				mInfo.size = oGrCache["groundspeak:container"]; // differs
+				mInfo.state = oGrCache["groundspeak:state"];
+				mInfo.terrain = parseFloat(oGrCache["groundspeak:terrain"]);
+				mInfo.type = oGrCache["groundspeak:type"];
+				// hint...
+				if (!mInfo.script) { // first entry
+					mInfoDescr = this.processDescription(oGrCache["groundspeak:long_description"]);
+					mInfo.script = mInfoDescr.script;
+				}
+			} else if (oWpt.desc) {
+				sTitle = oWpt.desc;
+			} else {
+				sTitle = oWpt.name;
+			}
+
+			if (sTitle) { // (additional) wp
+				sTitle = sTitle.replace(/"/g, '\\"'); // escape apostrophes
+				sCmt = oWpt.cmt; // used for e.g. poi-service.de
+				if (sCmt) {
+					if (typeof sCmt !== "string") { // could be empty object
+						sCmt = "";
+					}
+					sCmt = sCmt.replace(/\n/g, " "); // replace newlines by spaces
+				}
+				mInfo.script += "$" + sName + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(sWaypointFormat) + "!!" + sTitle + '"' + ((sCmt) ? " # " + sCmt : "") + "\n";
+				if (Utils.stringStartsWith(sName, "GC") || Utils.stringStartsWith(sName, "OC")) {
+					mInfo.script += "#https://coord.info/" + oWpt.name + "\n";
+				}
+			}
+		}
+	},
+
+	parseTrk: function (oTrk, mInfo) {
+		var sWaypointFormat = this.model.getProperty("waypointFormat"),
+			aWpt, iWp, oWpt, sName;
+
+		mInfo.script += "#" + oTrk.name + "\n";
+		if (oTrk.trkseg && oTrk.trkseg.trkpt && oTrk.trkseg.trkpt.length) { // track export from e.g. komoot.de
+			aWpt = oTrk.trkseg.trkpt;
+			for (iWp = 0; iWp < aWpt.length; iWp += 1) {
+				oWpt = aWpt[iWp];
+				sName = "W" + iWp;
+				mInfo.script += "$" + sName + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(sWaypointFormat) + '" # ' + oWpt.ele + ", " + oWpt.time + "\n";
+			}
+		}
+	},
+
 	fnParseXml: function (sXml) {
 		var oParser = new window.DOMParser(),
 			oXml = oParser.parseFromString(sXml, "text/xml"),
 			mInfo = {},
-			sWaypointFormat = this.model.getProperty("waypointFormat"),
-			oJson, oGpx, aWpt, iWp, oWpt, oGrCache, sName, sTitle, sCmt, oTrk;
+			oJson, oGpx;
 
-		// based on: http://blogs.sitepointstatic.com/examples/tech/xml2json/index.html, https://codepen.io/KurtWM/pen/JnLak
-		function xml2json(node) {
-			var data = {},
-				i, cn;
-
-			function addItem(name, value) { // append value
-				if (data[name]) {
-					if (data[name].constructor !== Array) {
-						data[name] = [data[name]];
-					}
-					data[name][data[name].length] = value;
-				} else {
-					data[name] = value;
-				}
-			}
-			if (node.nodeType === 1) { // element
-				for (i = 0; i < node.attributes.length; i += 1) { // element attributes
-					cn = node.attributes.item(i);
-					addItem(cn.name, cn.value);
-				}
-			}
-			// child elements
-			if (node.hasChildNodes()) {
-				for (i = 0; i < node.childNodes.length; i += 1) {
-					cn = node.childNodes[i];
-					if (cn.nodeType === 1) {
-						if (cn.childNodes.length === 1 && cn.firstChild.nodeType === 3) {
-							addItem(cn.nodeName, cn.firstChild.nodeValue); // text value
-						} else {
-							addItem(cn.nodeName, xml2json(cn)); // sub-object
-						}
-					}
-				}
-			}
-			return data;
-		}
-
-		function fnReplaceUmlauts(str) {
-			var umlautMap = {
-					\u00dc: "UE",
-					\u00c4: "AE",
-					\u00d6: "OE",
-					\u00fc: "ue",
-					\u00e4: "ae",
-					\u00f6: "oe",
-					\u00df: "ss"
-				},
-				sKeys, oReg;
-
-			sKeys = Object.keys(umlautMap).join("");
-			oReg = new RegExp("[" + sKeys + "]", "g");
-
-			return str.replace(oReg, function (a) {
-				return umlautMap[a];
-			});
-		}
-
-		oJson = xml2json(oXml);
+		oJson = this.xml2json(oXml);
 		oGpx = oJson.gpx;
 		if (oGpx) {
 			mInfo.script = "";
 			if (oGpx.wpt) { // waypoint export from e.g. geocaching.com, CacheWolf
-				aWpt = (oGpx.wpt.length) ? oGpx.wpt : [oGpx.wpt]; // array of wp or single wp
-				for (iWp = 0; iWp < aWpt.length; iWp += 1) {
-					oWpt = aWpt[iWp];
-
-					sName = oWpt.name;
-					sName = fnReplaceUmlauts(sName);
-					sName = sName.replace(/[^A-Za-z0-9]/g, ""); // keep only "normal" characters (needed for e.g. poi-service.de)
-
-					// First try name from groundspeak extension, then try description and finally take the wp name
-					oGrCache = oWpt["groundspeak:cache"];
-					if (oGrCache && oGrCache["groundspeak:name"]) {
-						sTitle = oGrCache["groundspeak:name"];
-					} else if (oWpt.desc) {
-						sTitle = oWpt.desc;
-					} else {
-						sTitle = oWpt.name;
-					}
-					sTitle = sTitle.replace(/"/g, '\\"'); // escape apostrophes
-
-					sCmt = oWpt.cmt; // used for e.g. poi-service.de
-					mInfo.script += "$" + sName + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(sWaypointFormat) + "!!" + sTitle + '"' + ((sCmt) ? " # " + sCmt : "") + "\n";
-					if (Utils.stringStartsWith(sName, "GC")) {
-						mInfo.script += "#https://coord.info/" + oWpt.name + "\n";
-					}
-				}
+				this.parseWpt(oGpx.wpt, mInfo);
 			}
-			oTrk = oGpx.trk;
-			if (oTrk) {
-				mInfo.script += "#" + oTrk.name + "\n";
-				if (oTrk.trkseg && oTrk.trkseg.trkpt && oTrk.trkseg.trkpt.length) { // track export from e.g. komoot.de
-					aWpt = oTrk.trkseg.trkpt;
-					for (iWp = 0; iWp < aWpt.length; iWp += 1) {
-						oWpt = aWpt[iWp];
-						sName = "W" + iWp;
-						mInfo.script += "$" + sName + '="' + new LatLng(oWpt.lat, oWpt.lon).toFormattedString(sWaypointFormat) + '" # ' + oWpt.ele + ", " + oWpt.time + "\n";
-					}
-				}
+			if (oGpx.trk) {
+				this.parseTrk(oGpx.trk, mInfo);
 			}
 		}
 		return mInfo;

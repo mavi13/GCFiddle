@@ -9,7 +9,8 @@ GCFiddle Links:
 [Source code](https://github.com/mavi13/GCFiddle/),
 [HTML Readme](https://github.com/mavi13/GCFiddle/#readme),
 [GCNEW1](https://mavi13.github.io/GCFiddle/gcfiddle.html),
-[GCJVT3](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCJVT3)
+[GCJVT3](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCJVT3),
+[GC45QJ1](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GC45QJ1)
 
 [![Build Status](https://travis-ci.com/mavi13/GCFiddle.svg?branch=master)](https://travis-ci.com/mavi13/GCFiddle)
 
@@ -349,6 +350,9 @@ QUnit test [testsuite.qunit.html](https://mavi13.github.io/GCFiddle/test/testsui
 - Description of [GCJVT3](https://coord.info/GCJVT3) with friendly permission by rosszwerg.
    (Archived cache, solution provided.)
 
+- Description of [GC54QJ1](https://coord.info/GC45QJ1) with friendly permission by kruemelhuepfer.
+   (Archived cache, solution provided.)
+
 - Formulas for [GC5TER7](https://coord.info/GC5TER7) with friendly permission by Onetrain.
    (Try to find the solution!)
 
@@ -364,4 +368,4 @@ QUnit test [testsuite.qunit.html](https://mavi13.github.io/GCFiddle/test/testsui
 
 - [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/)
 
-### **mavi13, 03/2019**
+### **mavi13, 05/2019**

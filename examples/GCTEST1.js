@@ -292,6 +292,8 @@ assert(getconst("PI"), 3.141592653589793)
 assert(getconst("E"), 2.718281828459045)
 assert(parse("getconst('e1')"), "Unknown constant: 'e1' (pos 0-2)")
 #
+assert(d2r(atan(1))*4, getconst("PI"))
+#
 #assert (assertEqual)
 #
 #assert(10^309, "Infinity")

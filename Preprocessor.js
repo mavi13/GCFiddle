@@ -334,11 +334,11 @@ Preprocessor.prototype = {
 		sArg = String(sArg).replace(/['"]/, ""); // remove apostropthes, quotes //TTT global?
 		sArg = sArg.trim();
 		if (bLastPart) { // last argument?
-			if (Utils.stringEndsWith(sArg, ")") && sArg.indexOf("(") < 0) { // sometimes a waypoint is surrounded by parenthesis, remove closing parenthesis
-				sArg = sArg.substring(0, sArg.length - 1);
-			}
 			if (Utils.stringEndsWith(sArg, ":")) { // waypoint followed by colon (so not as a division character)?
 				sArg = sArg.substring(0, sArg.length - 1); // remove colon
+			}
+			if (Utils.stringEndsWith(sArg, ")") && sArg.indexOf("(") < 0) { // sometimes a waypoint is surrounded by parenthesis, remove closing parenthesis
+				sArg = sArg.substring(0, sArg.length - 1);
 			}
 		}
 		if ((/^\d+$/).test(sArg)) { // number?

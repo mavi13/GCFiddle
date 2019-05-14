@@ -40,6 +40,22 @@ Model.prototype = {
 	getVariable: function (sVar) {
 		return this.variables[sVar];
 	},
+	changeVariable: function (sPar, sValue) {
+		var oVariables = this.variables,
+			nValueAsNumber;
+
+		nValueAsNumber = parseFloat(sValue);
+		sValue = (String(nValueAsNumber) === sValue) ? nValueAsNumber : sValue; // use number, if it is a number
+
+		if (sValue !== oVariables[sPar]) { // change needed?
+			if (oVariables.gcfOriginal[sPar] === undefined) {
+				oVariables.gcfOriginal[sPar] = oVariables[sPar]; // save original value, if not done
+			}
+			oVariables[sPar] = sValue;
+			return true; // changed
+		}
+		return false;
+	},
 	getAllVariables: function () {
 		return this.variables;
 	},

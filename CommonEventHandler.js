@@ -140,23 +140,35 @@ CommonEventHandler.prototype = {
 	},
 
 	onVarInputChange: function () {
-		var sValue = this.view.getInputValue("varInput"),
-			sPar = this.view.getLabelText("varLabel"),
-			oVariables = this.model.getAllVariables(),
-			nValueAsNumber;
+		var sPar = this.view.getLabelText("varLabel"),
+			sValue = this.view.getInputValue("varInput"),
+			oVariables;
 
 		if (sPar) {
-			nValueAsNumber = parseFloat(sValue);
-			if (oVariables.gcfOriginal[sPar] === undefined) {
-				oVariables.gcfOriginal[sPar] = oVariables[sPar];
+			if (this.model.changeVariable(sPar, sValue)) { // changed?
+				/*
+				nValueAsNumber = parseFloat(sValue);
+				if (oVariables.gcfOriginal[sPar] === undefined) {
+					oVariables.gcfOriginal[sPar] = oVariables[sPar];
+				}
+				oVariables[sPar] = (String(nValueAsNumber) === sValue) ? nValueAsNumber : sValue;
+				*/
+				this.controller.fnCalculate2();
+				this.controller.fnSetVarSelectOptions();
+				this.onVarSelectChange(); // title change?
+				this.controller.fnSetWaypointSelectOptions();
+				oVariables = this.model.getAllVariables();
+				this.controller.fnSetMarkers(oVariables);
+				this.onWaypointSelectChange(null); // do not center on wp
 			}
-			oVariables[sPar] = (String(nValueAsNumber) === sValue) ? nValueAsNumber : sValue;
-			this.controller.fnCalculate2();
-			this.controller.fnSetVarSelectOptions();
-			this.onVarSelectChange(); // title change?
-			this.controller.fnSetWaypointSelectOptions();
-			this.controller.fnSetMarkers(oVariables);
-			this.onWaypointSelectChange(null); // do not center on wp
+		}
+	},
+
+	onVarInputInput: function () {
+		// we need varInputInput to see immediate changes of e.g. range select
+		// events varInputChange and varInputInput may be triggered both
+		if (this.model.getProperty("varType") !== "text") { // not for text input
+			this.onVarInputChange();
 		}
 	},
 
@@ -178,6 +190,7 @@ CommonEventHandler.prototype = {
 		var sVarType = this.view.getSelectValue("varTypeSelect");
 
 		this.model.setProperty("varType", sVarType);
+		this.view.setHidden("varOptionGroup", sVarType === "text");
 		this.view.setSelectTitleFromSelectedOption("varTypeSelect");
 		this.onVarSelectChange();
 	},
@@ -207,26 +220,32 @@ CommonEventHandler.prototype = {
 		this.model.setProperty("varType", sType);
 		this.view.setSelectValue("varTypeSelect", sType);
 
+		this.view.setHidden("varOptionGroup", this.model.getProperty("varType") === "text");
+
 		this.onVarSelectChange();
 	},
 
 	onWaypointInputChange: function () {
-		var sValue = this.view.getInputValue("waypointInput"),
-			sPar = this.view.getLabelText("waypointLabel"),
-			oVariables = this.model.getAllVariables(),
-			nValueAsNumber;
+		var sPar = this.view.getLabelText("waypointLabel"),
+			sValue = this.view.getInputValue("waypointInput"),
+			oVariables;
 
 		if (sPar) {
-			nValueAsNumber = parseFloat(sValue);
-			if (oVariables.gcfOriginal[sPar] === undefined) {
-				oVariables.gcfOriginal[sPar] = oVariables[sPar];
+			if (this.model.changeVariable(sPar, sValue)) { // changed?
+				/*
+				nValueAsNumber = parseFloat(sValue);
+				if (oVariables.gcfOriginal[sPar] === undefined) {
+					oVariables.gcfOriginal[sPar] = oVariables[sPar];
+				}
+				oVariables[sPar] = (String(nValueAsNumber) === sValue) ? nValueAsNumber : sValue;
+				*/
+				this.controller.fnCalculate2();
+				this.controller.fnSetVarSelectOptions();
+				this.controller.fnSetWaypointSelectOptions();
+				oVariables = this.model.getAllVariables();
+				this.controller.fnSetMarkers(oVariables);
+				this.onWaypointSelectChange(null); // do not center on wp
 			}
-			oVariables[sPar] = (String(nValueAsNumber) === sValue) ? nValueAsNumber : sValue;
-			this.controller.fnCalculate2();
-			this.controller.fnSetVarSelectOptions();
-			this.controller.fnSetWaypointSelectOptions();
-			this.controller.fnSetMarkers(oVariables);
-			this.onWaypointSelectChange(null); // do not center on wp
 		}
 	},
 

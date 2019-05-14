@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="gcfiddle.css" />
-<title id="title">GCFiddle v0.58</title>
+<title id="title">GCFiddle v0.59</title>
 </head>
 
 <body>
@@ -106,17 +106,19 @@
 						<option value="range" title="Range">Range</option>
 					</select>
 				</div>
-				<div class="field clearLeft">
-					<label id="varMinLabel" for="varMinInput" class="label" title="Minimum value">Min</label>
-					<input id="varMinInput" value="" type="number">
-				</div>
-				<div class="field clearLeft">
-					<label id="varMaxLabel" for="varMaxInput" class="label" title="Maximum value">Max</label>
-					<input id="varMaxInput" value="" type="number">
-				</div>
-				<div class="field clearLeft">
-					<label id="varStepLabel" for="varStepInput" class="label" title="Value Increment">Step</label>
-					<input id="varStepInput" value="" type="number">
+				<div id="varOptionGroup" class="clearLeft">
+					<div class="field clearLeft">
+						<label id="varMinLabel" for="varMinInput" class="label" title="Minimum value">Min</label>
+						<input id="varMinInput" value="" type="number">
+					</div>
+					<div class="field clearLeft">
+						<label id="varMaxLabel" for="varMaxInput" class="label" title="Maximum value">Max</label>
+						<input id="varMaxInput" value="" type="number">
+					</div>
+					<div class="field clearLeft">
+						<label id="varStepLabel" for="varStepInput" class="label" title="Value Increment">Step</label>
+						<input id="varStepInput" value="" type="number">
+					</div>
 				</div>
 				<div class="clearLeft"> <!-- clearleft needed for IE -->
 					<button id="varResetButton" title="Reset variable range">Reset</button>

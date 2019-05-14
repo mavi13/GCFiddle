@@ -332,13 +332,23 @@ View.prototype = {
 		return confirm(message);
 	},
 	attachEventHandler: function (fnEventHandler) {
+		var varInput;
+
 		document.addEventListener("click", fnEventHandler, false);
 		document.addEventListener("change", fnEventHandler, false);
+
+		varInput = document.getElementById("varInput");
+		varInput.addEventListener("input", fnEventHandler, false); // for range slider
 		return this;
 	},
 	detachEventHandler: function (fnEventHandler) {
+		var varInput;
+
 		document.removeEventListener("click", fnEventHandler);
 		document.removeEventListener("change", fnEventHandler);
+
+		varInput = document.getElementById("varInput");
+		varInput.removeEventListener("input", fnEventHandler); // for range slider
 		return this;
 	}
 };
