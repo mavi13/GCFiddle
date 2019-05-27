@@ -104,55 +104,79 @@ QUnit.module("Preprocessor", function (hooks) {
 			oOut;
 
 		oOut = oPre.processText("N 49° 18.123 E 008° 42.456");
-		assert.strictEqual(oOut.script, "#N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n", "one waypoint");
+		assert.strictEqual(oOut.script, "#N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#\n", "one waypoint");
 
 		oOut = oPre.processText("N49°18.123E008°42.456");
-		assert.strictEqual(oOut.script, "#N49°18.123E008°42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n", "one waypoint, less spaces");
+		assert.strictEqual(oOut.script, "#N49°18.123E008°42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#\n", "one waypoint, less spaces");
 
 		oOut = oPre.processText("N 49° 18.123 E 008° 42.456 N 49° 18.789 E 008° 42.987");
-		assert.strictEqual(oOut.script, "#N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#N 49° 18.789 E 008° 42.987\n$W2=\"N 49° 18.789 E 008° 42.987\"\n", "two waypoints in one line");
+		assert.strictEqual(oOut.script, "#N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#\n#N 49° 18.789 E 008° 42.987\n$W2=\"N 49° 18.789 E 008° 42.987\"\n#\n", "two waypoints in one line");
 
 		oOut = oPre.processText("N 49° 18.123\nE 008° 42.456");
-		assert.strictEqual(oOut.script, "#N 49° 18.123\n#E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n", "multi line waypoint");
+		assert.strictEqual(oOut.script, "#N 49° 18.123\n#E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#\n", "multi line waypoint");
 
 		oOut = oPre.processText("#comment1\ntext1 N 49° 18.123 E 008° 42.456 text2\n#comment2\n");
-		assert.strictEqual(oOut.script, "#comment1\n#text1 N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#text2\n#comment2\n", "waypoint between text, with comment");
+		assert.strictEqual(oOut.script, "#comment1\n#text1 N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#\n#text2\n#comment2\n", "waypoint between text, with comment");
 
 		oOut = oPre.processText("Ntext textN N 49° 18.123 E 008° 42.456 text2\n");
-		assert.strictEqual(oOut.script, "#Ntext textN N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#text2\n", "waypoint between text, ignoring character N in words");
+		assert.strictEqual(oOut.script, "#Ntext textN N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#\n#text2\n", "waypoint between text, ignoring character N in words");
 
 		oOut = oPre.processText("text1 N 49° 18.123 E 008° 42.456 text2 N 49° 18.789 E 008° 42.987 text3");
-		assert.strictEqual(oOut.script, "#text1 N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#text2 N 49° 18.789 E 008° 42.987\n$W2=\"N 49° 18.789 E 008° 42.987\"\n#text3\n", "two waypoints between text");
+		assert.strictEqual(oOut.script, "#text1 N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#\n#text2 N 49° 18.789 E 008° 42.987\n$W2=\"N 49° 18.789 E 008° 42.987\"\n#\n#text3\n", "two waypoints between text");
 
-		oOut = oPre.processText("text1 N 49° 18.a E 008° 42.b text2");
-		assert.strictEqual(oOut.script, "#text1 N 49° 18.a E 008° 42.b\n$W1=[\"N 49° 18.\" a \" E 008° 42.\" b]\n#text2\n", "waypoint with varibles");
+		oOut = oPre.processText("text1 N 49° 18.a E 008° 42.bbb text2");
+		assert.strictEqual(oOut.script, "#text1 N 49° 18.a E 008° 42.bbb\n$W1=[\"N 49° 18.\" a \" E 008° 42.\" bbb]\n#\n#text2\n", "waypoint with varibles");
 
-		oOut = oPre.processText("text1 N 49° 18.1a7 E 008° 42.05b text2");
-		assert.strictEqual(oOut.script, "#text1 N 49° 18.1a7 E 008° 42.05b\n$W1=[\"N 49° 18.1\" a7 \" E 008° 42.05\" b]\n#text2\n", "waypoint with number and variable"); // ambiguity: do not know if "a7" or "a" "7"
+		oOut = oPre.processText("text1 N 49° 18.1a7 E 008° 42.a5b text2");
+		assert.strictEqual(oOut.script, "#text1 N 49° 18.1a7 E 008° 42.a5b\n$W1=[\"N 49° 18.1\" a \"7 E 008° 42.\" a \"5\" b]\n#\n#text2\n", "waypoint with numbers and variables"); // we interpret "a7" as variable "a" and number "7"
 
 		oOut = oPre.processText("text1 N 49° 18+a.a+b E 008° 42+a.a*b text2");
-		assert.strictEqual(oOut.script, "#text1 N 49° 18+a.a+b E 008° 42+a.a*b\n$W1=[\"N 49° \" 18+a \".\" a+b \" E 008° \" 42+a \".\" a*b]\n#text2\n", "waypoint with simple expression");
+		assert.strictEqual(oOut.script, "#text1 N 49° 18+a.a+b E 008° 42+a.a*b\n$W1=[\"N 49° \" 18+a \".\" a+b \" E 008° \" 42+a \".\" a*b]\n#\n#text2\n", "waypoint with simple expression");
 
 		oOut = oPre.processText("text1 N 49° (A-1)(B).(4*A)(B)(A) E 008° (2*A)(5).(A/2)(3*A)(3*A) text2");
-		assert.strictEqual(oOut.script, "#text1 N 49° (A-1)(B).(4*A)(B)(A) E 008° (2*A)(5).(A/2)(3*A)(3*A)\n$W1=[\"N 49° \" (A-1)(B) \".\" (4*A)(B)(A) \" E 008° \" (2*A)(5) \".\" (A/2)(3*A)(3*A)]\n#text2\n", "waypoint with variables in parenthesis");
+		assert.strictEqual(oOut.script, "#text1 N 49° (A-1)(B).(4*A)(B)(A) E 008° (2*A)(5).(A/2)(3*A)(3*A)\n$W1=[\"N 49° \" (A-1)(B) \".\" (4*A)(B)(A) \" E 008° \" (2*A)(5) \".\" (A/2)(3*A)(3*A)]\n#\n#text2\n", "waypoint with variables in parenthesis");
 
 		oOut = oPre.processText("text1 N 49° A(A-1) B.A(4*A)B(A) E 008° (2*A)5.(A/2)A(3*A) text2");
-		assert.strictEqual(oOut.script, "#text1 N 49° A(A-1) B.A(4*A)B(A) E 008° (2*A)5.(A/2)A(3*A)\n$W1=[\"N 49° \" (A)(A-1) B \".\" (A)(4*A)(B)(A) \" E 008° \" (2*A)5 \".\" (A/2)(A)(3*A)]\n#text2\n", "waypoint with variables like function calls");
+		assert.strictEqual(oOut.script, "#text1 N 49° A(A-1) B.A(4*A)B(A) E 008° (2*A)5.(A/2)A(3*A)\n$W1=[\"N 49° \" (A)(A-1) B \".\" (A)(4*A)(B)(A) \" E 008° \" (2*A)5 \".\" (A/2)(A)(3*A)]\n#\n#text2\n", "waypoint with variables like function calls");
 
 		oOut = oPre.processText("text 1 N (49) ° (A+1)(B) . (4*A)(B)(A) E (8) ° (2*A)(5) . (A/2)(3*A)(3*A) text 2");
-		assert.strictEqual(oOut.script, "#text 1 N (49) ° (A+1)(B) . (4*A)(B)(A) E (8) ° (2*A)(5) . (A/2)(3*A)(3*A)\n$W1=[\"N \" (49) \"° \" (A+1)(B) \".\" (4*A)(B)(A) \" E \" (8) \"° \" (2*A)(5) \".\" (A/2)(3*A)(3*A)]\n#text 2\n", "waypoint with variables in parenthesis, with some spaces");
+		assert.strictEqual(oOut.script, "#text 1 N (49) ° (A+1)(B) . (4*A)(B)(A) E (8) ° (2*A)(5) . (A/2)(3*A)(3*A)\n$W1=[\"N \" (49) \"° \" (A+1)(B) \".\" (4*A)(B)(A) \" E \" (8) \"° \" (2*A)(5) \".\" (A/2)(3*A)(3*A)]\n#\n#text 2\n", "waypoint with variables in parenthesis, with some spaces");
+
+		oOut = oPre.processText("text 1 N 49 ° A+1 B . 4*A B A E 8 ° 2*A 5 . A/2 3*A A + 5 text 2 A+3 2-A text 3");
+		assert.strictEqual(oOut.script, "#text 1 N 49 ° A+1 B . 4*A B A E 8 ° 2*A 5 . A/2 3*A A + 5\n$W1=[\"N 49° \" A+1 B \".\" 4*A B A \" E 8° \" 2*A 5 \".\" A/2 3*A A + 5]\n#\n#text 2 A+3 2-A text 3\n", "waypoint with expressions and spaces");
 
 		oOut = oPre.processText("(N 49° 18.123 E 008° 42.456)");
-		assert.strictEqual(oOut.script, "#(N 49° 18.123 E 008° 42.456)\n$W1=\"N 49° 18.123 E 008° 42.456\"\n", "waypoint in parenthesis");
+		assert.strictEqual(oOut.script, "#(N 49° 18.123 E 008° 42.456)\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#\n", "waypoint in parenthesis");
 
 		oOut = oPre.processText("N 49° 1B.940 E 008° 30.04[A+1]");
-		assert.strictEqual(oOut.script, "#N 49° 1B.940 E 008° 30.04[A+1]\n$W1=[\"N 49° 1\" B \".940 E 008° 30.\" 04[A+1]]\n", "waypoint with expression containing brackets in parenthesis"); // TODO: 0 before 4 is ignored during execution
+		assert.strictEqual(oOut.script, "#N 49° 1B.940 E 008° 30.04[A+1]\n$W1=[\"N 49° 1\" B \".940 E 008° 30.\" 04[A+1]]\n#\n", "waypoint with expression containing brackets in parenthesis"); // TODO: 0 before 4 is ignored during execution
 
 		oOut = oPre.processText("text1 N (A:2)° (B:A).(B:A) E B:3° B:4.8:4 text2");
-		assert.strictEqual(oOut.script, "#text1 N (A:2)° (B:A).(B:A) E B:3° B:4.8:4\n$W1=[\"N \" (A/2) \"° \" (B/A) \".\" (B/A) \" E \" B/3 \"° \" B/4 \".\" 8/4]\n#text2\n", "accept also colon : as division character");
+		assert.strictEqual(oOut.script, "#text1 N (A:2)° (B:A).(B:A) E B:3° B:4.8:4\n$W1=[\"N \" (A/2) \"° \" (B/A) \".\" (B/A) \" E \" B/3 \"° \" B/4 \".\" 8/4]\n#\n#text2\n", "accept also colon : as division character");
 
 		oOut = oPre.processText("text1 N 49° 18.a:b E 008° 42.b: text2");
-		assert.strictEqual(oOut.script, "#text1 N 49° 18.a:b E 008° 42.b:\n$W1=[\"N 49° 18.\" a/b \" E 008° 42.\" b]\n#text2\n", "colon after waypoint is ignored");
+		assert.strictEqual(oOut.script, "#text1 N 49° 18.a:b E 008° 42.b:\n$W1=[\"N 49° 18.\" a/b \" E 008° 42.\" b]\n#\n#text2\n", "colon after waypoint is ignored (sometimes used as division");
+
+		oOut = oPre.processText("text1 N 49° 18.a:b E 008° 42.b;");
+		assert.strictEqual(oOut.script, "#text1 N 49° 18.a:b E 008° 42.b\n$W1=[\"N 49° 18.\" a/b \" E 008° 42.\" b]\n#;\n", "special character like simicolon is not part of waypoint");
+
+		oOut = oPre.processText("N 49° 18.123 E 008° 42.456 - text");
+		assert.strictEqual(oOut.script, "#N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#\n#- text\n", "minus used as hyphen is not part of waypoint");
+
+		oOut = oPre.processText("N 49° 18,123 E 008° 42,456");
+		assert.strictEqual(oOut.script, "#N 49° 18,123 E 008° 42,456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#\n", "accept also comma as dot");
+
+		oOut = oPre.processText("text1 N 49° 18+a.a+b*0.3 E 008° 42+a.5.7+a*b text2");
+		assert.strictEqual(oOut.script, "#text1 N 49° 18+a.a+b*0.3 E 008° 42+a.5.7+a*b\n$W1=[\"N 49° \" 18+a \".\" a+b*0.3 \" E 008° \" 42+a \".\" 5.7+a*b]\n#\n#text2\n", "waypoint with fractional numbers");
+
+		oOut = oPre.processText("N 49° 18.EEE E 008° 42.FFF");
+		assert.strictEqual(oOut.script, "#N 49° 18.EEE E 008° 42.FFF\n$W1=[\"N 49° 18.\" EEE \" E 008° 42.\" FFF]\n#\n", "variable EEE");
+
+		oOut = oPre.processText("N 49° 18.123' / E 008° 42.456");
+		assert.strictEqual(oOut.script, "#N 49° 18.123' / E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#\n", "waypoint containing ' / E");
+
+		oOut = oPre.processText("N 49° 18.123 E 008° 42.456 - end. Now");
+		assert.strictEqual(oOut.script, "#N 49° 18.123 E 008° 42.456\n$W1=\"N 49° 18.123 E 008° 42.456\"\n#\n#- end. Now\n", "edge case: decimal point");
 	});
 
 
@@ -275,7 +299,7 @@ QUnit.module("Preprocessor", function (hooks) {
 		var oPre = this.pre, // eslint-disable-line no-invalid-this
 			sText1 = "Additional Waypoints\nPrefix Lookup Name Coordinate\nVisible	Parking Area P0	P0 Park1 (Parking Area) N 49° 18.071 E 008° 42.191\nNote:\n",
 			mResult1 = {
-				script: "#Additional Waypoints\n#Prefix Lookup Name Coordinate\n#Visible Parking Area P0 P0 Park1 (Parking Area) N 49° 18.071 E 008° 42.191\n$W1=\"N 49° 18.071 E 008° 42.191\"\n#Note:\n"
+				script: "#Additional Waypoints\n#Prefix Lookup Name Coordinate\n#Visible Parking Area P0 P0 Park1 (Parking Area) N 49° 18.071 E 008° 42.191\n$W1=\"N 49° 18.071 E 008° 42.191\"\n#\n#Note:\n"
 			},
 			oOut;
 

@@ -965,6 +965,14 @@ CommonEventHandler.prototype = {
 
 	onHelpButtonClick: function () {
 		window.open("https://github.com/mavi13/GCFiddle/#readme");
+	},
+
+	onBrowserButtonClick: function () {
+		var sExample = this.model.getProperty("example"),
+			sUrl;
+
+		sUrl = "https://coord.info/" + sExample; //TTT check if example starts with "GC"
+		window.open(sUrl);
 	}
 };
 

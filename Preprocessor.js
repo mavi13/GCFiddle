@@ -329,9 +329,10 @@ Preprocessor.prototype = {
 
 	fnWaypointPart: function (sArg, bLastPart) {
 		var oVariables = this.mVariables,
-			aRes;
+			sLast, aRes, i;
 
-		sArg = String(sArg).replace(/['"]/, ""); // remove apostropthes, quotes //TTT global?
+		sArg = String(sArg);
+		sArg = sArg.replace(/['"]/, ""); // remove apostrophes, quotes //TTT global?
 		sArg = sArg.trim();
 		if (bLastPart) { // last argument?
 			if (Utils.stringEndsWith(sArg, ":")) { // waypoint followed by colon (so not as a division character)?
@@ -347,10 +348,31 @@ Preprocessor.prototype = {
 			sArg = '" ' + sArg + ' "';
 		} else { // e.g. expression
 			sArg = sArg.replace(/:/g, "/"); // replace colons by divisions
-			sArg = sArg.replace(/\b([A-Za-z])(\s*\()/g, "($1)$2"); // avoid function call syntax by surrounding single character variables by parenthesis, e.g. "A (" => "(A) ("
+			sArg = sArg.replace(/,/g, "."); // replace comma by dot
+
+			do {
+				sLast = sArg;
+				sArg = sArg.replace(/\b([A-Za-z])(\s*\()/g, "($1)$2"); // avoid function call syntax by surrounding single character variables by parenthesis, e.g. "A (" => "(A) ("
+			} while (sArg !== sLast); // do it multiple times since a new parenthesis may lead to a new function call, e.g. "a a (a+1)" (hopefully no endless loop)
+
+			/*
 			aRes = sArg.match(/^(\d+)(\w+)$/); // number and variable?
 			if (aRes) {
 				sArg = aRes[1] + '" ' + aRes[2] + ' "';
+			} else {
+				sArg = '" ' + sArg + ' "';
+			}
+			*/
+			if ((/^\w+$/).test(sArg)) { // numbers and letters only?
+				aRes = sArg.match(/[a-zA-Z]+|\d+/g); // separate
+				for (i = 0; i < aRes.length; i += 1) {
+					if ((/\d+/).test(aRes[i])) { // number
+						// nothing
+					} else {
+						aRes[i] = '" ' + aRes[i] + ' "';
+					}
+				}
+				sArg = aRes.join("");
 			} else {
 				sArg = '" ' + sArg + ' "';
 			}
@@ -358,13 +380,19 @@ Preprocessor.prototype = {
 		return sArg;
 	},
 
+	/*
+	fnWaypointEndingMatcher: function (sMatch) { // varargs
+		return sMatch;
+	},
+	*/
+
 	fnWaypointMatcher: function (sMatch) { // varargs
 		var aArguments = [],
 			aParts = [],
-			iLength, sParts, i, sLastPart, iRemain, sRemain,
+			iLength, sParts, i, sLastPart, iRemain, sRemain, //bStop,
 			fnGetArgsUntil = function (str) {
 				var sArgs = "",
-					oRegExp = new RegExp("^" + str + "$");
+					oRegExp = new RegExp("^(?:" + str + ")$");
 
 				while (i < iLength && !oRegExp.test(aArguments[i])) {
 					sArgs += aArguments[i];
@@ -379,63 +407,148 @@ Preprocessor.prototype = {
 
 		iLength = aArguments.length;
 		i = 0;
-		aParts.push(aArguments[i] + " "); // N
+		aParts.push(aArguments[i] + " "); // N or S
 		i += 1;
 		aParts.push(this.fnWaypointPart(fnGetArgsUntil("°")));
 		aParts.push(aArguments[i] + " "); // "°"
 		i += 1;
 		aParts.push(this.fnWaypointPart(fnGetArgsUntil("[.,]")));
-		aParts.push(aArguments[i]); // . or ,
+		aParts.push("."); // "." or ",", use always "."
 		i += 1;
-		aParts.push(this.fnWaypointPart(fnGetArgsUntil("E")));
-		aParts.push(" " + aArguments[i] + " "); // E
+		aParts.push(this.fnWaypointPart(fnGetArgsUntil("E|W")));
+		aParts.push(" " + aArguments[i] + " "); // E or W
 		i += 1;
 		aParts.push(this.fnWaypointPart(fnGetArgsUntil("°")));
 		aParts.push(aArguments[i] + " "); // "°"
 		i += 1;
 		aParts.push(this.fnWaypointPart(fnGetArgsUntil("[.,]")));
-		aParts.push(aArguments[i]); // . or ,
+		aParts.push("."); // "." or ",": use always "."
 		i += 1;
 
 		// how to detect end of wp?
 		// currently last part of wp must not contain spaces!
 		sLastPart = fnGetArgsUntil(""); // until end?
-		iRemain = sLastPart.indexOf(" ");
-		if (iRemain >= 0) {
-			sRemain = "\n#" + sLastPart.substring(iRemain + 1);
-			sLastPart = sLastPart.substring(0, iRemain);
-		} else {
-			sRemain = Utils.stringEndsWith(sLastPart, "\n") ? "\n" : "";
-		}
-		aParts.push(this.fnWaypointPart(sLastPart, true)); // last part
 
-		sParts = aParts.join("");
-		if (sParts.indexOf('"') >= 0) {
-			sParts = '["' + sParts + '"]';
-		} else {
-			sParts = '"' + sParts + '"';
+		iRemain = sLastPart.indexOf(" ");
+
+		if (this.iWpIndex >= 0) {
+			//sRemain = Utils.stringEndsWith(sLastPart, "\n") ? "\n" : "";
+			sRemain = "\n#";
+			/*
+			if (iRemain >= 0) {
+				sRemain = "\n#" + sLastPart.substring(iRemain + 1);
+				sLastPart = sLastPart.substring(0, iRemain);
+			} else {
+				sRemain = Utils.stringEndsWith(sLastPart, "\n") ? "\n" : "";
+			}
+			*/
+			aParts.push(this.fnWaypointPart(sLastPart, true)); // last part
+
+			sParts = aParts.join("");
+			if (sParts.indexOf('"') >= 0) {
+				sParts = '["' + sParts + '"]';
+			} else {
+				sParts = '"' + sParts + '"';
+			}
+			sParts = sParts.replace(/\s*""\s*/, ""); // remove double quotes
+			sMatch = sMatch.trim();
+			if (!Utils.stringEndsWith(sMatch, "\n")) {
+				sMatch += "\n";
+			}
+			sMatch += "$W" + this.iWpIndex + "=" + sParts + sRemain;
+			this.iWpIndex += 1;
+		} else if (iRemain >= 0) { // just check if we can detect ending: only if we have space(s) inside
+			sParts = sLastPart;
+			sRemain = "";
+			/*
+			iRemain = sParts.search(/[a-zA-Z]{2}/); // word with at least two letters should end replacement (starting at space position)
+			if (iRemain >= 0) {
+				sRemain = sParts.substring(iRemain);
+				sParts = sParts.substring(0, iRemain);
+			}
+			*/
+
+			aParts = sParts.split(/[ ]+/);
+			//bStop = false;
+			for (i = 1; i < aParts.length; i += 1) { // we start with index 1, thus accepting the first part
+				if ((/^(?:N\b|[a-zA-Z]{2})/).test(aParts[i])) {
+					if (aParts[i - 1] === "-") { // minus is sometimes used as hyphen
+						i -= 1; // stop before hyphen
+					}
+					aParts[i] = "\n#" + aParts[i]; // stop here next time
+					//bStop = true;
+					break;
+				/*
+				} else if (aParts[i] === "-") { // minus is sometimes used as hyphen
+					if ((i === aParts.length - 1) || (i < aParts.length - 1) && (aParts[i + 1] === "")) {
+						aParts[i] = "\n#" + aParts[i]; // stop here next time
+						bStop = true;
+						break;
+					}
+				*/
+				}
+			}
+			sParts = aParts.join(" ");
+
+			/*
+			aParts = sParts.split(/[ ]+/);
+			sParts = "";
+			for (i = 1; i < aParts.length; i += 1) {
+				if ((/^[+/\-*)\]([]/).test(aParts[i])) {
+					// nothing, so remove space
+				} else if ((/^[0-9]+/).test(aParts[i]) || (/^[a-zA-M\b]/).test(aParts[i])) { // operators or, single letter? (N could be next waypoint)
+					aParts[i] = "(" + aParts[i] + ")";
+				} else {
+					aParts[i] = " " + aParts[i];
+				}
+			}
+			sParts = aParts.join("");
+			*/
+
+			//sParts = sParts.replace(/[ ]+([+\-*/()[\]0-9])/g, "$1"); // heuristic: remove spaces before operands, parenthesis, brackets and numbers
+			//sParts = sParts.replace(/[ ]+([a-zA-M]\b)/g, "($1)"); // heuristic: remove spaces before single letters (except N, which could be a next waypoint) and put in parenthesis
+
+			/*
+			if (sRemain !== "") {
+				sParts += ((bStop) ? "" : "\n#") + sRemain;
+			}
+			*/
+			if (sParts !== sLastPart) {
+				sMatch = sMatch.substring(0, sMatch.length - sLastPart.length) + sParts;
+			}
 		}
-		sParts = sParts.replace(/\s*""\s*/, ""); // remove double quotes
-		sMatch = sMatch.trim();
-		if (!Utils.stringEndsWith(sMatch, "\n")) {
-			sMatch += "\n";
-		}
-		sMatch += "$W" + this.iWpIndex + "=" + sParts + sRemain;
-		this.iWpIndex += 1;
 		return sMatch;
 	},
 	fnWaypoints: function (str) {
 		var	sAlphaNumeric = "0-9A-Za-z",
+			sFraction = "\\b\\d+[.,]\\d{1,2}\\b", //"[.,]", //"\\d+[.,]\\d+", //TTT
 			sOperands = "+\\-*/:", // accept also colon ":" as division character "/"
 			sParenthesis = "()\\[\\]",
 			sSpace = " ",
 			sFirstExpressionPart = "([\\d ][" + sAlphaNumeric + sOperands + sParenthesis + sSpace + "]+)[ ]*", // starting with space or number, may contain spaces
-			sExpression = "[ ]*([" + sAlphaNumeric + sOperands + sParenthesis + sSpace + "]+)[ ]*", // may contain spaces
-			sLastExpression = "[ ]*([" + sAlphaNumeric + sOperands + sParenthesis + "]+)[ ]*", // no space inside, otherwise we cannot detect wp in same line
-			rWaypoint = new RegExp("\\b(N)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#)?(E)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sLastExpression + "([#\\n ])", "g");
+			sExpression = "[ ]*((?:" + sFraction + "|[" + sAlphaNumeric + sOperands + sParenthesis + sSpace + "])+)[ ]*", // may contain spaces; sFraction depends on orser!
+			//sLastExpression = "[ ]*([" + sAlphaNumeric + sOperands + sParenthesis + "]+)[ ]*", // no space inside, otherwise we cannot detect wp in same line
+			//sNumeric = "0-9",
+			//sAlpha = "A-Za-z",
+			//sLastExpression = "[ ]*([" + sNumeric + sOperands + sParenthesis + sSpace + "]+[" + sAlpha + "]?)[ ]*", // no possible next waypoint //TTT??
+
+			//rWaypointWithSpaces = new RegExp("\\b(N)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#)?(E)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "([#\\n ])", "g"),
+			//rWaypoint = new RegExp("\\b(N)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#)?(E)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sLastExpression + "([#\\n ])", "g");
+			sWayPoint = "\\b(N|S)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#|' / )?(E|W)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression,
+			rWaypoint = new RegExp(sWayPoint, "g"),
+			sLast;
+			//rWaypoint = new RegExp("\\b(N)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#)?(E)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sLastExpression, "g");
 
 		if (!Utils.stringEndsWith(str, "\n")) {
 			str += "\n";
+		}
+
+		this.iWpIndex = -1; // special handling to detect endings first
+		sLast = str;
+		str = str.replace(rWaypoint, this.fnWaypointMatcher.bind(this)); // try to detect endings
+		// (Could we also use rWaypoint.exec and modify rWaypoint.lastIndex?)
+		if (str !== sLast) { // some change?
+			str = str.replace(rWaypoint, this.fnWaypointMatcher.bind(this)); // if something changed, try to detect more endings
 		}
 
 		this.iWpIndex = 1;
@@ -633,9 +746,17 @@ Preprocessor.prototype = {
 	},
 	processText: function (sInput) {
 		var oRe1 = new RegExp("\\n(Skip to Content|Geocache Description:|Additional Hints|Decryption Key|Additional Waypoints|View Larger Map|\\d+ Logged Visits|Current Time:)"),
+			mLanguageMap = {
+				"Zum Inhalt wechseln": "Skip to Content",
+				"Geocache-Beschreibung ": "Geocache Description:", // "Geocache-Beschreibung \\(Listing\\):"
+				"Zusätzliche Hinweise": "Additional Hints",
+				"ROT-13-Dechiffrierungsschlüssel:": "Decryption Key",
+				"\\d+ geloggte Aktionen": "\\d+ Logged Visits", //TTT
+				"Aktuelle Zeit": "Current Time:"
+			},
 			sOutput = "",
 			mInfo = this.mInfo,
-			aParts,	sSectionName, iIndex;
+			aParts,	sSectionName, iIndex, i;
 
 		// replace all kinds of spaces by an ordinary space but keep ""\n"
 		sInput = sInput.replace(/[^\S\n]/g, " "); // use double negative to keep \n
@@ -650,7 +771,19 @@ Preprocessor.prototype = {
 		aParts = ("\n" + sInput).split(oRe1);
 		aParts[0] = aParts[0].substr(1); // remove leading "\n"
 		if (aParts.length === 1) {
-			aParts.unshift("_ONEPART");
+			// try German pattern
+			oRe1 = new RegExp("\\n(" + Object.keys(mLanguageMap).join("|") + ")");
+			aParts = ("\n" + sInput).split(oRe1);
+			aParts[0] = aParts[0].substr(1); // remove leading "\n"
+			if (aParts.length === 1) { // still one part?
+				aParts.unshift("_ONEPART");
+			} else {
+				for (i = 0; i < aParts.length; i += 1) {
+					if (mLanguageMap[aParts[i]]) {
+						aParts[i] = mLanguageMap[aParts[i]];
+					}
+				}
+			}
 		}
 		iIndex = 0;
 		sSectionName = "";

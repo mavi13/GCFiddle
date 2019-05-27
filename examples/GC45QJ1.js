@@ -75,7 +75,7 @@ G=ct(210)*5
 $W7="N 49° 23.122 E 008° 46.790"
 #Wieviele Gnome siehst du? Addiere zu der Anzahl 1 hinzu.
 #H = ____
-H=5+1 #5+1 (oder 6+1 oder 10+1?)
+H=4+1 #4+1 (5+1, 6+1 oder 10+1)
 ##https://www.focus.de/regional/baden-wuerttemberg/rhein-neckar-kreis-kreisforstamt-sinnenpfad-im-neckargemuender-wald-mit-neuem_id_8669160.html
 ##Es sind nicht alles Gnome.
 #
