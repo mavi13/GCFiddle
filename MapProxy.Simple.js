@@ -384,11 +384,6 @@ MapProxy.Simple.FeatureGroup.prototype = {
 			}
 		}
 	},
-	/*
-	getMap: function () {
-		return this.map;
-	},
-	*/
 	setMap: function (map) {
 		var aMarkers = this.aMarkers,
 			i, oMarker;
@@ -446,11 +441,6 @@ MapProxy.Simple.Marker.prototype = {
 		}
 		return this;
 	},
-	/*
-	getMap: function () {
-		return this.map;
-	},
-	*/
 	setMap: function (map) {
 		if (this.map) {
 			this.map.removeMarker(this); // remove old marker
@@ -483,20 +473,10 @@ MapProxy.Simple.Polyline.prototype = {
 			if (this.path) {
 				this.map.removePath(this.path); // remove old path
 			}
-			/* TTT
-			if (!path.style) {
-				path.pathStyle = this.options; // modify path, memorize path style!
-			}
-			*/
 			this.map.addPath(path); // add new path
 		}
 		this.path = path;
 	},
-	/*
-	getMap: function () {
-		return this.map;
-	},
-	*/
 	setMap: function (map) {
 		if (this.map && this.path) {
 			this.map.removePath(this.path); // remove old path

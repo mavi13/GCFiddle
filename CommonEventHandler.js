@@ -36,7 +36,7 @@ CommonEventHandler.prototype = {
 				sType = event.type; // click or change
 				sHandler = "on" + Utils.stringCapitalize(sId) + Utils.stringCapitalize(sType);
 				if (Utils.debug) {
-					Utils.console.debug("DEBUG: fnCommonEventHandler: sHandler=" + sHandler);
+					Utils.console.debug("fnCommonEventHandler: sHandler=" + sHandler);
 				}
 				if (sHandler in this) {
 					this[sHandler](event);
@@ -45,7 +45,7 @@ CommonEventHandler.prototype = {
 				}
 			}
 		} else if (Utils.debug) {
-			Utils.console.debug("DEBUG: Event handler for " + event.type + " unknown target " + oTarget);
+			Utils.console.debug("Event handler for " + event.type + " unknown target " + oTarget);
 		}
 	},
 
@@ -78,7 +78,7 @@ CommonEventHandler.prototype = {
 		if (sType !== "text") {
 			if (!(/^-?[\d]+$/).test(sValue)) { // currently only digits and minus (without dot .) are numbers
 				if (Utils.debug) {
-					Utils.console.debug("DEBUG: onVarSelectChange: Using type=text for non-numerical variable " + sValue);
+					Utils.console.debug("onVarSelectChange: Using type=text for non-numerical variable " + sValue);
 				}
 				sType = "text";
 			}
@@ -146,13 +146,6 @@ CommonEventHandler.prototype = {
 
 		if (sPar) {
 			if (this.model.changeVariable(sPar, sValue)) { // changed?
-				/*
-				nValueAsNumber = parseFloat(sValue);
-				if (oVariables.gcfOriginal[sPar] === undefined) {
-					oVariables.gcfOriginal[sPar] = oVariables[sPar];
-				}
-				oVariables[sPar] = (String(nValueAsNumber) === sValue) ? nValueAsNumber : sValue;
-				*/
 				this.controller.fnCalculate2();
 				this.controller.fnSetVarSelectOptions();
 				this.onVarSelectChange(); // title change?
@@ -232,13 +225,6 @@ CommonEventHandler.prototype = {
 
 		if (sPar) {
 			if (this.model.changeVariable(sPar, sValue)) { // changed?
-				/*
-				nValueAsNumber = parseFloat(sValue);
-				if (oVariables.gcfOriginal[sPar] === undefined) {
-					oVariables.gcfOriginal[sPar] = oVariables[sPar];
-				}
-				oVariables[sPar] = (String(nValueAsNumber) === sValue) ? nValueAsNumber : sValue;
-				*/
 				this.controller.fnCalculate2();
 				this.controller.fnSetVarSelectOptions();
 				this.controller.fnSetWaypointSelectOptions();
@@ -455,7 +441,7 @@ CommonEventHandler.prototype = {
 		}
 		this.model.setProperty("filterCategory", sFilterCategory);
 		if (Utils.debug) {
-			Utils.console.debug("DEBUG: onFilterCategorySelectChange: filterCategory: " + sFilterCategory);
+			Utils.console.debug("onFilterCategorySelectChange: filterCategory: " + sFilterCategory);
 		}
 		iAllCategories = aAllCategories.length;
 		sPar = "Category (" + aSelectedCategories.length + "/" + iAllCategories + ")";
@@ -644,7 +630,7 @@ CommonEventHandler.prototype = {
 		var oSelection = this.view.getAreaSelection("inputArea"); // also in event.target
 
 		if (Utils.debug) {
-			Utils.console.debug("DEBUG: onInputAreaClick: selectionStart=" + oSelection.selectionStart + " selectionEnd=" + oSelection.selectionEnd);
+			Utils.console.debug("onInputAreaClick: selectionStart=" + oSelection.selectionStart + " selectionEnd=" + oSelection.selectionEnd);
 		}
 		// nothing to do
 	},
@@ -658,7 +644,7 @@ CommonEventHandler.prototype = {
 		iSelStart = oSelection.selectionStart;
 
 		if (Utils.debug) {
-			Utils.console.debug("DEBUG: onOutputAreaClick: selectionStart=" + oSelection.selectionStart + " selectionEnd=" + oSelection.selectionEnd);
+			Utils.console.debug("onOutputAreaClick: selectionStart=" + oSelection.selectionStart + " selectionEnd=" + oSelection.selectionEnd);
 		}
 		if (sOutput) {
 			iLineEnd = sOutput.indexOf("\n", iSelStart);
@@ -674,7 +660,7 @@ CommonEventHandler.prototype = {
 				sPar = sOutput.substring(0, iEqual);
 			}
 			if (Utils.debug) {
-				Utils.console.debug("DEBUG: onOutputAreaClick: line='" + sOutput + "' var=" + sPar);
+				Utils.console.debug("onOutputAreaClick: line='" + sOutput + "' var=" + sPar);
 			}
 			if (sPar && this.model.getVariable(sPar) !== undefined) {
 				if (this.controller.fnIsWaypoint(sPar)) {
@@ -958,9 +944,10 @@ CommonEventHandler.prototype = {
 	onConsoleButtonClick: function () {
 		var bShow = !this.view.toogleHidden("consoleLogBox").getHidden("consoleLogBox");
 
-		if (bShow) {
-			this.view.redirectConsole(); // if not done yet
+		if (bShow !== this.model.getProperty("showConsole")) {
+			this.onConsoleLogLegendClick();
 		}
+		Utils.console.changeLog(this.model.getProperty("showConsole") ? this.view.getArea("consoleLogArea") : null);
 	},
 
 	onHelpButtonClick: function () {
@@ -971,7 +958,12 @@ CommonEventHandler.prototype = {
 		var sExample = this.model.getProperty("example"),
 			sUrl;
 
-		sUrl = "https://coord.info/" + sExample; //TTT check if example starts with "GC"
+		if (Utils.stringStartsWith(sExample, "OC")) {
+			sUrl = "https://opencaching.de/";
+		} else { // assuming GC
+			sUrl = "https://coord.info/";
+		}
+		sUrl += sExample;
 		window.open(sUrl);
 	}
 };

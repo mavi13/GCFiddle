@@ -29,7 +29,7 @@ Geocache Description:
 
 Test Variables:
 variable equals number a=1
-variable equals number a=5 text
+variable equals number a=2 text
 variable equals number with spaces  b  =  15 more  text
 multiple variables in one line c=a+b d=a*b more text
 expression x = a + b + c + d + 26325 more text
@@ -41,7 +41,7 @@ multi-line N 49° 18.071
 E 008° 42.179
 more in one line N 49° 18.071 E 008° 42.183 N 49° 18.071 E 008° 42.187
 with varibles N 49° 18.a E 008° 42.b
-with simple expression N 49° 18+a.a+b E 008° 42+a.a*b
+with simple expression N 49° 16+a.a+b E 008° 40+a.a*b
 
 Additional Hints (Decrypt)
 [Guvf vf cynva grkg.]

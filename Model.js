@@ -156,7 +156,7 @@ Model.prototype = {
 					&& (sFilterTitle === "" || sTitle.toLowerCase().indexOf(sFilterTitle) >= 0)) { // filter
 					aItems.push(oExample);
 				} else if (Utils.debug > 1) {
-					Utils.console.debug("DEBUG: getFilteredExamples: item " + sKey + " filtered");
+					Utils.console.debug("getFilteredExamples: item " + sKey + " filtered");
 				}
 			}
 		}

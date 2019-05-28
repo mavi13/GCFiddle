@@ -213,7 +213,7 @@ ScriptParser.prototype = {
 					t = token();
 
 				if (Utils.debug > 3) {
-					Utils.console.debug("DEBUG: parse: expression rbp=" + rbp + " type=" + t.type + " t=%o", t);
+					Utils.console.debug("parse: expression rbp=" + rbp + " type=" + t.type + " t=%o", t);
 				}
 				advance();
 				if (!t.nud) {
@@ -458,7 +458,7 @@ ScriptParser.prototype = {
 				var i, value, sName, oVars, aNodeArgs;
 
 				if (Utils.debug > 3) {
-					Utils.console.debug("DEBUG: evaluate: parseNode node=%o type=" + node.type + " name=" + node.name + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+					Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " name=" + node.name + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
 				}
 				if (node.type === "number" || node.type === "string") {
 					value = node.value;
@@ -527,7 +527,7 @@ ScriptParser.prototype = {
 
 		for (i = 0; i < parseTree.length; i += 1) {
 			if (Utils.debug > 2) {
-				Utils.console.debug("DEBUG: evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
+				Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
 			}
 			sNode = parseNode(parseTree[i]);
 			if ((sNode !== undefined) && (sNode !== "")) {

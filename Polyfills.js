@@ -4,28 +4,8 @@
 
 "use strict";
 
-if (!window.console) {
-	window.console = {
-		sText: "",
-		log: function (s) {
-			window.console.sText += s + "\n";
-		},
-		debug: function (s) {
-			window.console.log(s);
-		},
-		info: function (s) {
-			window.console.log(s);
-		},
-		warn: function (s) {
-			window.console.log(s);
-		},
-		error: function (s) {
-			window.console.log(s);
-		}
-	};
-}
 
-if (!window.console.debug) { // IE8
+if (window.console && !window.console.debug) { // IE8
 	window.console.debug = window.console.log;
 }
 
@@ -53,33 +33,11 @@ if (!document.getElementsByClassName) {
 }
 
 
-/*
 if (!Function.prototype.bind) { // for old IE8
-	// https://gist.github.com/dsingleton/1312328#file-function-bind-js (or: https://gist.github.com/Daniel-Hug/5682738)
-	Function.prototype.bind = function (b) { // eslint-disable-line no-extend-native
-		var a = Array.prototype.slice,
-			f = a.call(arguments, 1),
-			e = this,
-			MyClass = function () { },
-			d = function () {
-				return e.apply(this instanceof MyClass ? this : b || window, f.concat(a.call(arguments)));
-			};
-
-		if (typeof this !== "function") {
-			throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
-		}
-		MyClass.prototype = this.prototype;
-		d.prototype = new MyClass();
-		return d;
-	};
-}
-*/
-
-if (!Function.prototype.bind) {
 	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
 	// Does not work with `new funcA.bind(thisArg, args)`
 	(function () {
-		var ArrayPrototypeSlice = Array.prototype.slice;
+		var ArrayPrototypeSlice = Array.prototype.slice; // since IE6
 
 		Function.prototype.bind = function (/* otherThis */) { // eslint-disable-line no-extend-native
 			var that = this,
@@ -88,8 +46,7 @@ if (!Function.prototype.bind) {
 				argLen = args.length;
 
 			if (typeof that !== "function") {
-				// closest thing possible to the ECMAScript 5
-				// internal IsCallable function
+				// closest thing possible to the ECMAScript 5 internal IsCallable function
 				throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
 			}
 			return function () {

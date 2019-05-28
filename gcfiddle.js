@@ -96,24 +96,19 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 		fnDoStart: function () {
 			var that = this,
 				oStartConfig = this.config,
-				oInitialConfig,	oModel, iDebug;
+				oInitialConfig,	iDebug;
 
-			if (Utils.debug) { // not yet active
-				Utils.console.debug("DEBUG: fnDoStart: gcFiddle started");
-			}
 			Utils.objectAssign(oStartConfig, gcFiddleExternalConfig || {}); // merge external config from gcconfig.js
 			oInitialConfig = Utils.objectAssign({}, oStartConfig); // save config
 			this.fnParseUri(oStartConfig); // modify config with URL parameters
 			this.model = new Model(oStartConfig, oInitialConfig);
 			this.view = new View({});
-			oModel = this.model;
-			if (oModel.getProperty("showConsole")) {
-				this.view.redirectConsole();
-			}
-			iDebug = Number(oModel.getProperty("debug"));
+
+			Utils.console.changeLog(this.model.getProperty("showConsole") ? this.view.getArea("consoleLogArea") : null);
+			iDebug = Number(this.model.getProperty("debug"));
 			Utils.debug = iDebug;
 
-			that.controller = new Controller(that.model, that.view);
+			that.controller = new Controller(this.model, this.view);
 		},
 
 		fnOnLoad: function () {
@@ -121,6 +116,7 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 				sUrl = "Polyfills.js",
 				bDebugForcePolyFill = false; // switch in debugger for testing
 
+			Utils.console.log("gcFiddle started at " + Utils.dateFormat(new Date()));
 			Utils.initLocalStorage();
 
 			if (bDebugForcePolyFill) {

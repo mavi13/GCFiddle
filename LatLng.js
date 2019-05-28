@@ -17,18 +17,6 @@ function LatLng(lat, lng) {
 	this.init(lat, lng);
 }
 
-/*
-LatLng.formatList = [
-	"",
-	"dmm",
-	"dms",
-	"dd",
-	"dmmc",
-	"dmsc",
-	"ddc"
-];
-*/
-
 LatLng.prototype = {
 	init: function (lat, lng) {
 		this.setLatLng(lat, lng);
@@ -156,16 +144,6 @@ LatLng.prototype = {
 		}
 
 		// initial/final bearings between points
-		/*
-		thetaa = Math.acos((Math.sin(phi2) - Math.sin(phi1) * Math.cos(delta12)) / (Math.sin(delta12) * Math.cos(phi1)));
-		if (isNaN(thetaa)) { // protect against rounding
-			thetaa = 0;
-		}
-		thetab = Math.acos((Math.sin(phi1) - Math.sin(phi2) * Math.cos(delta12)) / (Math.sin(delta12) * Math.cos(phi2)));
-		if (isNaN(thetab)) { // need this?
-			thetab = 0;
-		}
-		*/
 		cosThetaa = (Math.sin(phi2) - Math.sin(phi1) * Math.cos(delta12)) / (Math.sin(delta12) * Math.cos(phi1));
 		cosThetab = (Math.sin(phi1) - Math.sin(phi2) * Math.cos(delta12)) / (Math.sin(delta12) * Math.cos(phi2));
 		thetaa = Math.acos(Math.min(Math.max(cosThetaa, -1), 1)); // protect against rounding errors

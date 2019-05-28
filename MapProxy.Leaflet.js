@@ -38,15 +38,6 @@ MapProxy.Leaflet.Map.prototype = {
 				maxZoom: 18
 			}).addTo(that.map);
 
-			/*
-			L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
-				attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>"',
-				maxZoom: 18,
-				id: "mapbox.streets",
-				accessToken: that.options.leafletMapboxKey
-			}).addTo(this.map);
-			*/
-
 			that.featureGroup = new MapProxy.Leaflet.FeatureGroup({
 				onGetInfoWindowContent: options.onGetInfoWindowContent
 			});
@@ -133,7 +124,7 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 				if (oOldMarker && oOldMarker.listens("dragstart")) {
 					oOldMarker.off(mMarkerDragListener);
 					if (Utils.debug) {
-						Utils.console.debug("DEBUG: drag events removed from old marker id " + iOldPopupSourceId);
+						Utils.console.debug("drag events removed from old marker id " + iOldPopupSourceId);
 					}
 				}
 			}
@@ -143,7 +134,7 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 				if (!oMarker.listens("dragstart")) {
 					oMarker.on(mMarkerDragListener);
 					if (Utils.debug) {
-						Utils.console.debug("DEBUG: drag events set to marker id " + that.iPopupSourceId);
+						Utils.console.debug("drag events set to marker id " + that.iPopupSourceId);
 					}
 				}
 
@@ -151,7 +142,7 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 			} else if (oMarker.listens("dragstart")) { // not really needed to check
 				oMarker.off(mMarkerDragListener);
 				if (Utils.debug) {
-					Utils.console.debug("DEBUG: drag events removed from marker id " + that.iPopupSourceId);
+					Utils.console.debug("drag events removed from marker id " + that.iPopupSourceId);
 				}
 			}
 		});

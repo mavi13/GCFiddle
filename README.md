@@ -274,15 +274,34 @@ During preprocessing the following steps are done:
       =>`#some text a=12 more text`\
       `a=12`
 - Extract waypoints
-  - Waypoints (especially with formulas) must have some characteristics to be detected:\
-  `N<expr>°<expr>.<expr>E<expr>°<expr>.<exprWithoutSpace>`
-    - `<expr>` is an expression which may contain spaces, `<exprWithoutSpace>` not.
-    - Expressions are not checked for validity.
+  - Waypoints (especially with formulas) have to fulfill some characteristics to be recognized:\
+  `N<expr>°<expr>.<expr>E<expr>°<expr>.<lastExpr>`
+    - `<expr>` is an expression of variables, numbers, operators and parenthesis, which may contain spaces. If `<lastExpr>` contains spaces, some heuristics is used to detect the end of the waypoint. This is not always correct. You can always remove spaces to add following parts to `<lastExpr>` or insert a word of at least two characters or a symbol like semicolon `;` to end a waypoint.
+    - Degree symbols `°` and dots `.` are mandatory (instead of dots, also comma `,` can be used)
+    - Instead of `N` and `E`, also waypoints with `S` and `W` are detected
+    - Expressions, and in general waypoints are not checked for validity
+    - In case of ambiguity, variables are assumed to consist of letters only, e.g. `a7` => `a 7`
+    - A colon `:` is converted into a division character `/`
+    - Fractions are detected for numbers only. To minimize conflicts with minutes `.` seconds,
+      they may have at most 2 decimal digits
   - Examples:
-    - `N 49° 16.130 E 008° 40.453`
-    - `N 49° (A-1)(B).(4*A)(B)(A) E 008° (2*A)(5).(A/2)(3*A)(3*A)`\
-      => `$W1=["N 49° " (A-1)(B) "." (4*A)(B)(A) " E 008° " (2*A)(5) "." (A/2)(3*A)(3*A)]`
-    - (For more examples, see Preprocessor.qunit.js)
+    - Standard format (Degrees Minutes Seconds):\
+      `N 49° 16.130 E 008° 40.453` =>\
+      `$W1="N 49° 16.130 E 008° 40.453"`
+    - More or less space:\
+      `N  49 °  18.123 E   008 ° 42.456`, or:\
+      `N49°18.123E008°42.456`
+    - Multiple waypoints in one line between text:\
+      `text1 N 49° 18.123 E 008° 42.456 text2 N 49° 18.789 E 008° 42.987 text3` =>\
+      `$W1="N 49° 18.123 E 008° 42.456"` ...\
+      `$W2="N 49° 18.789 E 008° 42.987"`
+    - Using numbers and variables:\
+      `N 49° 18.1a7 E 008° 42.a5b` =>\
+      `$W1=["N 49° 18.1" a "7 E 008° 42." a "5" b]`
+    - Using variables and expressions:\
+      `N 49° (A-1)(B).(4*A)(B)(A) E 008° (2*A)(5).(A/2)(3*A)(3*A)` =>\
+      `$W1=["N 49° " (A-1)(B) "." (4*A)(B)(A) " E 008° " (2*A)(5) "." (A/2)(3*A)(3*A)]`
+    - (For more examples, see [Preprocessor.qunit.js](https://mavi13.github.io/GCFiddle/test/Preprocessor.qunit.js), "find waypoints".)
   - If necessary, modify the input before using preprocessing.
 - Extract cache information from the sections and put it JSON encoded in a comment line marked with `#GC_INFO:`
 
@@ -341,6 +360,10 @@ QUnit test [testsuite.qunit.html](https://mavi13.github.io/GCFiddle/test/testsui
 - [LatLng.qunit.html](https://mavi13.github.io/GCFiddle/test/LatLng.qunit.html)
 - [Preprocessor.qunit.html](https://mavi13.github.io/GCFiddle/test/Preprocessor.qunit.html)
 - [ScriptParser.qunit.html](https://mavi13.github.io/GCFiddle/test/ScriptParser.qunit.html)
+- ...
+
+## Possible Future Enhancements
+
 - ...
 
 ## Acknowledgements

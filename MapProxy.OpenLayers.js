@@ -345,14 +345,7 @@ MapProxy.OpenLayers.Marker.prototype = {
 
 		this.marker = new OpenLayers.Feature.Vector(
 			new OpenLayers.Geometry.Point(oTransformedPosition.lon, oTransformedPosition.lat),
-			oMarkerOptions //TTT attributes
-			/*
-			{ // attributes
-				position: oMarkerOptions.oPosition, //TTT
-				title: this.options.title,
-				label: this.options.label
-			}
-			*/
+			oMarkerOptions
 		);
 		this.map = options.map;
 		if (this.map) {
@@ -396,11 +389,6 @@ MapProxy.OpenLayers.Marker.prototype = {
 		}
 		return this;
 	},
-	/*
-	getLabel: function () {
-		return this.marker.attributes.label;
-	},
-	*/
 	setLabel: function (label) {
 		if (this.options.label !== label) {
 			this.options.label = label;

@@ -5,22 +5,48 @@
 
 var Utils = {
 	debug: 0,
-	consoleText: "",
-	console: (typeof console !== "undefined") ? console : { // we must load Utils first to dynamically load Polyfill, but we maybe need a console on old browsers or if the console is closed
-		log: function (s) {
-			Utils.consoleText += s + "\n";
+	console: { // we must load Utils first to dynamically load Polyfill, but we maybe need a console on old browsers or if the console is closed in IE, Edge
+		consoleLog: {
+			value: ""
 		},
-		debug: function (s) {
-			Utils.consoleText += s + "\n";
+		console: (typeof console !== "undefined") ? console : null,
+		rawLog: function (fnMethod, sLevel, aArgs) {
+			if (sLevel) {
+				aArgs.unshift(sLevel);
+			}
+			if (fnMethod) {
+				if (fnMethod.apply) {
+					fnMethod.apply(console, aArgs);
+				} else { // old IE8 does not support apply on e.g. console.log
+					Function.prototype.apply.call(fnMethod, console, aArgs);
+				}
+			}
+			if (this.consoleLog) {
+				this.consoleLog.value += aArgs.join(" ") + ((sLevel !== null) ? "\n" : "");
+			}
 		},
-		info: function (s) {
-			Utils.consoleText += s + "\n";
+		log: function () {
+			this.rawLog(this.console && this.console.log, "", Array.prototype.slice.call(arguments));
 		},
-		warn: function (s) {
-			Utils.consoleText += s + "\n";
+		debug: function () {
+			this.rawLog(this.console && this.console.debug, "DEBUG:", Array.prototype.slice.call(arguments));
 		},
-		error: function (s) {
-			Utils.consoleText += s + "\n";
+		info: function () {
+			this.rawLog(this.console && this.console.info, "INFO:", Array.prototype.slice.call(arguments));
+		},
+		warn: function () {
+			this.rawLog(this.console && this.console.warn, "WARN:", Array.prototype.slice.call(arguments));
+		},
+		error: function () {
+			this.rawLog(this.console && this.console.error, "ERROR:", Array.prototype.slice.call(arguments));
+		},
+		changeLog: function (oLog) {
+			var oldLog = this.consoleLog;
+
+			this.consoleLog = oLog;
+			if (oldLog && oldLog.value && oLog) { // some log entires collected?
+				oLog.value += oldLog.value; // take collected log entries
+			}
 		}
 	},
 	loadScript: function (sUrl, fnSuccess, fnError) {
@@ -32,7 +58,7 @@ var Utils = {
 				var node = event.currentTarget || event.srcElement;
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("DEBUG: onScriptLoad: " + node.src);
+					Utils.console.debug("onScriptLoad: " + node.src);
 				}
 				node.removeEventListener("load", onScriptLoad, false);
 				node.removeEventListener("error", that.onScriptError, false);
@@ -45,7 +71,7 @@ var Utils = {
 				var node = event.currentTarget || event.srcElement;
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("DEBUG: onScriptError: " + node.src);
+					Utils.console.debug("onScriptError: " + node.src);
 				}
 				node.removeEventListener("load", onScriptLoad, false);
 				node.removeEventListener("error", onScriptError, false);
@@ -67,7 +93,7 @@ var Utils = {
 				}
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("DEBUG: onScriptReadyStateChange: " + node.src);
+					Utils.console.debug("onScriptReadyStateChange: " + node.src);
 				}
 				// check also: https://stackoverflow.com/questions/1929742/can-script-readystate-be-trusted-to-detect-the-end-of-dynamic-script-loading
 				if (node.readyState !== "loaded" && node.readyState !== "complete") {
@@ -132,6 +158,10 @@ var Utils = {
 	},
 	strZeroFormat: function (s, iLen) {
 		return Utils.strNumFormat(s, iLen, "0");
+	},
+	dateFormat: function (d) {
+		return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "
+			+ ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + d.getMilliseconds();
 	},
 	toRadians: function (deg) {
 		return deg * Math.PI / 180;

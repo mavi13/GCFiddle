@@ -66,7 +66,7 @@ View.prototype = {
 				}
 				if (option.text !== oItem.text) {
 					if (Utils.debug > 1) {
-						Utils.console.debug("DEBUG: setSelectOptions: " + sId + ": text changed for index " + i + ": " + oItem.text);
+						Utils.console.debug("setSelectOptions: " + sId + ": text changed for index " + i + ": " + oItem.text);
 					}
 					option.text = oItem.text;
 					option.title = oItem.title;
@@ -133,6 +133,11 @@ View.prototype = {
 		return select.length;
 	},
 
+	getArea: function (sId) { // normally this should not be used
+		var area = document.getElementById(sId);
+
+		return area;
+	},
 	getAreaValue: function (sId) {
 		var area = document.getElementById(sId);
 
@@ -286,46 +291,7 @@ View.prototype = {
 		return this;
 	},
 
-	bWindowConsoleRedirected: false,
 
-	// https://stackoverflow.com/questions/6604192/showing-console-errors-and-alerts-in-a-div-inside-the-page
-	redirectConsole: function () {
-		var aVerbs = [
-				"log",
-				"debug",
-				"info",
-				"warn",
-				"error"
-			],
-			consoleLogArea = document.getElementById("consoleLogArea"),
-			sVerb, i,
-			fnConsoleGenerator = function (fnMethod, sVerb2, oLog) {
-				return function () { // varargs
-					var aArgs;
-
-					if (fnMethod) {
-						if (fnMethod.apply) {
-							fnMethod.apply(console, arguments);
-						} else { // we do our best without apply
-							aArgs = [];
-							for (i = 0; i < arguments.length; i += 1) {
-								aArgs.push(arguments[i]);
-							}
-							fnMethod(aArgs.join(" ")); // combine arguments for IE8
-						}
-					}
-					oLog.value += sVerb2 + ": " + Array.prototype.slice.call(arguments).join(" ") + "\n";
-				};
-			};
-
-		if (!this.bWindowConsoleRedirected) {
-			for (i = 0; i < aVerbs.length; i += 1) {
-				sVerb = aVerbs[i];
-				window.console[sVerb] = fnConsoleGenerator(window.console[sVerb], sVerb, consoleLogArea);
-			}
-			this.bWindowConsoleRedirected = true;
-		}
-	},
 	showConfirmPopup: function (message) {
 		var confirm = window.confirm;
 
@@ -338,7 +304,9 @@ View.prototype = {
 		document.addEventListener("change", fnEventHandler, false);
 
 		varInput = document.getElementById("varInput");
-		varInput.addEventListener("input", fnEventHandler, false); // for range slider
+		if (varInput.addEventListener) { // not for IE8
+			varInput.addEventListener("input", fnEventHandler, false); // for range slider
+		}
 		return this;
 	},
 	detachEventHandler: function (fnEventHandler) {

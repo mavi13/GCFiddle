@@ -355,14 +355,6 @@ Preprocessor.prototype = {
 				sArg = sArg.replace(/\b([A-Za-z])(\s*\()/g, "($1)$2"); // avoid function call syntax by surrounding single character variables by parenthesis, e.g. "A (" => "(A) ("
 			} while (sArg !== sLast); // do it multiple times since a new parenthesis may lead to a new function call, e.g. "a a (a+1)" (hopefully no endless loop)
 
-			/*
-			aRes = sArg.match(/^(\d+)(\w+)$/); // number and variable?
-			if (aRes) {
-				sArg = aRes[1] + '" ' + aRes[2] + ' "';
-			} else {
-				sArg = '" ' + sArg + ' "';
-			}
-			*/
 			if ((/^\w+$/).test(sArg)) { // numbers and letters only?
 				aRes = sArg.match(/[a-zA-Z]+|\d+/g); // separate
 				for (i = 0; i < aRes.length; i += 1) {
@@ -380,16 +372,10 @@ Preprocessor.prototype = {
 		return sArg;
 	},
 
-	/*
-	fnWaypointEndingMatcher: function (sMatch) { // varargs
-		return sMatch;
-	},
-	*/
-
 	fnWaypointMatcher: function (sMatch) { // varargs
 		var aArguments = [],
 			aParts = [],
-			iLength, sParts, i, sLastPart, iRemain, sRemain, //bStop,
+			iLength, sParts, i, sLastPart, iRemain, sRemain,
 			fnGetArgsUntil = function (str) {
 				var sArgs = "",
 					oRegExp = new RegExp("^(?:" + str + ")$");
@@ -425,23 +411,11 @@ Preprocessor.prototype = {
 		aParts.push("."); // "." or ",": use always "."
 		i += 1;
 
-		// how to detect end of wp?
-		// currently last part of wp must not contain spaces!
-		sLastPart = fnGetArgsUntil(""); // until end?
-
+		sLastPart = fnGetArgsUntil(""); // until end
 		iRemain = sLastPart.indexOf(" ");
 
 		if (this.iWpIndex >= 0) {
-			//sRemain = Utils.stringEndsWith(sLastPart, "\n") ? "\n" : "";
 			sRemain = "\n#";
-			/*
-			if (iRemain >= 0) {
-				sRemain = "\n#" + sLastPart.substring(iRemain + 1);
-				sLastPart = sLastPart.substring(0, iRemain);
-			} else {
-				sRemain = Utils.stringEndsWith(sLastPart, "\n") ? "\n" : "";
-			}
-			*/
 			aParts.push(this.fnWaypointPart(sLastPart, true)); // last part
 
 			sParts = aParts.join("");
@@ -460,59 +434,18 @@ Preprocessor.prototype = {
 		} else if (iRemain >= 0) { // just check if we can detect ending: only if we have space(s) inside
 			sParts = sLastPart;
 			sRemain = "";
-			/*
-			iRemain = sParts.search(/[a-zA-Z]{2}/); // word with at least two letters should end replacement (starting at space position)
-			if (iRemain >= 0) {
-				sRemain = sParts.substring(iRemain);
-				sParts = sParts.substring(0, iRemain);
-			}
-			*/
 
 			aParts = sParts.split(/[ ]+/);
-			//bStop = false;
 			for (i = 1; i < aParts.length; i += 1) { // we start with index 1, thus accepting the first part
 				if ((/^(?:N\b|[a-zA-Z]{2})/).test(aParts[i])) {
 					if (aParts[i - 1] === "-") { // minus is sometimes used as hyphen
 						i -= 1; // stop before hyphen
 					}
 					aParts[i] = "\n#" + aParts[i]; // stop here next time
-					//bStop = true;
 					break;
-				/*
-				} else if (aParts[i] === "-") { // minus is sometimes used as hyphen
-					if ((i === aParts.length - 1) || (i < aParts.length - 1) && (aParts[i + 1] === "")) {
-						aParts[i] = "\n#" + aParts[i]; // stop here next time
-						bStop = true;
-						break;
-					}
-				*/
 				}
 			}
 			sParts = aParts.join(" ");
-
-			/*
-			aParts = sParts.split(/[ ]+/);
-			sParts = "";
-			for (i = 1; i < aParts.length; i += 1) {
-				if ((/^[+/\-*)\]([]/).test(aParts[i])) {
-					// nothing, so remove space
-				} else if ((/^[0-9]+/).test(aParts[i]) || (/^[a-zA-M\b]/).test(aParts[i])) { // operators or, single letter? (N could be next waypoint)
-					aParts[i] = "(" + aParts[i] + ")";
-				} else {
-					aParts[i] = " " + aParts[i];
-				}
-			}
-			sParts = aParts.join("");
-			*/
-
-			//sParts = sParts.replace(/[ ]+([+\-*/()[\]0-9])/g, "$1"); // heuristic: remove spaces before operands, parenthesis, brackets and numbers
-			//sParts = sParts.replace(/[ ]+([a-zA-M]\b)/g, "($1)"); // heuristic: remove spaces before single letters (except N, which could be a next waypoint) and put in parenthesis
-
-			/*
-			if (sRemain !== "") {
-				sParts += ((bStop) ? "" : "\n#") + sRemain;
-			}
-			*/
 			if (sParts !== sLastPart) {
 				sMatch = sMatch.substring(0, sMatch.length - sLastPart.length) + sParts;
 			}
@@ -521,23 +454,15 @@ Preprocessor.prototype = {
 	},
 	fnWaypoints: function (str) {
 		var	sAlphaNumeric = "0-9A-Za-z",
-			sFraction = "\\b\\d+[.,]\\d{1,2}\\b", //"[.,]", //"\\d+[.,]\\d+", //TTT
+			sFraction = "\\b\\d+[.,]\\d{1,2}\\b",
 			sOperands = "+\\-*/:", // accept also colon ":" as division character "/"
 			sParenthesis = "()\\[\\]",
 			sSpace = " ",
 			sFirstExpressionPart = "([\\d ][" + sAlphaNumeric + sOperands + sParenthesis + sSpace + "]+)[ ]*", // starting with space or number, may contain spaces
 			sExpression = "[ ]*((?:" + sFraction + "|[" + sAlphaNumeric + sOperands + sParenthesis + sSpace + "])+)[ ]*", // may contain spaces; sFraction depends on orser!
-			//sLastExpression = "[ ]*([" + sAlphaNumeric + sOperands + sParenthesis + "]+)[ ]*", // no space inside, otherwise we cannot detect wp in same line
-			//sNumeric = "0-9",
-			//sAlpha = "A-Za-z",
-			//sLastExpression = "[ ]*([" + sNumeric + sOperands + sParenthesis + sSpace + "]+[" + sAlpha + "]?)[ ]*", // no possible next waypoint //TTT??
-
-			//rWaypointWithSpaces = new RegExp("\\b(N)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#)?(E)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "([#\\n ])", "g"),
-			//rWaypoint = new RegExp("\\b(N)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#)?(E)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sLastExpression + "([#\\n ])", "g");
 			sWayPoint = "\\b(N|S)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#|' / )?(E|W)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression,
 			rWaypoint = new RegExp(sWayPoint, "g"),
 			sLast;
-			//rWaypoint = new RegExp("\\b(N)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#)?(E)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sLastExpression, "g");
 
 		if (!Utils.stringEndsWith(str, "\n")) {
 			str += "\n";

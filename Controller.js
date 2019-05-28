@@ -35,19 +35,13 @@ Controller.prototype = {
 		this.maFa = new MarkerFactory();
 
 		sFilterId = oModel.getProperty("filterId");
-		if (sFilterId) {
-			this.view.setInputValue("filterIdInput", sFilterId);
-		}
+		this.view.setInputValue("filterIdInput", sFilterId);
 
 		sFilterTitle = oModel.getProperty("filterTitle");
-		if (sFilterTitle) {
-			this.view.setInputValue("filterTitleInput", sFilterTitle);
-		}
+		this.view.setInputValue("filterTitleInput", sFilterTitle);
 
 		sSort = oModel.getProperty("sort");
-		if (sSort) {
-			this.view.setSelectValue("sortSelect", sSort);
-		}
+		this.view.setSelectValue("sortSelect", sSort);
 
 		iVarMin = oModel.getProperty("varMin");
 		this.view.setInputValue("varMinInput", iVarMin);
@@ -59,14 +53,10 @@ Controller.prototype = {
 		this.view.setInputValue("varStepInput", iVarStep);
 
 		sVarType = oModel.getProperty("varType");
-		if (sVarType) {
-			this.view.setSelectValue("varTypeSelect", sVarType);
-		}
+		this.view.setSelectValue("varTypeSelect", sVarType);
 
 		sWaypointFormat = oModel.getProperty("waypointFormat");
-		if (sWaypointFormat) {
-			this.view.setSelectValue("waypointViewSelect", sWaypointFormat);
-		}
+		this.view.setSelectValue("waypointViewSelect", sWaypointFormat);
 
 		this.view.setHidden("specialArea", !oModel.getProperty("showSpecial"));
 		this.view.setHidden("filterArea", !oModel.getProperty("showFilter"));
@@ -89,13 +79,9 @@ Controller.prototype = {
 		this.view.setHidden("mapCanvas-" + sMapType, !oModel.getProperty("showMap"));
 
 		sExample = oModel.getProperty("example");
-		if (sExample) {
-			this.view.setSelectValue("exampleSelect", sExample);
-		}
+		this.view.setSelectValue("exampleSelect", sExample);
 
-		if (sMapType) {
-			this.view.setSelectValue("mapTypeSelect", sMapType);
-		}
+		this.view.setSelectValue("mapTypeSelect", sMapType);
 		this.commonEventHandler.onMapTypeSelectChange();
 
 		sUrl = this.model.getProperty("exampleDir") + "/" + this.model.getProperty("databaseIndex");
