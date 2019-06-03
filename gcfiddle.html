@@ -56,7 +56,14 @@
 			</select>
 		</legend>
 		<div id="sortArea" class="area">
-			<input id="locationInput" value="" size="26" type="text" placeholder="value" title="Location for sorting by distance">
+			<div id="sortOptionGroup">
+				<div class="field">
+					<input id="locationInput" value="" size="26" type="text" placeholder="value" title="Location for sorting by distance">
+				</div>
+				<div class="field clearLeft">
+					<button id="getLocationButton" title="Get Location">Location</button>
+				</div>
+			</div>
 		</div>
 	</fieldset>
 	<fieldset class="flexBox clearLeft">
@@ -168,7 +175,8 @@
 		<div class="canvas" id="mapCanvas-simple" hidden></div>
 		<div class="canvas" id="mapCanvas-none" hidden></div>
 		<div>
-			<button id="locationButton" title="Get Location">Location</button>
+			<button id="locationOnButton" title="Show Location On">Location On</button>
+			<button id="locationOffButton" title="Show Location Off"  disabled>Location Off</button>
 			<button id="fitBoundsButton" title="Fit markers into map bounds">Fit Bounds</button>
 		</div>
 	</fieldset>

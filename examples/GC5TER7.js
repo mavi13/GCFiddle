@@ -3,7 +3,7 @@
 "use strict";
 
 gcFiddle.addItem("", function () { /*
-$GC5TER7="N 49° 20.6264 E 8° 47.4239!toFind!Das gute alte Schmetterlingsbuch als Mystery (formulas only)"
+$GC5TER7="N 49° 20.6264 E 008° 47.4239!toFind!Das gute alte Schmetterlingsbuch als Mystery (formulas only)"
 #https://coord.info/GC5TER7
 #
 #Formulas provided with friendly permission by Onetrain.

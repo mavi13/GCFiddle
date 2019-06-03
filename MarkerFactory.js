@@ -27,6 +27,16 @@ MarkerFactory.prototype = {
 		this.aMarkerOptions = [];
 		this.initMap(null);
 	},
+	updateMarker: function (iMarker) {
+		var oMarkerOptions, oFeatureGroup;
+
+		if (this.mapProxy) {
+			oMarkerOptions = this.aMarkerOptions[iMarker];
+			oFeatureGroup = this.mapProxy.getMap().getFeatureGroup();
+			oFeatureGroup.changeMarker(iMarker, oMarkerOptions);
+			//oFeatureGroup.fitBounds(); //do not set bounds, use manually if needed
+		}
+	},
 	addMarkers: function (aMarkerOptions) {
 		var oFeatureGroup;
 

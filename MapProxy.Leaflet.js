@@ -166,6 +166,21 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 		}
 	},
 
+	changeMarker: function (iMarker, oItem) {
+		var aMarkerPool = this.aMarkerPool,
+			markerGroup = this.markerGroup,
+			oPopup = markerGroup.getPopup(),
+			oMarker, oPosition;
+
+		oMarker = aMarkerPool[iMarker];
+		oPosition = oItem.position.clone();
+		oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oPosition);
+		if (oPopup && oPopup.isOpen() && this.markerGroup.getLayerId(oMarker.marker) === this.iPopupSourceId) {
+			oPopup.setLatLng(MapProxy.Leaflet.position2leaflet(oItem.position));
+			oPopup.setContent(this.privGetPopupContent(oMarker.marker));
+		}
+	},
+
 	addMarkers: function (aList) {
 		var aMarkerPool = this.aMarkerPool,
 			markerGroup = this.markerGroup,
@@ -184,7 +199,7 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 				});
 				oMarker = new MapProxy.Leaflet.Marker(oMarkerOptions);
 				aMarkerPool[i] = oMarker;
-			} else {
+			} else { // change marker
 				oMarker = aMarkerPool[i];
 				oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oPosition);
 				if (oPopup && oPopup.isOpen() && this.markerGroup.getLayerId(oMarker.marker) === this.iPopupSourceId) {

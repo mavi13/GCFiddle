@@ -340,6 +340,14 @@ MapProxy.Simple.FeatureGroup.prototype = {
 		this.aMarkers = [];
 		this.polyLine = new MapProxy.Simple.Polyline(oPolyLineOptions);
 	},
+	changeMarker: function (iMarker, oItem) {
+		var aMarkers = this.aMarkers,
+			oMarker, oPosition;
+
+		oPosition = oItem.position.clone();
+		oMarker = aMarkers[iMarker];
+		oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oPosition);
+	},
 	addMarkers: function (aList) {
 		var aMarkers = this.aMarkers,
 			aPath = [],
@@ -355,12 +363,11 @@ MapProxy.Simple.FeatureGroup.prototype = {
 				});
 				oMarker = new MapProxy.Simple.Marker(oMarkerOptions);
 				aMarkers.push(oMarker);
-			} else {
+			} else { // change marker
 				oMarker = aMarkers[i];
 				oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oPosition);
 			}
 		}
-
 		this.polyLine.setPath(aPath);
 	},
 	deleteMarkers: function () {

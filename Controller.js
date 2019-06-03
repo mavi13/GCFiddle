@@ -11,7 +11,7 @@ function Controller(oModel, oView) {
 Controller.prototype = {
 	init: function (oModel, oView) {
 		var that = this,
-			sFilterId, sFilterTitle, sSort, sVarType, iVarMin, iVarMax, iVarStep, sWaypointFormat, sMapType, sExample, sUrl,
+			sFilterId, sFilterTitle, sSort, sLocation, sVarType, iVarMin, iVarMax, iVarStep, sWaypointFormat, sMapType, sExample, sUrl,
 			onDatabaseIndexLoaded = function () {
 				Utils.console.log(sUrl + " loaded");
 				that.fnSetDatabaseSelect();
@@ -26,65 +26,69 @@ Controller.prototype = {
 
 		this.sJsonMarker = "#GC_INFO:";
 
-		this.commonEventHandler = new CommonEventHandler(this.model, this.view, this);
+		this.commonEventHandler = new CommonEventHandler(oModel, oView, this);
 
-		this.view.setHidden("consoleLogBox", !oModel.getProperty("showConsole"));
+		oView.setHidden("consoleLogBox", !oModel.getProperty("showConsole"));
 
 		this.inputStack = new InputStack();
 
 		this.maFa = new MarkerFactory();
 
 		sFilterId = oModel.getProperty("filterId");
-		this.view.setInputValue("filterIdInput", sFilterId);
+		oView.setInputValue("filterIdInput", sFilterId);
 
 		sFilterTitle = oModel.getProperty("filterTitle");
-		this.view.setInputValue("filterTitleInput", sFilterTitle);
+		oView.setInputValue("filterTitleInput", sFilterTitle);
 
 		sSort = oModel.getProperty("sort");
-		this.view.setSelectValue("sortSelect", sSort);
+		oView.setSelectValue("sortSelect", sSort);
+		oView.setHidden("sortOptionGroup", sSort !== "distance");
+
+		sLocation = oModel.getProperty("location");
+		oView.setInputValue("locationInput", sLocation);
 
 		iVarMin = oModel.getProperty("varMin");
-		this.view.setInputValue("varMinInput", iVarMin);
+		oView.setInputValue("varMinInput", iVarMin);
 
 		iVarMax = oModel.getProperty("varMax");
-		this.view.setInputValue("varMaxInput", iVarMax);
+		oView.setInputValue("varMaxInput", iVarMax);
 
 		iVarStep = oModel.getProperty("varStep");
-		this.view.setInputValue("varStepInput", iVarStep);
+		oView.setInputValue("varStepInput", iVarStep);
 
 		sVarType = oModel.getProperty("varType");
-		this.view.setSelectValue("varTypeSelect", sVarType);
+		oView.setSelectValue("varTypeSelect", sVarType);
 
 		sWaypointFormat = oModel.getProperty("waypointFormat");
-		this.view.setSelectValue("waypointViewSelect", sWaypointFormat);
+		oView.setSelectValue("waypointViewSelect", sWaypointFormat);
 
-		this.view.setHidden("specialArea", !oModel.getProperty("showSpecial"));
-		this.view.setHidden("filterArea", !oModel.getProperty("showFilter"));
-		this.view.setHidden("sortArea", !oModel.getProperty("showSort"));
-		this.view.setHidden("scriptArea", !oModel.getProperty("showScript"));
-		this.view.setHidden("resultArea", !oModel.getProperty("showResult"));
-		this.view.setHidden("varArea", !oModel.getProperty("showVariable"));
-		this.view.setHidden("notesArea", !oModel.getProperty("showNotes"));
-		this.view.setHidden("waypointArea", !oModel.getProperty("showWaypoint"));
-		this.view.setHidden("logsArea", !oModel.getProperty("showLogs"));
-		this.view.setHidden("consoleLogArea", !oModel.getProperty("showConsole"));
+		oView.setHidden("specialArea", !oModel.getProperty("showSpecial"));
+		oView.setHidden("filterArea", !oModel.getProperty("showFilter"));
+		oView.setHidden("sortArea", !oModel.getProperty("showSort"));
+		oView.setHidden("scriptArea", !oModel.getProperty("showScript"));
+		oView.setHidden("resultArea", !oModel.getProperty("showResult"));
+		oView.setHidden("varArea", !oModel.getProperty("showVariable"));
+		oView.setHidden("notesArea", !oModel.getProperty("showNotes"));
+		oView.setHidden("waypointArea", !oModel.getProperty("showWaypoint"));
+		oView.setHidden("logsArea", !oModel.getProperty("showLogs"));
+		oView.setHidden("consoleLogArea", !oModel.getProperty("showConsole"));
 
-		this.view.setHidden("varOptionGroup", oModel.getProperty("varType") === "text");
+		oView.setHidden("varOptionGroup", oModel.getProperty("varType") === "text");
 
 		sMapType = oModel.getProperty("mapType");
 		if (!document.getElementById("mapCanvas-" + sMapType)) {
 			sMapType = "none";
 			oModel.setProperty("mapType", sMapType);
 		}
-		this.view.setHidden("mapCanvas-" + sMapType, !oModel.getProperty("showMap"));
+		oView.setHidden("mapCanvas-" + sMapType, !oModel.getProperty("showMap"));
 
 		sExample = oModel.getProperty("example");
-		this.view.setSelectValue("exampleSelect", sExample);
+		oView.setSelectValue("exampleSelect", sExample);
 
-		this.view.setSelectValue("mapTypeSelect", sMapType);
+		oView.setSelectValue("mapTypeSelect", sMapType);
 		this.commonEventHandler.onMapTypeSelectChange();
 
-		sUrl = this.model.getProperty("exampleDir") + "/" + this.model.getProperty("databaseIndex");
+		sUrl = oModel.getProperty("exampleDir") + "/" + oModel.getProperty("databaseIndex");
 		if (sUrl) {
 			Utils.loadScript(sUrl, onDatabaseIndexLoaded, onDatabaseIndexError);
 		} else {
@@ -486,6 +490,26 @@ Controller.prototype = {
 		if (sStackInput !== sInput) {
 			this.inputStack.save(sInput);
 			this.fnUpdateUndoRedoButtons();
+		}
+	},
+
+	fnInputAreaNav: function (sPar) {
+		var sInput, oParser, aTokens, aParseTree, i, iEndPos;
+
+		sInput = this.view.getAreaValue("inputArea");
+		try {
+			oParser = new ScriptParser();
+			aTokens = oParser.lex(sInput);
+			aParseTree = oParser.parse(aTokens);
+			for (i = 0; i < aParseTree.length; i += 1) {
+				if (aParseTree[i].name === sPar) {
+					iEndPos = aParseTree[i].pos + sPar.length;
+					this.view.setAreaSelection("inputArea", aParseTree[i].pos, iEndPos);
+					break;
+				}
+			}
+		} catch (e) {
+			Utils.console.warn("fnInputAreaNav: " + sPar + ": " + e);
 		}
 	},
 

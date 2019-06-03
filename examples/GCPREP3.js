@@ -3,7 +3,7 @@
 "use strict";
 
 gcFiddle.addItem("", function () { /*
-$GCPREP3="!test prep!Preprocess3 (based on GC45QJ1)"
+$GCPREP3="N 49° 23.372 E 008° 47.635!test prep!Preprocess3 (based on GC45QJ1)"
 #https://coord.info/GC45QJ1
 #
 #Example provided with friendly permission by kruemelhuepfer.

@@ -239,6 +239,16 @@ MapProxy.OpenLayers.FeatureGroup.prototype = {
 		this.polyLine = new MapProxy.OpenLayers.Polyline(oPolyLineOptions);
 		this.infoWindow = new MapProxy.OpenLayers.InfoWindow();
 	},
+	changeMarker: function (iMarker, oItem) {
+		var oMarker, oPosition;
+
+		oMarker = this.aMarkers[iMarker]; //this.aMarkerPool[iMarker];
+		oPosition = oItem.position.clone();
+		oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oPosition);
+		if (this.infoWindow && this.infoWindow.getAnchor() === oMarker) {
+			this.infoWindow.setContent(this.privGetPopupContent(oMarker));
+		}
+	},
 	addMarkers: function (aList) {
 		//OpenLayers.Geometry.Collection() //CHECK
 		var aMarkers = this.aMarkers,
@@ -258,7 +268,7 @@ MapProxy.OpenLayers.FeatureGroup.prototype = {
 				this.aMarkerPool[i] = oMarker;
 			} else {
 				oMarker = this.aMarkerPool[i];
-				oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oItem.position);
+				oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oItem.position); // or oPosition?
 				if (this.infoWindow && this.infoWindow.getAnchor() === oMarker) {
 					this.infoWindow.setContent(this.privGetPopupContent(oMarker));
 				}

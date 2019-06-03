@@ -460,7 +460,8 @@ Preprocessor.prototype = {
 			sSpace = " ",
 			sFirstExpressionPart = "([\\d ][" + sAlphaNumeric + sOperands + sParenthesis + sSpace + "]+)[ ]*", // starting with space or number, may contain spaces
 			sExpression = "[ ]*((?:" + sFraction + "|[" + sAlphaNumeric + sOperands + sParenthesis + sSpace + "])+)[ ]*", // may contain spaces; sFraction depends on orser!
-			sWayPoint = "\\b(N|S)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#|' / )?(E|W)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression,
+			//sWayPoint = "\\b(N|S)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#|' / )?(E|W)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression,
+			sWayPoint = "\\b(N)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression + "(?:\\n#|' / )?(E|W)" + sFirstExpressionPart + "(°)" + sExpression + "([.,])" + sExpression, // not S, it is too critical, used for Stages, e.g. S1
 			rWaypoint = new RegExp(sWayPoint, "g"),
 			sLast;
 

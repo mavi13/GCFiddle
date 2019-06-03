@@ -116,6 +116,16 @@ MapProxy.Google.FeatureGroup.prototype = {
 		this.polyLine = new MapProxy.Google.Polyline(oPolyLineOptions);
 		this.infoWindow = new MapProxy.Google.InfoWindow();
 	},
+	changeMarker: function (iMarker, oItem) {
+		var oMarker, oPosition;
+
+		oMarker = this.aMarkers[iMarker]; //this.aMarkerPool[iMarker];
+		oPosition = oItem.position.clone();
+		oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oPosition);
+		if (this.infoWindow && this.infoWindow.getAnchor() === oMarker) {
+			this.infoWindow.setContent(this.privGetPopupContent(oMarker));
+		}
+	},
 	addMarkers: function (aList) {
 		var aMarkerPool = this.aMarkerPool,
 			aMarkers = this.aMarkers,

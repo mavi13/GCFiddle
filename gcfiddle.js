@@ -22,6 +22,7 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 			ignoreVarCase: false,
 			leafletMapboxKey: "", // mapbox access token (for leaflet maps, currently unused)
 			leafletUrl: "https://unpkg.com/leaflet@1.3.1/dist/leaflet.js",
+			location: "", // location for sort by distance
 			mapType: "leaflet", // simple, google, leaflet, openlayers, none
 			openlayersUrl: "https://cdnjs.cloudflare.com/ajax/libs/openlayers/2.13.1/OpenLayers.js",
 			showConsole: false, // for debugging

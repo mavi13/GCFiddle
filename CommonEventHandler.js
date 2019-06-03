@@ -22,6 +22,8 @@ CommonEventHandler.prototype = {
 		this.view = oView;
 		this.controller = oController;
 
+		this.geoLocationId = null;
+
 		this.mapProxy = {};
 		this.attachEventHandler();
 	},
@@ -477,8 +479,7 @@ CommonEventHandler.prototype = {
 		this.model.setProperty("filterCategory", sFilterCategory);
 		this.controller.fnSetFilterCategorySelectOptions();
 		this.onFilterCategorySelectChange();
-
-		this.fnFilterExamples();
+		//this.fnFilterExamples(); already done
 	},
 
 	onSortSelectChange: function () {
@@ -487,8 +488,11 @@ CommonEventHandler.prototype = {
 		this.model.setProperty("sort", sSort);
 		this.view.setSelectTitleFromSelectedOption("sortSelect");
 
+		this.view.setHidden("sortOptionGroup", sSort !== "distance");
+
 		this.controller.fnSetExampleSelectOptions();
-		this.onExampleSelectChange();
+		this.view.setSelectTitleFromSelectedOption("exampleSelect"); // maybe title changes
+		//do not execute: this.onExampleSelectChange();
 	},
 
 	onSpecialLegendClick: function () {
@@ -569,15 +573,27 @@ CommonEventHandler.prototype = {
 	},
 
 	onLocationInputChange: function () {
-		var sSort = this.model.getProperty("sort");
+		var sLocation = this.view.getInputValue("locationInput"),
+			oPos, sError, sTitle, sSort;
 
+		this.model.setProperty("location", sLocation);
+
+
+		oPos = new LatLng().parse(sLocation);
+		sError = oPos.getError();
+		sTitle = sError || oPos.toFormattedString(); //sWaypointFormat);
+		this.view.setInputValue("locationInput", sLocation).setInputTitle("locationInput", sTitle).setInputInvalid("locationInput", Boolean(sError));
+		//this.view.setInputInvalid("locationInput", Boolean(sError));
+
+		sSort = this.model.getProperty("sort");
 		if (sSort === "distance") {
 			this.controller.fnSetExampleSelectOptions();
-			this.onExampleSelectChange();
+			this.view.setSelectTitleFromSelectedOption("exampleSelect"); // maybe title distance changed
+			//do NOT execute which will remove temporaty WP location // this.onExampleSelectChange();
 		}
 	},
 
-	onLocationButtonClick: function () {
+	onGetLocationButtonClick: function () {
 		var that = this;
 
 		function showPosition(position) {
@@ -592,9 +608,9 @@ CommonEventHandler.prototype = {
 				sPosition;
 
 			sPosition = oMarker.position.toFormattedString(sWaypointFormat);
-			Utils.console.log("Location: " + sPosition);
-			that.controller.maFa.addMarkers([oMarker]);
-			// already done in addMarkers; that.onFitBoundsButtonClick();
+			Utils.console.log("Location: getCurrentPosition: " + sPosition);
+			//that.controller.maFa.addMarkers([oMarker]);
+			// // already done in addMarkers; that.onFitBoundsButtonClick();
 			that.view.setInputValue("locationInput", sPosition);
 			that.onLocationInputChange();
 		}
@@ -623,6 +639,74 @@ CommonEventHandler.prototype = {
 			navigator.geolocation.getCurrentPosition(showPosition, showError);
 		} else {
 			Utils.console.warn("Geolocation is not supported by this browser.");
+		}
+	},
+
+	onLocationOnButtonClick: function () {
+		var that = this,
+			oOptions,
+
+			fnSuccess = function (pos) {
+				var oMarker, oPosition, aMarkers, iMarker, sLabel, sWaypointFormat, sPosition;
+
+				aMarkers = that.controller.maFa.getMarkers();
+				iMarker = aMarkers.length - 1;
+
+				if (iMarker >= 0 && aMarkers[iMarker].position.getComment() === "location") { // we already have a location marker so use it
+					oMarker = aMarkers[iMarker];
+					oPosition = oMarker.position;
+					oPosition.setLatLng(pos.coords.latitude, pos.coords.longitude);
+					that.controller.maFa.updateMarker(iMarker);
+				} else {
+					iMarker += 1;
+					oPosition = new LatLng(pos.coords.latitude, pos.coords.longitude);
+					oPosition.setComment("location");
+					sLabel = Utils.strZeroFormat(String(iMarker), 2);
+					oMarker = {
+						position: oPosition,
+						label: sLabel,
+						title: "L" + sLabel
+					};
+					that.controller.maFa.addMarkers([oMarker]);
+				}
+				sWaypointFormat = that.model.getProperty("waypointFormat");
+				sPosition = oPosition.toFormattedString(sWaypointFormat);
+				if (Utils.debug) {
+					Utils.console.debug("Location: watchPosition: " + sPosition + " (time: " + Utils.dateFormat(new Date(pos.timestamp)) + " accuracy: " + pos.coords.accuracy + " altitude: " + pos.coords.altitude + " heading: " + pos.coords.heading + " speed: " + pos.coords.speed + ")");
+				}
+			},
+
+			fnError = function (err) {
+				Utils.console.warn("geoLocation: watchPosition: error (" + err.code + "): " + err.message);
+			};
+
+		this.view.setDisabled("locationOnButton", true);
+		this.view.setDisabled("locationOffButton", false);
+		oOptions = {
+			enableHighAccuracy: true,
+			timeout: 5000,
+			maximumAge: 0
+		};
+
+		if (navigator.geolocation) {
+			this.geoLocationId = navigator.geolocation.watchPosition(fnSuccess, fnError, oOptions);
+			if (Utils.debug) {
+				Utils.console.debug("Location: watchPosition switched on with id=" + this.geoLocationId + " enableHighAccuracy=" + oOptions.enableHighAccuracy + " timeout=" + oOptions.timeout + " maximumAge=" + oOptions.maximumAge);
+			}
+		}
+	},
+
+	onLocationOffButtonClick: function () {
+		this.view.setDisabled("locationOnButton", false);
+		this.view.setDisabled("locationOffButton", true);
+		if (this.geoLocationId !== null) { // geoLocationId on Firefox starts with id 0
+			if (navigator.geolocation) {
+				navigator.geolocation.clearWatch(this.geoLocationId);
+				if (Utils.debug) {
+					Utils.console.debug("Location: watchPosition switched off for id=" + this.geoLocationId);
+				}
+			}
+			this.geoLocationId = null;
 		}
 	},
 
@@ -672,6 +756,7 @@ CommonEventHandler.prototype = {
 					this.view.setSelectValue("varSelect", sPar);
 					this.onVarSelectChange();
 				}
+				this.controller.fnInputAreaNav(sPar);
 			}
 		}
 	},
@@ -809,7 +894,7 @@ CommonEventHandler.prototype = {
 			};
 
 		aExamples = this.view.getAllSelectOptionValues("exampleSelect");
-		aExamples.sort(); // use toLowerCase?
+		//aExamples.sort(); // use toLowerCase? // keep existing sort order
 
 		Utils.console.log("onNewIndexButton: examples=" + aExamples);
 

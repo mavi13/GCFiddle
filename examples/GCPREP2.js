@@ -3,7 +3,7 @@
 "use strict";
 
 gcFiddle.addItem("", function () { /*
-$GCPREP2="!test prep!Preprocess2 (based on GCJVT3)"
+$GCPREP2="N 49° 18.071 E 008° 42.167!test prep!Preprocess2 (based on GCJVT3)"
 #https://coord.info/GCJVT3
 #
 #Example provided with friendly permission by rosszwerg.
