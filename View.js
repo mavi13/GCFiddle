@@ -164,16 +164,6 @@ View.prototype = {
 	},
 	setAreaSelection: function (sId, iPos, iEndPos) {
 		var area = document.getElementById(sId),
-			/*
-			fnScrollToSelection = function (textArea) {
-				// scrolling needed for Chrome (https://stackoverflow.com/questions/7464282/javascript-scroll-to-selection-after-using-textarea-setselectionrange-in-chrome)
-				var charsPerRow = textArea.cols,
-					selectionRow = (textArea.selectionStart - (textArea.selectionStart % charsPerRow)) / charsPerRow,
-					lineHeight = textArea.clientHeight / textArea.rows;
-
-				textArea.scrollTop = lineHeight * selectionRow;
-			};
-			*/
 			// https://stackoverflow.com/questions/7464282/javascript-scroll-to-selection-after-using-textarea-setselectionrange-in-chrome (AlienKevin)
 			fnSetSelectionRange = function (textarea, selectionStart, selectionEnd) {
 				var fullText, scrollHeight, scrollTop, textareaHeight;
@@ -181,8 +171,7 @@ View.prototype = {
 				// First scroll selection region to view
 				fullText = textarea.value;
 				textarea.value = fullText.substring(0, selectionEnd);
-				// For some unknown reason, you must store the scollHeight to a variable
-				// before setting the textarea value. Otherwise it won't work for long strings
+				// For some unknown reason, you must store the scollHeight to a variable before setting the textarea value. Otherwise it won't work for long strings
 				scrollHeight = textarea.scrollHeight;
 				textarea.value = fullText;
 				scrollTop = scrollHeight;
@@ -207,7 +196,6 @@ View.prototype = {
 				area.focus();
 				area.selectionStart = iPos;
 				area.selectionEnd = iEndPos;
-				//fnScrollToSelection(area); //TODO correct for Chrome but not for e.g. Edge
 			}
 		}
 		return this;

@@ -17,6 +17,14 @@ function LatLng(lat, lng) {
 	this.init(lat, lng);
 }
 
+LatLng.toRadians = function (deg) {
+	return deg * Math.PI / 180;
+};
+
+LatLng.toDegrees = function (rad) {
+	return rad * 180 / Math.PI;
+};
+
 LatLng.prototype = {
 	init: function (lat, lng) {
 		this.setLatLng(lat, lng);
@@ -73,10 +81,10 @@ LatLng.prototype = {
 	},
 	distanceTo: function (point) {
 		var radius = 6371e3,
-			phi1 = Utils.toRadians(this.lat),
-			lambda1 = Utils.toRadians(this.lng),
-			phi2 = Utils.toRadians(point.lat),
-			lambda2 = Utils.toRadians(point.lng),
+			phi1 = LatLng.toRadians(this.lat),
+			lambda1 = LatLng.toRadians(this.lng),
+			phi2 = LatLng.toRadians(point.lat),
+			lambda2 = LatLng.toRadians(point.lng),
 			deltaphi = phi2 - phi1,
 			deltalambda = lambda2 - lambda1,
 
@@ -87,24 +95,24 @@ LatLng.prototype = {
 		return d;
 	},
 	bearingTo: function (point) {
-		var phi1 = Utils.toRadians(this.lat),
-			phi2 = Utils.toRadians(point.lat),
-			deltalambda = Utils.toRadians(point.lng - this.lng),
+		var phi1 = LatLng.toRadians(this.lat),
+			phi2 = LatLng.toRadians(point.lat),
+			deltalambda = LatLng.toRadians(point.lng - this.lng),
 
 			// see http://mathforum.org/library/drmath/view/55417.html
 			y = Math.sin(deltalambda) * Math.cos(phi2),
 			x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(deltalambda),
 			theta = Math.atan2(y, x);
 
-		return (Utils.toDegrees(theta) + 360) % 360;
+		return (LatLng.toDegrees(theta) + 360) % 360;
 	},
 	destinationPoint: function (distance, bearing) {
 		var radius = 6371e3, // see http://www.edwilliams.org/avform.htm#LL (former: http://williams.best.vwh.net/avform.htm#LL)
 			delta = Number(distance) / radius, // angular distance in radians
-			theta = Utils.toRadians(Number(bearing)),
+			theta = LatLng.toRadians(Number(bearing)),
 
-			phi1 = Utils.toRadians(this.lat),
-			lambda1 = Utils.toRadians(this.lng),
+			phi1 = LatLng.toRadians(this.lat),
+			lambda1 = LatLng.toRadians(this.lng),
 
 			sinphi1 = Math.sin(phi1),
 			cosphi1 = Math.cos(phi1),
@@ -119,16 +127,16 @@ LatLng.prototype = {
 			x = cosdelta - sinphi1 * sinphi2,
 			lambda2 = lambda1 + Math.atan2(y, x);
 
-		return new LatLng(Utils.toDegrees(phi2), (Utils.toDegrees(lambda2) + 540) % 360 - 180); // normalise to −180..+180°
+		return new LatLng(LatLng.toDegrees(phi2), (LatLng.toDegrees(lambda2) + 540) % 360 - 180); // normalise to −180..+180°
 	},
 	intersection: function (p1, bearing1, p2, bearing2, bSuppressWarnings) { // no "this" used
 		// see http://www.edwilliams.org/avform.htm#Intersection (former: http://williams.best.vwh.net/avform.htm#Intersection)
-		var phi1 = Utils.toRadians(p1.lat),
-			lambda1 = Utils.toRadians(p1.lng),
-			phi2 = Utils.toRadians(p2.lat),
-			lambda2 = Utils.toRadians(p2.lng),
-			theta13 = Utils.toRadians(Number(bearing1)),
-			theta23 = Utils.toRadians(Number(bearing2)),
+		var phi1 = LatLng.toRadians(p1.lat),
+			lambda1 = LatLng.toRadians(p1.lng),
+			phi2 = LatLng.toRadians(p2.lat),
+			lambda2 = LatLng.toRadians(p2.lng),
+			theta13 = LatLng.toRadians(Number(bearing1)),
+			theta23 = LatLng.toRadians(Number(bearing2)),
 			deltaphi = phi2 - phi1,
 			deltalambda = lambda2 - lambda1,
 			delta12, cosThetaa, cosThetab, thetaa, thetab, theta12, theta21, alpha1, alpha2, alpha3, delta13, phi3, deltalambda13, lambda3;
@@ -174,13 +182,13 @@ LatLng.prototype = {
 		deltalambda13 = Math.atan2(Math.sin(theta13) * Math.sin(delta13) * Math.cos(phi1), Math.cos(delta13) - Math.sin(phi1) * Math.sin(phi3));
 		lambda3 = lambda1 + deltalambda13;
 
-		return new LatLng(Utils.toDegrees(phi3), (Utils.toDegrees(lambda3) + 540) % 360 - 180); // normalise to −180..+180°
+		return new LatLng(LatLng.toDegrees(phi3), (LatLng.toDegrees(lambda3) + 540) % 360 - 180); // normalise to −180..+180°
 	},
 	midpointTo: function (point) {
-		var phi1 = Utils.toRadians(this.lat),
-			lambda1 = Utils.toRadians(this.lng),
-			phi2 = Utils.toRadians(point.lat),
-			deltaLambda = Utils.toRadians(point.lng - this.lng),
+		var phi1 = LatLng.toRadians(this.lat),
+			lambda1 = LatLng.toRadians(this.lng),
+			phi2 = LatLng.toRadians(point.lat),
+			deltaLambda = LatLng.toRadians(point.lng - this.lng),
 
 			Bx = Math.cos(phi2) * Math.cos(deltaLambda),
 			By = Math.cos(phi2) * Math.sin(deltaLambda),
@@ -190,7 +198,7 @@ LatLng.prototype = {
 			phi3 = Math.atan2(y, x),
 			lambda3 = lambda1 + Math.atan2(By, Math.cos(phi1) + Bx);
 
-		return new LatLng(Utils.toDegrees(phi3), (Utils.toDegrees(lambda3) + 540) % 360 - 180); // normalise to −180..+180°
+		return new LatLng(LatLng.toDegrees(phi3), (LatLng.toDegrees(lambda3) + 540) % 360 - 180); // normalise to −180..+180°
 	},
 	parse: function (coord, bSuppressWarnings) {
 		var lat = 0,

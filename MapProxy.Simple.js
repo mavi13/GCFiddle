@@ -1,6 +1,6 @@
 // MapProxy.Simple.js - MapProxy.Simple for GCFiddle
 //
-/* globals MapProxy, Utils */ // make ESlint happy
+/* globals LatLng, MapProxy, Utils */ // make ESlint happy
 
 "use strict";
 
@@ -145,12 +145,12 @@ MapProxy.Simple.Map.prototype = {
 	// (stretched) Mercator projection
 	// map={width, height, latBottom, latTop, lngLeft, lngRight}
 	myConvertGeoToPixel: function (position, map) {
-		var lat = Utils.toRadians(position.lat),
-			lng = Utils.toRadians(position.lng),
-			south = Utils.toRadians(map.latBottom),
-			north = Utils.toRadians(map.latTop),
-			west = Utils.toRadians(map.lngLeft),
-			east = Utils.toRadians(map.lngRight),
+		var lat = LatLng.toRadians(position.lat),
+			lng = LatLng.toRadians(position.lng),
+			south = LatLng.toRadians(map.latBottom),
+			north = LatLng.toRadians(map.latTop),
+			west = LatLng.toRadians(map.lngLeft),
+			east = LatLng.toRadians(map.lngRight),
 			mercY = function (lat1) {
 				return Math.log(Math.tan(lat1 / 2 + Math.PI / 4));
 			},

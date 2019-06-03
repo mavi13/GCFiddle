@@ -65,7 +65,20 @@ QUnit.module("Model: Variables", function (hooks) {
 		// var that = this, // eslint-disable-line no-invalid-this
 	});
 
-	QUnit.test("variables", function (assert) {
+	QUnit.test("get/set one variable", function (assert) {
+		var oModel = new Model();
+
+		oModel.initVariables();
+		assert.strictEqual(oModel.getVariable("v1"), undefined, "v1=undefined");
+
+		oModel.setVariable("v1", "abc");
+		assert.strictEqual(oModel.getVariable("v1"), "abc", "getVariable v1=abc");
+
+		oModel.setVariable("$W1", "N 49");
+		assert.strictEqual(oModel.getVariable("$W1"), "N 49", "getVariable $W1=N 49");
+	});
+
+	QUnit.test("get all variables", function (assert) {
 		var oModel = new Model(),
 			oVariables,
 			mResult = {
@@ -75,7 +88,45 @@ QUnit.module("Model: Variables", function (hooks) {
 		oModel.initVariables();
 
 		oVariables = oModel.getAllVariables();
-		assert.propEqual(oVariables, mResult, "variables with gcfOriginal");
+		assert.propEqual(oVariables, mResult, "no variables, only gcfOriginal");
+
+		oModel.setVariable("v1", "abc");
+		mResult.v1 = "abc";
+		oVariables = oModel.getAllVariables();
+		assert.propEqual(oVariables, mResult, "one variable with gcfOriginal");
+
+		oModel.setVariable("$W1", "N 49");
+		mResult.$W1 = "N 49";
+		oVariables = oModel.getAllVariables();
+		assert.propEqual(oVariables, mResult, "two variables with gcfOriginal");
+	});
+
+	QUnit.test("change variable", function (assert) {
+		var oModel = new Model(),
+			oVariables, bChanged,
+			mResult = {
+				v1: "xyz",
+				gcfOriginal: {
+					v1: "abc"
+				}
+			};
+
+		oModel.initVariables();
+		oModel.setVariable("v1", "abc");
+		assert.strictEqual(oModel.getVariable("v1"), "abc", "v1=abc");
+
+		bChanged = oModel.changeVariable("v1", "xyz");
+		assert.strictEqual(bChanged, true, "v1 changed");
+		assert.strictEqual(oModel.getVariable("v1"), "xyz", "v1=xyz");
+
+		oVariables = oModel.getAllVariables();
+		assert.propEqual(oVariables, mResult, "gcfOriginal is filled");
+
+		bChanged = oModel.changeVariable("v1", "xyz");
+		assert.strictEqual(bChanged, false, "v1 is not changed again");
+
+		bChanged = oModel.changeVariable("v1", "123");
+		assert.strictEqual(oModel.getVariable("v1"), 123, "v1=123 converted to number");
 	});
 });
 

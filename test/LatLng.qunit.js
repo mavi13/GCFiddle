@@ -11,6 +11,17 @@ if (typeof require !== "undefined") {
 	Utils = require("../Utils.js"); // eslint-disable-line global-require
 }
 
+QUnit.module("LatLng static methods", function () {
+	QUnit.test("Properties", function (assert) {
+		var iDeg = 90,
+			iRad = iDeg * Math.PI / 180;
+
+		assert.strictEqual(LatLng.toRadians(iDeg), iRad, "toRadians");
+		assert.strictEqual(LatLng.toDegrees(iRad), iDeg, "toDegrees");
+	});
+});
+
+
 QUnit.module("LatLng Properties", function (hooks) {
 	hooks.beforeEach(function (/* assert */) {
 		// var that = this; // eslint-disable-line no-invalid-this

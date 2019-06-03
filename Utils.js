@@ -163,12 +163,6 @@ var Utils = {
 		return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "
 			+ ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
 	},
-	toRadians: function (deg) {
-		return deg * Math.PI / 180;
-	},
-	toDegrees: function (rad) {
-		return rad * 180 / Math.PI;
-	},
 	objectAssign: function (oTarget) { // varargs // Object.assign is ES6, not in IE
 		var oTo = oTarget,
 			i,

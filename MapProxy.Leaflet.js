@@ -281,18 +281,27 @@ MapProxy.Leaflet.Marker = function (options) {
 
 MapProxy.Leaflet.Marker.prototype = {
 	init: function (options) {
-		var oMarkerOptions;
+		var oMarkerOptions, sWpType, sClassName, oDivIcon;
 
 		this.options = Utils.objectAssign({}, options);
 		oMarkerOptions = this.options;
+		sClassName = "leaflet-div-icon"; // default: leaflet-div-icon
+		sWpType = oMarkerOptions.title.charAt(1); // $Wx, $Px, $Lx
+		if (sWpType === "P") {
+			sClassName = "leaflet-parking-icon";
+		} else if (sWpType === "L") {
+			sClassName = "leaflet-location-icon";
+		}
+		oDivIcon = this.oDivIcon || new L.DivIcon({
+			className: sClassName,
+			html: oMarkerOptions.label,
+			iconSize: [16, 16] // eslint-disable-line array-element-newline
+		});
 		this.marker = new L.Marker(MapProxy.Leaflet.position2leaflet(oMarkerOptions.position), {
 			draggable: true,
 			label: oMarkerOptions.label,
 			title: oMarkerOptions.title,
-			icon: new L.DivIcon({
-				html: oMarkerOptions.label,
-				iconSize: [16, 16] // eslint-disable-line array-element-newline
-			})
+			icon: oDivIcon
 		});
 		this.marker.on("dragend", this.onMarkerDragend.bind(this));
 	},

@@ -560,32 +560,32 @@ ScriptParser.prototype = {
 
 				// sin(d) sine of d (d in degrees)
 				sin: function (degrees) {
-					return Math.sin(Utils.toRadians(degrees));
+					return Math.sin(LatLng.toRadians(degrees));
 				},
 
 				// cos(d) cosine of d (d in degrees)
 				cos: function (degrees) {
-					return Math.cos(Utils.toRadians(degrees));
+					return Math.cos(LatLng.toRadians(degrees));
 				},
 
 				// tan(d) tangent of d (d in degrees)
 				tan: function (degrees) {
-					return Math.tan(Utils.toRadians(degrees));
+					return Math.tan(LatLng.toRadians(degrees));
 				},
 
 				// asin(x) arcsine of x (returns degrees)
 				asin: function (x) {
-					return Utils.toDegrees(Math.asin(x));
+					return LatLng.toDegrees(Math.asin(x));
 				},
 
 				// acos(x) arccosine of x (returns degrees)
 				acos: function (x) {
-					return Utils.toDegrees(Math.acos(x));
+					return LatLng.toDegrees(Math.acos(x));
 				},
 
 				// atan(x) arctangent of x (returns degrees)
 				atan: function (x) {
-					return Utils.toDegrees(Math.atan(x));
+					return LatLng.toDegrees(Math.atan(x));
 				},
 				abs: Math.abs,
 
@@ -653,11 +653,11 @@ ScriptParser.prototype = {
 
 				// r2d(x) (rad2deg)
 				r2d: function (radians) {
-					return Utils.toDegrees(radians);
+					return LatLng.toDegrees(radians);
 				},
 				// d2r(d) (deg2rad)
 				d2r: function (degrees) {
-					return Utils.toRadians(degrees);
+					return LatLng.toRadians(degrees);
 				},
 
 				// bearing(w1, w2) bearing between w1 and w2 in degrees

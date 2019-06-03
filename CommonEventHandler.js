@@ -479,7 +479,6 @@ CommonEventHandler.prototype = {
 		this.model.setProperty("filterCategory", sFilterCategory);
 		this.controller.fnSetFilterCategorySelectOptions();
 		this.onFilterCategorySelectChange();
-		//this.fnFilterExamples(); already done
 	},
 
 	onSortSelectChange: function () {
@@ -492,7 +491,6 @@ CommonEventHandler.prototype = {
 
 		this.controller.fnSetExampleSelectOptions();
 		this.view.setSelectTitleFromSelectedOption("exampleSelect"); // maybe title changes
-		//do not execute: this.onExampleSelectChange();
 	},
 
 	onSpecialLegendClick: function () {
@@ -581,15 +579,13 @@ CommonEventHandler.prototype = {
 
 		oPos = new LatLng().parse(sLocation);
 		sError = oPos.getError();
-		sTitle = sError || oPos.toFormattedString(); //sWaypointFormat);
+		sTitle = sError || oPos.toFormattedString();
 		this.view.setInputValue("locationInput", sLocation).setInputTitle("locationInput", sTitle).setInputInvalid("locationInput", Boolean(sError));
-		//this.view.setInputInvalid("locationInput", Boolean(sError));
 
 		sSort = this.model.getProperty("sort");
 		if (sSort === "distance") {
 			this.controller.fnSetExampleSelectOptions();
 			this.view.setSelectTitleFromSelectedOption("exampleSelect"); // maybe title distance changed
-			//do NOT execute which will remove temporaty WP location // this.onExampleSelectChange();
 		}
 	},
 
@@ -609,8 +605,6 @@ CommonEventHandler.prototype = {
 
 			sPosition = oMarker.position.toFormattedString(sWaypointFormat);
 			Utils.console.log("Location: getCurrentPosition: " + sPosition);
-			//that.controller.maFa.addMarkers([oMarker]);
-			// // already done in addMarkers; that.onFitBoundsButtonClick();
 			that.view.setInputValue("locationInput", sPosition);
 			that.onLocationInputChange();
 		}
@@ -665,7 +659,7 @@ CommonEventHandler.prototype = {
 					oMarker = {
 						position: oPosition,
 						label: sLabel,
-						title: "L" + sLabel
+						title: "$L" + sLabel
 					};
 					that.controller.maFa.addMarkers([oMarker]);
 				}
@@ -894,10 +888,7 @@ CommonEventHandler.prototype = {
 			};
 
 		aExamples = this.view.getAllSelectOptionValues("exampleSelect");
-		//aExamples.sort(); // use toLowerCase? // keep existing sort order
-
 		Utils.console.log("onNewIndexButton: examples=" + aExamples);
-
 		fnSelectNextValue();
 	},
 

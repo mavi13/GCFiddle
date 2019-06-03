@@ -40,6 +40,10 @@ Model.prototype = {
 	getVariable: function (sVar) {
 		return this.variables[sVar];
 	},
+	setVariable: function (sVar, sValue) {
+		this.variables[sVar] = sValue;
+		return this;
+	},
 	changeVariable: function (sPar, sValue) {
 		var oVariables = this.variables,
 			nValueAsNumber;
@@ -51,7 +55,8 @@ Model.prototype = {
 			if (oVariables.gcfOriginal[sPar] === undefined) {
 				oVariables.gcfOriginal[sPar] = oVariables[sPar]; // save original value, if not done
 			}
-			oVariables[sPar] = sValue;
+			//oVariables[sPar] = sValue;
+			this.setVariable(sPar, sValue);
 			return true; // changed
 		}
 		return false;
