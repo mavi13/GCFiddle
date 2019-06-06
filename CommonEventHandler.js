@@ -56,11 +56,6 @@ CommonEventHandler.prototype = {
 		return this;
 	},
 
-	detachEventHandler: function () {
-		this.view.detachEventHandler(this.fnCommonEventHandler.bind(this));
-		return this;
-	},
-
 	onVarSelectChange: function () {
 		var sPar = this.view.getSelectValue("varSelect"),
 			sType = this.model.getProperty("varType"),
@@ -320,13 +315,14 @@ CommonEventHandler.prototype = {
 				that.view.setAreaValue("outputArea", "Cannot load example: " + sExample);
 			};
 
+		this.model.setProperty("example", sExample);
 		this.view.setSelectTitleFromSelectedOption("exampleSelect");
-		that.model.setProperty("example", sExample);
+		this.view.setDirty(false);
 		oExample = this.model.getExample(sExample); // already loaded
 		if (oExample && oExample.loaded) {
 			fnExampleLoaded("", true);
 		} else if (sExample && oExample && oExample.src) { // need to load
-			that.view.setAreaValue("inputArea", "#loading " + sExample + "...");
+			this.view.setAreaValue("inputArea", "#loading " + sExample + "...");
 			this.view.setAreaValue("outputArea", "waiting...");
 
 			sSrc = oExample.src;
@@ -344,7 +340,7 @@ CommonEventHandler.prototype = {
 			}
 			Utils.loadScript(sUrl, fnExampleLoaded, fnExampleError);
 		} else {
-			that.view.setAreaValue("inputArea", "");
+			this.view.setAreaValue("inputArea", "");
 			this.model.setProperty("example", "");
 			this.controller.fnInitUndoRedoButtons();
 			this.onExecuteButtonClick();
@@ -713,6 +709,10 @@ CommonEventHandler.prototype = {
 		// nothing to do
 	},
 
+	onInputAreaChange: function () {
+		this.view.setDirty(true);
+	},
+
 	onOutputAreaClick: function () {
 		var sPar = "",
 			oSelection,	sOutput, iSelStart,	iLineStart,	iLineEnd, iEqual;
@@ -978,6 +978,7 @@ CommonEventHandler.prototype = {
 		this.controller.fnSetExampleSelectOptions();
 		this.onExampleSelectChange();
 		this.fnSetDeleteButtonStatus();
+		this.view.setDirty(false);
 	},
 
 	onDeleteButtonClick: function () {

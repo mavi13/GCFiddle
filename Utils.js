@@ -49,19 +49,18 @@ var Utils = {
 			}
 		}
 	},
-	loadScript: function (sUrl, fnSuccess, fnError) {
+	fnLoadScriptOrStyle: function (script, sFullUrl, fnSuccess, fnError) {
 		// inspired by https://github.com/requirejs/requirejs/blob/master/require.js
-		var that = this,
-			iIEtimeoutCount = 3,
-			script, sFullUrl,
+		var iIEtimeoutCount = 3,
 			onScriptLoad = function (event) {
 				var node = event.currentTarget || event.srcElement;
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptLoad: " + node.src);
+					Utils.console.debug("onScriptLoad: " + node.src || node.href);
 				}
 				node.removeEventListener("load", onScriptLoad, false);
-				node.removeEventListener("error", that.onScriptError, false);
+				node.removeEventListener("error", onScriptError, false); // eslint-disable-line no-use-before-define
+				// now getEventListeners(node) should be empty again
 
 				if (fnSuccess) {
 					fnSuccess(sFullUrl);
@@ -71,7 +70,7 @@ var Utils = {
 				var node = event.currentTarget || event.srcElement;
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptError: " + node.src);
+					Utils.console.debug("onScriptError: " + node.src || node.href);
 				}
 				node.removeEventListener("load", onScriptLoad, false);
 				node.removeEventListener("error", onScriptError, false);
@@ -93,20 +92,20 @@ var Utils = {
 				}
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptReadyStateChange: " + node.src);
+					Utils.console.debug("onScriptReadyStateChange: " + node.src || node.href);
 				}
 				// check also: https://stackoverflow.com/questions/1929742/can-script-readystate-be-trusted-to-detect-the-end-of-dynamic-script-loading
 				if (node.readyState !== "loaded" && node.readyState !== "complete") {
 					if (node.readyState === "loading" && iIEtimeoutCount) {
 						iIEtimeoutCount -= 1;
 						iTimeout = 200; // some delay
-						Utils.console.error("onScriptReadyStateChange: Still loading: " + node.src + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
+						Utils.console.error("onScriptReadyStateChange: Still loading: " + (node.src || node.href) + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
 						setTimeout(function () {
 							onScriptReadyStateChange(); // check again
 						}, iTimeout);
 					} else {
 						// iIEtimeoutCount = 3;
-						Utils.console.error("onScriptReadyStateChange: Cannot load file " + node.src + " readystate=" + node.readyState);
+						Utils.console.error("onScriptReadyStateChange: Cannot load file " + (node.src || node.href) + " readystate=" + node.readyState);
 						if (fnError) {
 							fnError(sFullUrl);
 						}
@@ -116,11 +115,6 @@ var Utils = {
 				}
 			};
 
-		script = document.createElement("script");
-		script.type = "text/javascript";
-		script.charset = "utf-8";
-		// script.defer = "defer"; // only for IE?
-		script.async = true;
 		if (script.readyState) { // IE
 			iIEtimeoutCount = 3;
 			script.attachEvent("onreadystatechange", onScriptReadyStateChange);
@@ -128,21 +122,29 @@ var Utils = {
 			script.addEventListener("load", onScriptLoad, false);
 			script.addEventListener("error", onScriptError, false);
 		}
-		script.src = sUrl;
-		sFullUrl = script.src;
 		document.getElementsByTagName("head")[0].appendChild(script);
 		return sFullUrl;
 	},
-	loadStyle: function (sUrl, fnCallback, arg) {
-		var link;
+	loadScript: function (sUrl, fnSuccess, fnError) {
+		var script, sFullUrl;
+
+		script = document.createElement("script");
+		script.type = "text/javascript";
+		script.charset = "utf-8";
+		// script.defer = "defer"; // only for IE?
+		script.async = true;
+		script.src = sUrl;
+		sFullUrl = script.src;
+		this.fnLoadScriptOrStyle(script, sFullUrl, fnSuccess, fnError);
+	},
+	loadStyle: function (sUrl, fnSuccess, fnError) {
+		var link, sFullUrl;
 
 		link = document.createElement("link");
 		link.rel = "stylesheet";
-		link.onload = function () {
-			fnCallback(arg);
-		};
 		link.href = sUrl;
-		document.getElementsByTagName("head")[0].appendChild(link);
+		sFullUrl = link.href;
+		this.fnLoadScriptOrStyle(link, sFullUrl, fnSuccess, fnError);
 	},
 	strNumFormat: function (s, iLen, sFillChar) {
 		var i;

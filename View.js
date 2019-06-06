@@ -10,7 +10,7 @@ function View(options) {
 
 View.prototype = {
 	init: function (/* options */) {
-		// empty
+		this.bDirty = false;
 	},
 
 	getHidden: function (sId) {
@@ -162,36 +162,36 @@ View.prototype = {
 
 		return oSelection;
 	},
+	// https://stackoverflow.com/questions/7464282/javascript-scroll-to-selection-after-using-textarea-setselectionrange-in-chrome (AlienKevin)
+	fnSetSelectionRange: function (textarea, selectionStart, selectionEnd) {
+		var fullText, scrollHeight, scrollTop, textareaHeight;
+
+		// First scroll selection region to view
+		fullText = textarea.value;
+		textarea.value = fullText.substring(0, selectionEnd);
+		// For some unknown reason, you must store the scollHeight to a variable before setting the textarea value. Otherwise it won't work for long strings
+		scrollHeight = textarea.scrollHeight;
+		textarea.value = fullText;
+		scrollTop = scrollHeight;
+		textareaHeight = textarea.clientHeight;
+		if (scrollTop > textareaHeight) {
+			// scroll selection to center of textarea
+			scrollTop -= textareaHeight / 2;
+		} else {
+			scrollTop = 0;
+		}
+		textarea.scrollTop = scrollTop;
+
+		// Continue to set selection range
+		textarea.setSelectionRange(selectionStart, selectionEnd);
+	},
 	setAreaSelection: function (sId, iPos, iEndPos) {
-		var area = document.getElementById(sId),
-			// https://stackoverflow.com/questions/7464282/javascript-scroll-to-selection-after-using-textarea-setselectionrange-in-chrome (AlienKevin)
-			fnSetSelectionRange = function (textarea, selectionStart, selectionEnd) {
-				var fullText, scrollHeight, scrollTop, textareaHeight;
-
-				// First scroll selection region to view
-				fullText = textarea.value;
-				textarea.value = fullText.substring(0, selectionEnd);
-				// For some unknown reason, you must store the scollHeight to a variable before setting the textarea value. Otherwise it won't work for long strings
-				scrollHeight = textarea.scrollHeight;
-				textarea.value = fullText;
-				scrollTop = scrollHeight;
-				textareaHeight = textarea.clientHeight;
-				if (scrollTop > textareaHeight) {
-					// scroll selection to center of textarea
-					scrollTop -= textareaHeight / 2;
-				} else {
-					scrollTop = 0;
-				}
-				textarea.scrollTop = scrollTop;
-
-				// Continue to set selection range
-				textarea.setSelectionRange(selectionStart, selectionEnd);
-			};
+		var area = document.getElementById(sId);
 
 		if (area.selectionStart !== undefined) {
 			if (area.setSelectionRange) {
 				area.focus(); // not needed for scrolling but we want to see the selected text
-				fnSetSelectionRange(area, iPos, iEndPos);
+				this.fnSetSelectionRange(area, iPos, iEndPos);
 			} else {
 				area.focus();
 				area.selectionStart = iPos;
@@ -247,25 +247,26 @@ View.prototype = {
 		input.title = sTitle;
 		return this;
 	},
+
+	fnAddClass: function (element, sClassName) {
+		var aClasses = element.className.split(" ");
+
+		if (aClasses.indexOf(sClassName) === -1) {
+			element.className += " " + sClassName;
+		}
+	},
+	fnRemoveClass: function (element, sClassName) {
+		var regExp = new RegExp("\\b" + sClassName + "\\b", "g");
+
+		element.className = element.className.replace(regExp, "");
+	},
 	setInputInvalid: function (sId, bInvalid) {
-		var input = document.getElementById(sId),
-			fnAddClass = function (element, sClassName) {
-				var aClasses = element.className.split(" ");
-
-				if (aClasses.indexOf(sClassName) === -1) {
-					element.className += " " + sClassName;
-				}
-			},
-			fnRemoveClass = function (element, sClassName) {
-				var regExp = new RegExp("\\b" + sClassName + "\\b", "g");
-
-				element.className = element.className.replace(regExp, "");
-			};
+		var input = document.getElementById(sId);
 
 		if (bInvalid) {
-			fnAddClass(input, "invalid");
+			this.fnAddClass(input, "invalid");
 		} else {
-			fnRemoveClass(input, "invalid");
+			this.fnRemoveClass(input, "invalid");
 		}
 		return this;
 	},
@@ -312,14 +313,39 @@ View.prototype = {
 		return this;
 	},
 
-
 	showConfirmPopup: function (message) {
 		var confirm = window.confirm;
 
 		return confirm(message);
 	},
+
+	getDirty: function () {
+		return this.bDirty;
+	},
+
+	setDirty: function (bDirty) {
+		this.bDirty = bDirty;
+		return this;
+	},
+
 	attachEventHandler: function (fnEventHandler) {
-		var varInput;
+		var that = this,
+			varInput,
+			detachEventHandler = function (event) {
+				if (that.getDirty()) {
+					event.returnValue = "Are you sure you want to leave?";
+				} else {
+					document.removeEventListener("click", fnEventHandler, false);
+					document.removeEventListener("change", fnEventHandler, false);
+
+					varInput = document.getElementById("varInput");
+					varInput.removeEventListener("input", fnEventHandler, false); // for range slider
+
+					if (window.removeEventListener) {
+						window.removeEventListener("beforeunload", detachEventHandler, false);
+					}
+				}
+			};
 
 		document.addEventListener("click", fnEventHandler, false);
 		document.addEventListener("change", fnEventHandler, false);
@@ -328,16 +354,10 @@ View.prototype = {
 		if (varInput.addEventListener) { // not for IE8
 			varInput.addEventListener("input", fnEventHandler, false); // for range slider
 		}
-		return this;
-	},
-	detachEventHandler: function (fnEventHandler) {
-		var varInput;
 
-		document.removeEventListener("click", fnEventHandler);
-		document.removeEventListener("change", fnEventHandler);
-
-		varInput = document.getElementById("varInput");
-		varInput.removeEventListener("input", fnEventHandler); // for range slider
+		if (window.addEventListener) {
+			window.addEventListener("beforeunload", detachEventHandler, false);
+		}
 		return this;
 	}
 };

@@ -1,7 +1,7 @@
 // MapProxy.Leaflet.js - MapProxy.Leaflet for GCFiddle
 // https://leafletjs.com/reference-1.3.0.html
 //
-/* globals MapProxy, Utils, LatLng, L */ // make ESlint happy
+/* globals MapProxy, Utils, LatLng, L, View */ // make ESlint happy
 
 "use strict";
 
@@ -187,21 +187,23 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 			oPopup = markerGroup.getPopup(),
 			aLayers = markerGroup.getLayers(),
 			aPath = [],
-			i, oItem, oPosition, oMarkerOptions, oMarker;
+			i, oItem, oPosition, sType, oMarkerOptions, oMarker;
 
 		for (i = 0; i < aList.length; i += 1) {
 			oItem = aList[i];
+			sType = oItem.title.charAt(1); // $Px, $Lx: L and P are special types
 			oPosition = oItem.position.clone();
 			aPath.push(oPosition);
 			if (!aMarkerPool[i]) {
 				oMarkerOptions = Utils.objectAssign({}, oItem, { // create a deep copy so we can modify the position
-					position: oPosition
+					position: oPosition,
+					type: sType
 				});
 				oMarker = new MapProxy.Leaflet.Marker(oMarkerOptions);
 				aMarkerPool[i] = oMarker;
 			} else { // change marker
 				oMarker = aMarkerPool[i];
-				oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oPosition);
+				oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oPosition).setType(sType);
 				if (oPopup && oPopup.isOpen() && this.markerGroup.getLayerId(oMarker.marker) === this.iPopupSourceId) {
 					oPopup.setLatLng(MapProxy.Leaflet.position2leaflet(oItem.position));
 					oPopup.setContent(this.privGetPopupContent(oMarker.marker));
@@ -279,20 +281,27 @@ MapProxy.Leaflet.Marker = function (options) {
 	this.init(options);
 };
 
+MapProxy.Leaflet.Marker.getClass4Type = function (sType) {
+	var sClassName;
+
+	if (sType === "P") {
+		sClassName = "leaflet-parking-icon";
+	} else if (sType === "L") {
+		sClassName = "leaflet-location-icon";
+	} else {
+		sClassName = "leaflet-div-icon"; // default: leaflet-div-icon
+	}
+	return sClassName;
+};
+
 MapProxy.Leaflet.Marker.prototype = {
 	init: function (options) {
-		var oMarkerOptions, sWpType, sClassName, oDivIcon;
+		var oMarkerOptions, sClassName, oDivIcon;
 
 		this.options = Utils.objectAssign({}, options);
 		oMarkerOptions = this.options;
-		sClassName = "leaflet-div-icon"; // default: leaflet-div-icon
-		sWpType = oMarkerOptions.title.charAt(1); // $Wx, $Px, $Lx
-		if (sWpType === "P") {
-			sClassName = "leaflet-parking-icon";
-		} else if (sWpType === "L") {
-			sClassName = "leaflet-location-icon";
-		}
-		oDivIcon = this.oDivIcon || new L.DivIcon({
+		sClassName = MapProxy.Leaflet.Marker.getClass4Type(oMarkerOptions.type);
+		oDivIcon = new L.DivIcon({
 			className: sClassName,
 			html: oMarkerOptions.label,
 			iconSize: [16, 16] // eslint-disable-line array-element-newline
@@ -332,6 +341,25 @@ MapProxy.Leaflet.Marker.prototype = {
 		if (this.options.title !== title) {
 			this.options.title = title;
 			this.marker.options.title = title;
+		}
+		return this;
+	},
+	setType: function (type) {
+		var element, sClassName;
+
+		if (this.options.type !== type) { // rather complicated, maybe we should not reuse marker in such cases
+			element = this.marker.getElement();
+			if (element) { // already drawn?
+				sClassName = MapProxy.Leaflet.Marker.getClass4Type(this.options.type);
+				View.fnRemoveClass(element, sClassName);
+			}
+			this.options.type = type;
+			sClassName = MapProxy.Leaflet.Marker.getClass4Type(type);
+			this.marker.options.icon.options.className = sClassName; //fast hack
+			if (element) { // already drawn?
+				sClassName = MapProxy.Leaflet.Marker.getClass4Type(type);
+				View.fnAddClass(element, sClassName);
+			}
 		}
 		return this;
 	},
