@@ -16,6 +16,8 @@ function CommonEventHandler(oModel, oView, oController) {
 	this.init(oModel, oView, oController);
 }
 
+CommonEventHandler.fnEventHandler = null;
+
 CommonEventHandler.prototype = {
 	init: function (oModel, oView, oController) {
 		this.model = oModel;
@@ -25,6 +27,9 @@ CommonEventHandler.prototype = {
 		this.geoLocationId = null;
 
 		this.mapProxy = {};
+
+		this.onMyExampleSelectChangeCompleted = null;
+
 		this.attachEventHandler();
 	},
 
@@ -52,7 +57,10 @@ CommonEventHandler.prototype = {
 	},
 
 	attachEventHandler: function () {
-		this.view.attachEventHandler(this.fnCommonEventHandler.bind(this));
+		if (!CommonEventHandler.fnEventHandler) {
+			CommonEventHandler.fnEventHandler = this.fnCommonEventHandler.bind(this);
+		}
+		this.view.attachEventHandler(CommonEventHandler.fnEventHandler);
 		return this;
 	},
 
@@ -315,9 +323,15 @@ CommonEventHandler.prototype = {
 				that.view.setAreaValue("outputArea", "Cannot load example: " + sExample);
 			};
 
+		if (this.view.getDirty()) {
+			this.view.setDirty(false);
+			if (!this.view.showConfirmPopup("There are unsaved changes. Continue?")) {
+				this.view.setSelectValue("exampleSelect", this.model.getProperty("example")); // restore
+				return;
+			}
+		}
 		this.model.setProperty("example", sExample);
 		this.view.setSelectTitleFromSelectedOption("exampleSelect");
-		this.view.setDirty(false);
 		oExample = this.model.getExample(sExample); // already loaded
 		if (oExample && oExample.loaded) {
 			fnExampleLoaded("", true);
@@ -397,6 +411,13 @@ CommonEventHandler.prototype = {
 				fnDatabaseLoaded("", sDatabase);
 			};
 
+		if (this.view.getDirty()) {
+			this.view.setDirty(false);
+			if (!this.view.showConfirmPopup("There are unsaved changes. Continue?")) {
+				this.view.setSelectValue("databaseSelect", this.model.getProperty("database")); // restore
+				return;
+			}
+		}
 		this.model.setProperty("database", sDatabase);
 		this.view.setSelectTitleFromSelectedOption("databaseSelect");
 		oDatabase = this.model.getDatabase();
@@ -519,8 +540,8 @@ CommonEventHandler.prototype = {
 		this.model.setProperty("showResult", bShow);
 	},
 
-	onVarLegendClick: function () {
-		var bShow = !this.view.toogleHidden("varArea").getHidden("varArea");
+	onVariableLegendClick: function () {
+		var bShow = !this.view.toogleHidden("variableArea").getHidden("variableArea");
 
 		this.model.setProperty("showVariable", bShow);
 	},
@@ -556,8 +577,8 @@ CommonEventHandler.prototype = {
 		this.model.setProperty("showLogs", bShowLogs);
 	},
 
-	onConsoleLogLegendClick: function () {
-		var bShowConsole = !this.view.toogleHidden("consoleLogArea").getHidden("consoleLogArea");
+	onConsoleLegendClick: function () {
+		var bShowConsole = !this.view.toogleHidden("consoleArea").getHidden("consoleArea");
 
 		this.model.setProperty("showConsole", bShowConsole);
 	},
@@ -836,23 +857,19 @@ CommonEventHandler.prototype = {
 		window.location.search = "?" + this.controller.fnEncodeUriParam(oChanged); // jQuery.param(oChanged, true)
 	},
 
-	onMyExampleSelectChangeCompleted: function (sExample) {
-		if (Utils.debug > 1) {
-			Utils.console.debug("onMyExampleSelectChangeCompleted: " + sExample);
-			// handler not used, yet
-		}
-	},
-
 	onIndexButtonClick: function () {
 		var that = this,
-			aExamples,
-			iIndex = 0,
-			fnDumpIndex = function () {
-				var sList = "",
-					i, sExample, oExample, sLine;
+			sList = "",
+			aExamples, iIndex,
 
-				for (i = 0; i < aExamples.length; i += 1) {
-					sExample = aExamples[i];
+			fnSelectNextExample = function () {
+				var sExample, oExample, sLine;
+
+				if (iIndex >= 0) {
+					sExample = aExamples[iIndex];
+					if (Utils.debug) {
+						Utils.console.debug("fnSelectNextExample: select value " + sExample + " (index " + iIndex + ")");
+					}
 					oExample = that.model.getExample(sExample);
 					if (oExample) {
 						if (!oExample.loaded) {
@@ -865,31 +882,23 @@ CommonEventHandler.prototype = {
 						sList += sLine + "\n";
 					}
 				}
-				that.view.setAreaValue("outputArea", sList);
-			},
-			fnSelectNextValue = function () {
-				var iTimeout = 40, // 10 could be ok
-					sValue;
 
-				if (iIndex < aExamples.length) {
-					sValue = aExamples[iIndex];
-					if (Utils.debug) {
-						Utils.console.debug("fnSelectNextValue: select value " + sValue + " (index " + iIndex + ")");
-					}
-					that.view.setSelectValue("exampleSelect", sValue);
-					that.onExampleSelectChange();
-					setTimeout(fnSelectNextValue, iTimeout);
-					//other possiblility: that.onMyExampleSelectChangeCompleted = fnSelectNextValue;
+				if (iIndex < aExamples.length - 1) {
 					iIndex += 1;
+					sExample = aExamples[iIndex];
+					that.view.setSelectValue("exampleSelect", sExample);
+					that.onExampleSelectChange();
 				} else {
-					//that.onMyExampleSelectChangeCompleted = null;
-					setTimeout(fnDumpIndex, iTimeout);
+					that.onMyExampleSelectChangeCompleted = null;
+					that.view.setAreaValue("outputArea", sList);
 				}
 			};
 
 		aExamples = this.view.getAllSelectOptionValues("exampleSelect");
-		Utils.console.log("onNewIndexButton: examples=" + aExamples);
-		fnSelectNextValue();
+		Utils.console.log("onIndexButtonClick: examples=" + aExamples);
+		iIndex = -1;
+		this.onMyExampleSelectChangeCompleted = fnSelectNextExample;
+		fnSelectNextExample();
 	},
 
 	fnTestIndexedDb: function (sExample) {
@@ -955,6 +964,7 @@ CommonEventHandler.prototype = {
 			sExample = this.model.getProperty("example"),
 			sInput = this.view.getAreaValue("inputArea");
 
+		this.view.setDirty(false);
 		if (sDatabase !== "saved") {
 			sDatabase = "saved";
 			this.view.setSelectValue("databaseSelect", sDatabase);
@@ -978,7 +988,6 @@ CommonEventHandler.prototype = {
 		this.controller.fnSetExampleSelectOptions();
 		this.onExampleSelectChange();
 		this.fnSetDeleteButtonStatus();
-		this.view.setDirty(false);
 	},
 
 	onDeleteButtonClick: function () {
@@ -1019,12 +1028,12 @@ CommonEventHandler.prototype = {
 	},
 
 	onConsoleButtonClick: function () {
-		var bShow = !this.view.toogleHidden("consoleLogBox").getHidden("consoleLogBox");
+		var bShow = !this.view.toogleHidden("consoleBox").getHidden("consoleBox");
 
 		if (bShow !== this.model.getProperty("showConsole")) {
-			this.onConsoleLogLegendClick();
+			this.onConsoleLegendClick();
 		}
-		Utils.console.changeLog(this.model.getProperty("showConsole") ? this.view.getArea("consoleLogArea") : null);
+		Utils.console.changeLog(this.model.getProperty("showConsole") ? this.view.getArea("consoleArea") : null);
 	},
 
 	onHelpButtonClick: function () {

@@ -28,7 +28,7 @@ Controller.prototype = {
 
 		this.commonEventHandler = new CommonEventHandler(oModel, oView, this);
 
-		oView.setHidden("consoleLogBox", !oModel.getProperty("showConsole"));
+		oView.setHidden("consoleBox", !oModel.getProperty("showConsole"));
 
 		this.inputStack = new InputStack();
 
@@ -67,11 +67,11 @@ Controller.prototype = {
 		oView.setHidden("sortArea", !oModel.getProperty("showSort"));
 		oView.setHidden("scriptArea", !oModel.getProperty("showScript"));
 		oView.setHidden("resultArea", !oModel.getProperty("showResult"));
-		oView.setHidden("varArea", !oModel.getProperty("showVariable"));
+		oView.setHidden("variableArea", !oModel.getProperty("showVariable"));
 		oView.setHidden("notesArea", !oModel.getProperty("showNotes"));
 		oView.setHidden("waypointArea", !oModel.getProperty("showWaypoint"));
 		oView.setHidden("logsArea", !oModel.getProperty("showLogs"));
-		oView.setHidden("consoleLogArea", !oModel.getProperty("showConsole"));
+		oView.setHidden("consoleArea", !oModel.getProperty("showConsole"));
 
 		oView.setHidden("varOptionGroup", oModel.getProperty("varType") === "text");
 
@@ -680,6 +680,10 @@ Controller.prototype = {
 		iPos = sInput.indexOf(this.sJsonMarker);
 		if (iPos >= 0) {
 			sJson = sInput.substring(iPos + this.sJsonMarker.length);
+			iPos = sJson.indexOf("\n"); // EOL?
+			if (iPos >= 0) {
+				sJson = sJson.substring(0, iPos);
+			}
 			try {
 				oInfo = JSON.parse(sJson);
 			} catch (e) {

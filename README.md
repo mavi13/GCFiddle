@@ -74,14 +74,14 @@ GCFiddle Links:
 
 - Allows you to select a variable that is found during script execution and fiddle with it.
    That means you can change it temporarily without changing the script.
-   Changed variables are marked with "[c]".
+   Changed variables are marked with "\[c]".
 - Also, the general view type of the variable can be changed. If view type "number" is selected but a variable is not a number, it is still displayed as text.
    The range slider currently uses the interval 0 to 9999.
 
 ### Waypoint box
 
 - Allows you to select a waypoint found during script execution and fiddle with it. That means you can change it temporarily without changing the script.
-   Changed waypoints are marked with "[c]".
+   Changed waypoints are marked with "\[c]".
 - Waypoints are variables that begin with a dollar sign "$": e.g. `$W1`.
 
 - The waypoint format can be changed. This affects the hover popup for the waypoint input field and the marker popups on the map. Usually waypoints are shown in the same format as they were defined. Possible formats:
@@ -121,8 +121,8 @@ GCFiddle Links:
 - Strings are surrounded by quotations: `"3.14"`
   - Character escaping with backslash in quoted strings: `"a\"b\"\nc"` => `a"b"<newline>c`
   - Strings can also be surrounded by apostrophes  (no escaping): `'3.14'`, can contain quotations: `'quotations: "'`
-  - Strings in brackets are concatenated: `["5" "3." "14"]` = `"53.14"`
-  - Type conversion: Numbers in brackets are converted to strings: `[ 5 "3." 14 ]` = `"53.14"`
+  - Strings in brackets are concatenated: `\["5" "3." "14"]` = `"53.14"`
+  - Type conversion: Numbers in brackets are converted to strings: `\[ 5 "3." 14 ]` = `"53.14"`
   - Number formatting with suffix pattern: `3.14159:000.00:` => `"003.14"`
 - Operators +, -, *, / % ^ are used for for numerical addition, subtraction, multiplication, division, modulo and exponential operation.
  (Note: Operator "%" is not supported by WolfLanguage, use mod() function, see below.)
@@ -137,11 +137,11 @@ GCFiddle Links:
 ### List of predefined functions
 
 - If not mentioned otherwise, type conversion is done as needed.
-- Functions which are not available in CacheWolf are marked with [+].
+- Functions which are not available in CacheWolf are marked with: 1
 
 #### Helper functions
 
-- getconst(s): get constant "PI" or "E": `getconst("PI")` = `3.141592653589793`, `getconst("E")` = `2.718281828459045` [+]
+- getconst(s)²: get constant "PI" or "E": `getconst("PI")` = `3.141592653589793`, `getconst("E")` = `2.718281828459045`
 - d2r(d): convert degrees to radians (d * Math.PI / 180)
 - r2d(r): convert radians to degrees (r * 180 / Math.PI)
 
@@ -157,26 +157,26 @@ GCFiddle Links:
 #### Numerical functions
 
 - abs(x): absolute value of number x: `abs(-3.14)` = `3.14`
-- round(x): round x to nearest integer: `round(3.14)` = `3`, `round(3.54)` = `4`, , `round(-3.54)` = `-4` [+]
-- ceil(x): ceiling function: round x to nearest integer >= x: `ceil(3.54)` = `4`, `ceil(-3.54)` = `-3` [+]
-- floor(x): floor function:  round x to nearest integer <= x: `floor(3.54)` = `3`, `floor(-3.54)` = `-4` [+]
+- round(x)²: round x to nearest integer: `round(3.14)` = `3`, `round(3.54)` = `4`, , `round(-3.54)` = `-4`
+- ceil(x)²: ceiling function: round x to nearest integer >= x: `ceil(3.54)` = `4`, `ceil(-3.54)` = `-3`
+- floor(x)²: floor function:  round x to nearest integer <= x: `floor(3.54)` = `3`, `floor(-3.54)` = `-4`
 - int(x): integer value of x (floor() for x > 0, otherwise ceil()): `int(3.54)` = `3`, `int(-3.54)` = `-3`
 - mod(x, y): modulo operation x % y, reminder of x / y: `mod(25, 7)` = `4`, `mod(-13, 64)` = `-13`
-- log(x): natural logarithm (base E) of a number x: `log(8)/log(2)` = `3` [+]
-- exp(x): exponential function e ^ x: `exp(0)` = `1` [+]
+- log(x)²: natural logarithm (base E) of a number x: `log(8)/log(2)` = `3`
+- exp(x)²: exponential function e ^ x: `exp(0)` = `1`
 - sqrt(x): square root of a number x: `sqrt(9)` = `3`
-- min(x, y): minimum of numbers x and y: `min(3.14, 4)` = `3.14` [+]
-- max(x, y): maximum of numbers x and y: `max(3.14, 4)` = `4` [+]
-- random(): pseudo-random number (0 <= x < 1): `random()` [+]
-- gcd(x, y): greatest common divisor of x and y: `gcd(1071, 1029)` = `21` [+]
-- fib(n): the nth Fibonacci number, the sum of the two preceding ones: `fib(50)` = `12586269025` [+]
+- min(x, y)²: minimum of numbers x and y: `min(3.14, 4)` = `3.14`
+- max(x, y)²: maximum of numbers x and y: `max(3.14, 4)` = `4`
+- random()²: pseudo-random number (0 <= x < 1): `random()`
+- gcd(x, y)²: greatest common divisor of x and y: `gcd(1071, 1029)` = `21`
+- fib(n)²: the nth Fibonacci number, the sum of the two preceding ones: `fib(50)` = `12586269025`
 - ct(n): crosstotal of the number n (sum of digits): `ct(1234567890)` = `45`
   - Works also for strings: `ct("1234567890")` = `45`
   - Other characters are ignored: `ct("R9z876gh5432%.*^/+-10")` = `45`
   - Crosstotal of crosstotal: `ct(ct(1234567890))` = `9`
-- cti(n): crosstotal iterative of the number n (sum of digits until < 10): `cti("1234567890")` = `9` [+]
+- cti(n)²: crosstotal iterative of the number n (sum of digits until < 10): `cti("1234567890")` = `9`
   - Other characters are ignored: `cti("R9z876gh5432%.*^/+-10")` = `9`
-- (zformat(n, len): zero padding to len characters: `zformat(0, 3)` = `"000"`,  `zformat(8.2, 5)` = `"008.2"`) [+]
+- (zformat(n, len)²: zero padding to len characters: `zformat(0, 3)` = `"000"`,  `zformat(8.2, 5)` = `"008.2"`)
 
 #### String functions
 
@@ -184,14 +184,14 @@ GCFiddle Links:
   - special characters and numbers are ignored: `val("äöüß")` = `0`, `val(1234567)` = `0`
 - sval(s): list of the character values: `sval("ABCDEFGZz")` = `"01 02 03 04 05 06 07 26 26"`
   - Special characters are ignored: `sval("ABCxyzäöü")` = `"01 02 03 24 25 26"`
-- vstr(s, i): inverse of sval() with an optional parameter to shift characters by i places. [+]
+- vstr(s, i)²: inverse of sval() with an optional parameter to shift characters by i places.
 - encode(s, m1, m2): encode s with character mapping m1 to m2:
   - `encode("ABBA17abba", "AB7", "OS2")` = `"OSSO12abba"`
 - instr(s, s2): first index of s2 in s, starting at 1; 0=not found: `instr("abca", "a")` = `1`, `instr("abca", "d")` = `0`
 - instr(s, s2, i): same as instr(s, s2) but with optional start parameter i > 0
    (CacheWolf also supports this variant but expects i as first parameter!)
 - len(s): length of string s: `len("abc")` = `3`, `len("")` = `0`
-- countstr(s, s2): Count number of occurrences of substring s2 in s: `count("abba", "a")` = `2`. [+]
+- countstr(s, s2)²: Count number of occurrences of substring s2 in s: `count("abba", "a")` = `2`.
 - count(s, c): count individual characters from s2 in string s: `count("abba", "a")` = `2`. For multiple characters, list the counts separately: `count("abba", "ab")` = `"a=2 b=2"`.
 - mid(s, index, len): substring starting at index (>=1) and length: `mid("abcABCabc", 3, 5)` = `"cABCa"`
 - uc(s): uppercase string (caution: Chrome converts "ß" to "SS"!): `uc("abcäöüABC")` = `"ABCÄÖÜABC"`
@@ -223,7 +223,7 @@ $W2="N 49° 15.903 E 008° 40.777"
   - `distance($W1, $W2)` = `575`
 - project($W1, angle, distance): project from $W1 angle degrees and distance meters
   - `project($W1, 137, 575)` = `$W1`
-- midpoint($W1, $W2): midpoint between $W1 and $W2 [+]
+- midpoint($W1, $W2)²: midpoint between $W1 and $W2
   - `midpoint($W1, $W2)` = `project($W1, bearing($W1,$W2), distance($W1,$W2)/2)`
 - format($W1, fmt): format waypoint $W1 (dmm, dms, dd):
   - `format($W1, "dmm")` = `$W1` = `"N 49° 16.130 E 008° 40.453"`
@@ -234,22 +234,22 @@ $W2="N 49° 15.903 E 008° 40.777"
 
 - ic(x): ignore case for variables, 0=false (default), 1 (or number <>0)=true; without x returns status "true" or "false".
   The default can also be changed with the setting `ignoreVarCase`.
-- isequal(x, y): ... [+]
-- assert(s1, s2): asserts that s1 is equal to s2 [+]
-- parse(s): Parses script in s; returns output and possible error messages [+]
+- isequal(x, y)²: ...
+- assert(s1, s2)²: asserts that s1 is equal to s2
+- parse(s)²: Parses script in s; returns output and possible error messages
 - cls(): clear output
-- concat(s1, s2, ...): internal function to concatenate strings (use brackets to concatenate strings) [+]
+- concat(s1, s2, ...)²: internal function to concatenate strings (use brackets to concatenate strings)
 
 ### Differences in the calculation language of GCFiddle and WolfLanguage from CacheWolf
 
-- Most of the functions are also available in CacheWolf, so it is possible to write calculation scripts for both interpreters. (Functions which are not available in CacheWolf are marked with [+].)
+- Most of the functions are also available in CacheWolf, so it is possible to write calculation scripts for both interpreters. (Functions which are not available in CacheWolf are marked with ².)
 - Please see the examples on the test page [GCTEST1](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCTEST1).
 - Please check the description of the [WolfLanguage](http://cachewolf.aldos.de/index.php/Doku/WolfLanguage) (only in German).
 
 #### Some differences when using GCFiddle
 
 - Strings can also be surrounded by apostrophes `'` (no character escaping).
-- To concatenate strings, they must be placed in brackets `[`...`]`. Separation by spaces is not enough
+- To concatenate strings, they must be placed in brackets `\[`...`]`. Separation by spaces is not enough
 - Per default, functions and variables are case-sensitive. This can be changed with a setting or with `ic(0)` for variables. (In WolfLanguage, ignore case is the default.)
 - Possibility to define new functions, e.g. `f(x,y)=x+y`
 - Number formatting with suffix pattern may contain zero `0` and dot `.` but no hash `#`

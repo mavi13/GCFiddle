@@ -55,7 +55,6 @@ Model.prototype = {
 			if (oVariables.gcfOriginal[sPar] === undefined) {
 				oVariables.gcfOriginal[sPar] = oVariables[sPar]; // save original value, if not done
 			}
-			//oVariables[sPar] = sValue;
 			this.setVariable(sPar, sValue);
 			return true; // changed
 		}

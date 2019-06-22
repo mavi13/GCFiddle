@@ -8,6 +8,8 @@ function View(options) {
 	this.init(options);
 }
 
+View.fnEventHandler = null;
+
 View.prototype = {
 	init: function (/* options */) {
 		this.bDirty = false;
@@ -323,40 +325,43 @@ View.prototype = {
 		return this.bDirty;
 	},
 
+	fnBeforeUnload: function (event) {
+		if (Utils.debug) {
+			Utils.console.debug("fnBeforeUnload: event=" + event);
+		}
+		event.returnValue = "Are you sure you want to leave?";
+		this.setDirty(false);
+	},
+
 	setDirty: function (bDirty) {
-		this.bDirty = bDirty;
+		if (bDirty !== this.bDirty) {
+			this.bDirty = bDirty;
+			if (bDirty) {
+				if (window.addEventListener) {
+					if (!View.fnEventHandler) {
+						View.fnEventHandler = this.fnBeforeUnload.bind(this);
+					}
+					window.addEventListener("beforeunload", View.fnEventHandler, false);
+				}
+			} else if (window.removeEventListener) {
+				window.removeEventListener("beforeunload", View.fnEventHandler, false);
+			}
+		}
 		return this;
 	},
 
 	attachEventHandler: function (fnEventHandler) {
-		var that = this,
-			varInput,
-			detachEventHandler = function (event) {
-				if (that.getDirty()) {
-					event.returnValue = "Are you sure you want to leave?";
-				} else {
-					document.removeEventListener("click", fnEventHandler, false);
-					document.removeEventListener("change", fnEventHandler, false);
+		var varInput;
 
-					varInput = document.getElementById("varInput");
-					varInput.removeEventListener("input", fnEventHandler, false); // for range slider
-
-					if (window.removeEventListener) {
-						window.removeEventListener("beforeunload", detachEventHandler, false);
-					}
-				}
-			};
-
+		if (Utils.debug) {
+			Utils.console.debug("attachEventHandler: fnEventHandler=" + fnEventHandler);
+		}
 		document.addEventListener("click", fnEventHandler, false);
 		document.addEventListener("change", fnEventHandler, false);
 
 		varInput = document.getElementById("varInput");
 		if (varInput.addEventListener) { // not for IE8
 			varInput.addEventListener("input", fnEventHandler, false); // for range slider
-		}
-
-		if (window.addEventListener) {
-			window.addEventListener("beforeunload", detachEventHandler, false);
 		}
 		return this;
 	}

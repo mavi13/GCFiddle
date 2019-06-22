@@ -105,7 +105,7 @@ var gcFiddleExternalConfig, // set in gcconfig.js
 			this.model = new Model(oStartConfig, oInitialConfig);
 			this.view = new View({});
 
-			Utils.console.changeLog(this.model.getProperty("showConsole") ? this.view.getArea("consoleLogArea") : null);
+			Utils.console.changeLog(this.model.getProperty("showConsole") ? this.view.getArea("consoleArea") : null);
 			iDebug = Number(this.model.getProperty("debug"));
 			Utils.debug = iDebug;
 
