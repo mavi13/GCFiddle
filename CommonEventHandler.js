@@ -263,22 +263,23 @@ CommonEventHandler.prototype = {
 		this.onWaypointSelectChange(null); // do not center on wp
 	},
 
-	onUndoButtonClick: function () {
-		var sInput = this.controller.inputStack.undo();
-
+	fnUpdateArea: function (sInput) {
 		this.view.setAreaValue("inputArea", sInput);
 		this.controller.fnSetLogsAreaValue(sInput);
 		this.controller.fnUpdateUndoRedoButtons();
 		this.view.setAreaValue("outputArea", "");
 	},
 
+	onUndoButtonClick: function () {
+		var sInput = this.controller.inputStack.undo();
+
+		this.fnUpdateArea(sInput);
+	},
+
 	onRedoButtonClick: function () {
 		var sInput = this.controller.inputStack.redo();
 
-		this.view.setAreaValue("inputArea", sInput);
-		this.controller.fnSetLogsAreaValue(sInput);
-		this.controller.fnUpdateUndoRedoButtons();
-		this.view.setAreaValue("outputArea", "");
+		this.fnUpdateArea(sInput);
 	},
 
 	onPreprocessButtonClick: function () {
@@ -293,6 +294,17 @@ CommonEventHandler.prototype = {
 		} else {
 			this.controller.fnDoPreprocess();
 		}
+	},
+
+	fnAbortOnDirty: function () {
+		if (this.view.getDirty()) {
+			this.view.setDirty(false);
+			if (!this.view.showConfirmPopup("There are unsaved changes. Continue?")) {
+				//this.view.setSelectValue("exampleSelect", this.model.getProperty("example")); // restore
+				return true;
+			}
+		}
+		return false;
 	},
 
 	onExampleSelectChange: function () {
@@ -323,12 +335,9 @@ CommonEventHandler.prototype = {
 				that.view.setAreaValue("outputArea", "Cannot load example: " + sExample);
 			};
 
-		if (this.view.getDirty()) {
-			this.view.setDirty(false);
-			if (!this.view.showConfirmPopup("There are unsaved changes. Continue?")) {
-				this.view.setSelectValue("exampleSelect", this.model.getProperty("example")); // restore
-				return;
-			}
+		if (this.fnAbortOnDirty()) {
+			this.view.setSelectValue("exampleSelect", this.model.getProperty("example")); // restore
+			return;
 		}
 		this.model.setProperty("example", sExample);
 		this.view.setSelectTitleFromSelectedOption("exampleSelect");
@@ -411,13 +420,11 @@ CommonEventHandler.prototype = {
 				fnDatabaseLoaded("", sDatabase);
 			};
 
-		if (this.view.getDirty()) {
-			this.view.setDirty(false);
-			if (!this.view.showConfirmPopup("There are unsaved changes. Continue?")) {
-				this.view.setSelectValue("databaseSelect", this.model.getProperty("database")); // restore
-				return;
-			}
+		if (this.fnAbortOnDirty()) {
+			this.view.setSelectValue("databaseSelect", this.model.getProperty("database")); // restore
+			return;
 		}
+
 		this.model.setProperty("database", sDatabase);
 		this.view.setSelectTitleFromSelectedOption("databaseSelect");
 		oDatabase = this.model.getDatabase();

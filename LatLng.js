@@ -107,7 +107,7 @@ LatLng.prototype = {
 		return (LatLng.toDegrees(theta) + 360) % 360;
 	},
 	destinationPoint: function (distance, bearing) {
-		var radius = 6371e3, // see http://www.edwilliams.org/avform.htm#LL (former: http://williams.best.vwh.net/avform.htm#LL)
+		var radius = 6371000, // see http://www.edwilliams.org/avform.htm#LL (former: http://williams.best.vwh.net/avform.htm#LL)
 			delta = Number(distance) / radius, // angular distance in radians
 			theta = LatLng.toRadians(Number(bearing)),
 
