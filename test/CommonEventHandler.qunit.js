@@ -223,7 +223,7 @@ QUnit.module("CommonEventHandler test", function (hooks) {
 				varInputValue: 12,
 				varLabelText: "a",
 				varLabelTitle: "a",
-				varLegendText: "Variables (undefined)",
+				variableLegendText: "Variables (undefined)",
 				varSelectValue: "a"
 			},
 			mViewResultB = {
@@ -235,7 +235,7 @@ QUnit.module("CommonEventHandler test", function (hooks) {
 				varInputValue: "t1",
 				varLabelText: "b",
 				varLabelTitle: "b",
-				varLegendText: "Variables (2)",
+				variableLegendText: "Variables (2)",
 				varSelectLength: 2,
 				varSelectValue: "b"
 			};
@@ -410,7 +410,7 @@ QUnit.module("CommonEventHandler test", function (hooks) {
 				varInputValue: "",
 				varLabelText: "",
 				varLabelTitle: "",
-				varLegendText: "Variables (undefined)",
+				variableLegendText: "Variables (undefined)",
 				varMaxInputValue: 9999,
 				varMinInputValue: 0,
 				varOptionGroupHidden: false,

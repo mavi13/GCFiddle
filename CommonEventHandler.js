@@ -92,7 +92,7 @@ CommonEventHandler.prototype = {
 
 		this.view.setSelectTitleFromSelectedOption("varSelect");
 		iSelectLength = this.view.getSelectLength("varSelect");
-		this.view.setLegendText("varLegend", "Variables (" + iSelectLength + ")");
+		this.view.setLegendText("variableLegend", "Variables (" + iSelectLength + ")");
 	},
 
 	onWaypointViewSelectChange: function () {
