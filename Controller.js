@@ -9,6 +9,8 @@ function Controller(oModel, oView) {
 }
 
 Controller.prototype = {
+	aDirections: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
+
 	init: function (oModel, oView) {
 		var that = this,
 			sFilterId, sFilterTitle, sSort, sLocation, sVarType, iVarMin, iVarMax, iVarStep, sWaypointFormat, sMapType, sExample, sUrl,
@@ -351,13 +353,25 @@ Controller.prototype = {
 		this.view.setSelectOptions(sSelect, aItems);
 	},
 
+	fnGetDirectionAngleDistance: function (oPosition1, oPosition2) {
+		var fAngle = oPosition1.bearingTo(oPosition2),
+			iAngle = Math.round(fAngle),
+			fDistance = oPosition1.distanceTo(oPosition2),
+			iDistance = Math.round(fDistance),
+			sDirection = this.aDirections[Math.round(fAngle / (360 / this.aDirections.length)) % this.aDirections.length];
+
+		return sDirection + ": " + iAngle + "° " + iDistance + "m";
+	},
+
 	fnSetExampleSelectOptions: function () {
-		var sSelect = "exampleSelect",
+		var sMaxTitleLength = 160,
+			sMaxTextLength = 80, // 37 visible?
+			sSelect = "exampleSelect",
 			aItems = [],
 			sExample = this.model.getProperty("example"),
 			aFilteredExamples = this.model.getFilteredExamples(),
 			sSort = this.model.getProperty("sort"),
-			i, oExample, oItem, sLocationInput, oReferencePosition, iAllExamples,
+			i, oExample, oItem, sLocationInput, oReferencePosition, iAllExamples, sDirectionAngleDistance,
 			fnSorter = null,
 			fnSortByNumber = function (a, b) {
 				return a.fSort - b.fSort;
@@ -397,9 +411,8 @@ Controller.prototype = {
 			oExample = aFilteredExamples[i];
 			oItem = {
 				value: oExample.key,
-				title: (oExample.key + ": " + this.model.fnGetExampleTitle(oExample)).substr(0, 160)
+				title: (oExample.key + ": " + this.model.fnGetExampleTitle(oExample)).substr(0, sMaxTitleLength)
 			};
-			oItem.text = oItem.title.substr(0, 34);
 			if (oExample.key === sExample) {
 				oItem.selected = true;
 			}
@@ -411,12 +424,14 @@ Controller.prototype = {
 				oItem.sSort = this.model.fnGetExampleTitle(oExample);
 				break;
 			case "distance":
-				oItem.fSort = oExample.position.distanceTo(oReferencePosition);
-				oItem.title += " (" + Math.round(oItem.fSort) + ")";
+				oItem.fSort = oReferencePosition.distanceTo(oExample.position);
+				sDirectionAngleDistance = " (" + this.fnGetDirectionAngleDistance(oReferencePosition, oExample.position) + ")";
+				oItem.title += sDirectionAngleDistance;
 				break;
 			default:
 				break;
 			}
+			oItem.text = oItem.title.substr(0, sMaxTextLength);
 			aItems.push(oItem);
 		}
 

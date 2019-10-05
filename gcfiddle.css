@@ -11,6 +11,10 @@ body {
 	/* font-size: 2em; */ /* Test */
 }
 
+.boxMinWidth {
+	min-width: 19.375em;
+}
+
 .clearLeft {
 	clear: left;
 }
@@ -84,3 +88,14 @@ body {
 	background: lightblue;
 	border: 1px solid #666;
 }
+
+
+.selectWrap {
+	height: 1em;
+} 
+
+.selectWrap select { 
+	position: absolute;
+	max-width: calc(22em - 6px);
+	text-overflow: ellipsis;
+} 

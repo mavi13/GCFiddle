@@ -779,6 +779,8 @@ CommonEventHandler.prototype = {
 					this.onVarSelectChange();
 				}
 				this.controller.fnInputAreaNav(sPar);
+
+				this.view.setAreaSelection("outputArea", iSelStart, oSelection.selectionEnd); // put focus back on output area
 			}
 		}
 	},
@@ -790,21 +792,15 @@ CommonEventHandler.prototype = {
 			oMapProxyUnused, // currently not needed
 
 			fnGetInfoWindowContent = function (marker, previousMarker) {
-				var aDirections = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"], // eslint-disable-line array-element-newline
-					sWaypointFormat = that.model.getProperty("waypointFormat"),
-					sContent, oPosition0, oPosition, fAngle, iAngle, fDistance, iDistance, sDirection;
+				var sWaypointFormat = that.model.getProperty("waypointFormat"),
+					sContent, oPreviousPosition, oPosition;
 
 				oPosition = marker.getPosition();
 				sContent = marker.getTitle() + "=" + oPosition.toFormattedString(sWaypointFormat);
 
 				if (previousMarker) {
-					oPosition0 = previousMarker.getPosition();
-					fAngle = oPosition0.bearingTo(oPosition);
-					iAngle = Math.round(fAngle);
-					fDistance = oPosition0.distanceTo(oPosition);
-					iDistance = Math.round(fDistance);
-					sDirection = aDirections[Math.round(fAngle / (360 / aDirections.length)) % aDirections.length];
-					sContent += "<br>" + sDirection + ": " + iAngle + "° " + iDistance + "m";
+					oPreviousPosition = previousMarker.getPosition();
+					sContent += "<br>" + that.controller.fnGetDirectionAngleDistance(oPreviousPosition, oPosition);
 				}
 				return sContent;
 			},

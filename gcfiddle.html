@@ -4,11 +4,11 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="gcfiddle.css" />
-<title id="title">GCFiddle v0.59</title>
+<title id="title">GCFiddle v0.60</title>
 </head>
 
 <body>
-	<fieldset class="flexBox">
+	<fieldset class="flexBox boxMinWidth">
 		<legend>
 			<span id="specialLegend" class="legendButton" title="Show/Hide GCFiddle advanced">GCFiddle</span>
 			<select id="databaseSelect" title="Select Database">
@@ -66,12 +66,18 @@
 			</div>
 		</div>
 	</fieldset>
-	<fieldset class="flexBox clearLeft">
+	<fieldset class="flexBox boxMinWidth clearLeft">
 		<legend>
 			<span id="scriptLegend" class="legendButton" title="Show/Hide Script">Script</span>
+			<button id="executeButton" title="Execute script">Execute</button>
+			<button id="saveButton" title="Save input to local storage">Save</button>
+			<button id="deleteButton" title="Delete input from local storage" disabled>Del</button>
+			<button id="browserButton" title="Open in browser">Browser</button>
+		</legend>
+		<div class="clearLeft selectWrap"> <!-- clearleft needed for IE -->
 			<select id="exampleSelect" title="Load Example">
 			</select>
-		</legend>
+		</div>
 		<div id="scriptArea" class="area">
 			<textarea id="inputArea" rows="15" cols="40" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
 			<div>
@@ -80,12 +86,6 @@
 				<button id="redoButton" title="Redo changes" disabled>Redo</button>
 			</div>
 		</div>
-		<div class="clearLeft"> <!-- clearleft needed for IE -->
-			<button id="executeButton" title="Execute script">Execute</button>
-			<button id="saveButton" title="Save input to local storage">Save</button>
-			<button id="deleteButton" title="Delete input from local storage" disabled>Del</button>
-			<button id="browserButton" title="Open in browser">Browser</button>
-	</div>
 	</fieldset>
 	<fieldset class="flexBox">
 		<legend>
