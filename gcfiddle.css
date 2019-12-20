@@ -90,12 +90,7 @@ body {
 }
 
 
-.selectWrap {
-	height: 1em;
-} 
-
 .selectWrap select { 
-	position: absolute;
 	max-width: calc(22em - 6px);
 	text-overflow: ellipsis;
-} 
+}

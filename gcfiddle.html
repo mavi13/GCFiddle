@@ -40,7 +40,7 @@
 				<label id="filterTitleLabel" for="filterTitleInput" class="label" title="Title Filter">Title</label>
 				<input id="filterTitleInput" value="" size="10" type="text" title="Title" placeholder="value">
 			</div>
-			<div class="clearLeft"> <!-- clearleft needed for IE -->
+			<div class="clearLeft"> <!-- clearLeft needed for IE -->
 				<button id="filterResetButton" title="Reset Filter">Reset</button>
 			</div>
 		</div>
@@ -70,20 +70,22 @@
 		<legend>
 			<span id="scriptLegend" class="legendButton" title="Show/Hide Script">Script</span>
 			<button id="executeButton" title="Execute script">Execute</button>
-			<button id="saveButton" title="Save input to local storage">Save</button>
-			<button id="deleteButton" title="Delete input from local storage" disabled>Del</button>
 			<button id="browserButton" title="Open in browser">Browser</button>
 		</legend>
-		<div class="clearLeft selectWrap"> <!-- clearleft needed for IE -->
-			<select id="exampleSelect" title="Load Example">
-			</select>
+		<div id="exampleSelectArea" class="area">
+			<div class="field selectWrap">
+				<select id="exampleSelect" title="Load Example">
+				</select>
+			</div>
 		</div>
-		<div id="scriptArea" class="area">
+		<div id="scriptArea" class="area clearLeft">
 			<textarea id="inputArea" rows="15" cols="40" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
 			<div>
 				<button id="preprocessButton" title="Preprocess input">Preprocess</button>
 				<button id="undoButton" title="Undo changes" disabled>Undo</button>
 				<button id="redoButton" title="Redo changes" disabled>Redo</button>
+				<button id="saveButton" title="Save input to local storage">Save</button>
+				<button id="deleteButton" title="Delete input from local storage" disabled>Del</button>
 			</div>
 		</div>
 	</fieldset>
@@ -128,7 +130,7 @@
 						<input id="varStepInput" value="" type="number">
 					</div>
 				</div>
-				<div class="clearLeft"> <!-- clearleft needed for IE -->
+				<div class="clearLeft"> <!-- clearLeft needed for IE -->
 					<button id="varResetButton" title="Reset variable range">Reset</button>
 				</div>
 			</div>
