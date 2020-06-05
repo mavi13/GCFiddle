@@ -29,6 +29,12 @@ MapProxy.Google.Map.prototype = {
 		Utils.loadScript(sUrl, function () {
 			var mapDiv = document.getElementById(that.options.mapDivId);
 
+			// Google maps needs devicePixelRatio, requestAnimationFrame; available since IE11
+			if (typeof google === "undefined") {
+				Utils.console.error("Google maps API not available.");
+				return;
+			}
+
 			Utils.console.log("GoogleMaps " + google.maps.version + " loaded");
 			that.map = new google.maps.Map(mapDiv, {
 				zoom: that.options.zoom

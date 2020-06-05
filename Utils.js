@@ -9,13 +9,23 @@ var Utils = {
 		consoleLog: {
 			value: ""
 		},
+		bApplyOnMethod: undefined,
 		console: (typeof console !== "undefined") ? console : null,
 		rawLog: function (fnMethod, sLevel, aArgs) {
 			if (sLevel) {
 				aArgs.unshift(sLevel);
 			}
 			if (fnMethod) {
-				if (fnMethod.apply) {
+				if (this.bApplyOnMethod === undefined) {
+					try {
+						this.bApplyOnMethod = fnMethod.apply; // try to access apply method (old IE8 does not support apply on e.g. console.log)
+						this.bApplyOnMethod = true;
+					} catch (e) {
+						this.bApplyOnMethod = false;
+					}
+				}
+
+				if (this.bApplyOnMethod) {
 					fnMethod.apply(console, aArgs);
 				} else { // old IE8 does not support apply on e.g. console.log
 					Function.prototype.apply.call(fnMethod, console, aArgs);

@@ -224,11 +224,11 @@ QUnit.module("Preprocessor", function (hooks) {
 		var oPre = this.pre, // eslint-disable-line no-invalid-this
 			sText1 = "Additional Hints (Decrypt)\nzl uvag [plain text]",
 			mResult1 = {
-				script: "#Additional Hints\n#\n#my hint [plain text]\n"
+				script: "#Additional Hints\n#my hint [plain text]\n"
 			},
 			sText2 = "Additional Hints (Encrypt)\nmy hint [plain text]\n",
 			mResult2 = {
-				script: "#Additional Hints\n#\n#my hint [plain text]\n"
+				script: "#Additional Hints\n#my hint [plain text]\n"
 			},
 			sText3 = "Additional Hints (No hints available.)\nFound It!\nLogged on: 06/06/2018\nView Gallery (8)\nWatch (4)",
 			// If there are no hints, we get informations from section: Decryption Key
@@ -239,6 +239,10 @@ QUnit.module("Preprocessor", function (hooks) {
 				script: "#Additional Hints\n##No hints available.\n",
 				watchCount: 4,
 				watching: false
+			},
+			sText4 = "Additional Hints (\n)\nzl uvag [plain text]\n", // no hint info => assume decrypted
+			mResult4 = {
+				script: "#Additional Hints\n#my hint [plain text]\n"
 			},
 			oOut;
 
@@ -252,6 +256,10 @@ QUnit.module("Preprocessor", function (hooks) {
 		oPre.init(oPre.options); // init
 		oOut = oPre.processText(sText3);
 		assert.deepEqual(oOut, mResult3, "parameters extracted from text3");
+
+		oPre.init(oPre.options); // init
+		oOut = oPre.processText(sText4);
+		assert.deepEqual(oOut, mResult4, "parameters extracted from text4");
 	});
 
 	QUnit.test("Parameters from section: Decryption Key", function (assert) {
@@ -358,7 +366,8 @@ QUnit.module("Preprocessor", function (hooks) {
 						type: "found"
 					}
 				],
-				script: "#Geocache Description:\n#my description\n"
+				script: "#Geocache Description:\n#my description\n",
+				totalLogs: 21
 			},
 			oOut;
 

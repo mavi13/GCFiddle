@@ -54,6 +54,7 @@ Preprocessor.prototype = {
 	fnMatchPatterns: function (str, aPat) {
 		var mOut = {},
 			s2 = str,
+			iMatchFirstIndex = null,
 			i, rPat, aRes, aGroup, j, sKey, sVal;
 
 		for (i = 0; i < aPat.length; i += 1) {
@@ -69,10 +70,15 @@ Preprocessor.prototype = {
 				}
 			}
 			aRes = s2.match(rPat.pattern);
+			/*
 			if (aRes === null) {
 				aRes = "";
 			}
+			*/
 			if (aRes) {
+				if (iMatchFirstIndex === null) {
+					iMatchFirstIndex = aRes.index;
+				}
 				aGroup = rPat.groups.split(",");
 				for (j = 0; j < aGroup.length; j += 1) {
 					sKey = aGroup[j];
@@ -85,6 +91,7 @@ Preprocessor.prototype = {
 				s2 = s2.substring(aRes.index + aRes[0].length);
 			}
 		}
+		this.iMatchFirstIndex = iMatchFirstIndex;
 		return mOut;
 	},
 	fnFindInfo: function (str) {
@@ -511,16 +518,25 @@ Preprocessor.prototype = {
 		return aStr.join("");
 	},
 	fnHints: function (str) {
-		var aHints = str.match(/\((Decrypt|Encrypt|No hints available.)\)\n?/);
+		var aHints = str.match(/\((Decrypt|Encrypt|No hints available.|\n)\)\n?/),
+			mLoggedInfo, iMatchFirstIndex, sInfo;
+
+		mLoggedInfo = this.fnFindLoggedInfo(str);
+		if (Object.keys(mLoggedInfo).length > 0) {
+			iMatchFirstIndex = this.iMatchFirstIndex;
+			Utils.objectAssign(this.mInfo, mLoggedInfo);
+			str = str.substr(0, iMatchFirstIndex); // remove logged info part
+		}
 
 		if (aHints) {
-			str = str.substr(aHints[0].length); // remove matched part
-			if (aHints[1] === "Decrypt") {
-				str = this.fnRot13WithBrackets(str);
-			} else if (aHints[1] === "No hints available.") {
+			str = str.substr(aHints.index + aHints[0].length); // remove prefix including matched part
+			sInfo = aHints[1];
+			if (sInfo === "No hints available.") {
 				// no "decryption key" section
-				Utils.objectAssign(this.mInfo, this.fnFindLoggedInfo(str));
-				str = "#" + aHints[1];
+				//Utils.objectAssign(this.mInfo, this.fnFindLoggedInfo(str));
+				str = "#" + sInfo;
+			} else if (sInfo !== "Encrypt") { // "Decrypt" or newline
+				str = this.fnRot13WithBrackets(str);
 			}
 		} else {
 			Utils.console.warn("Unknown hint section: " + str);
@@ -596,6 +612,7 @@ Preprocessor.prototype = {
 
 		switch (sSectionName) {
 		case "Skip to Content":
+		case "Skip to content":
 			Utils.objectAssign(this.mInfo, this.fnFindInfo("\n" + sInput));
 			break;
 		case "Geocache Description:":
@@ -618,6 +635,13 @@ Preprocessor.prototype = {
 			break;
 		case "View Larger Map":
 			break;
+		case "Find...":
+			break;
+		case "For online maps...":
+			break;
+		// xx Logged Visits: see below
+		case "Get to Know Us":
+			break;
 		case "Current Time:": // section name is also used for key, so put it in front...
 			if (sInput.indexOf("#") === 0) {
 				sInput = sInput.substr(1); // remove first "#"
@@ -631,6 +655,7 @@ Preprocessor.prototype = {
 			break;
 		default:
 			if (Utils.stringEndsWith(sSectionName, "Logged Visits")) { // 83 Logged Visits
+				this.mInfo.totalLogs = parseInt(sSectionName, 10);
 				Utils.objectAssign(this.mInfo, this.fnLogs("\n" + sInput));
 			} else {
 				Utils.console.warn("Unknown part: " + sSectionName);
@@ -671,7 +696,7 @@ Preprocessor.prototype = {
 		return sOutput;
 	},
 	processText: function (sInput) {
-		var oRe1 = new RegExp("\\n(Skip to Content|Geocache Description:|Additional Hints|Decryption Key|Additional Waypoints|View Larger Map|\\d+ Logged Visits|Current Time:)"),
+		var oRe1 = new RegExp("\\n(Skip to Content|Skip to content|Geocache Description:|Additional Hints|Decryption Key|Additional Waypoints|View Larger Map|Find...|For online maps...|\\d+ Logged Visits|Get to Know Us|Current Time:)"),
 			mLanguageMap = {
 				"Zum Inhalt wechseln": "Skip to Content",
 				"Geocache-Beschreibung ": "Geocache Description:", // "Geocache-Beschreibung \\(Listing\\):"
