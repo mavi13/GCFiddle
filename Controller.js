@@ -459,7 +459,7 @@ Controller.prototype = {
 				sLog += oLog.date + " (" + oLog.type + ") " + oLog.name + " (" + oLog.finds + ")\n" + oLog.text + "\n";
 			}
 		}
-		this.view.setAreaValue("logsArea", sLog);
+		this.view.setAreaValue("logsEditArea", sLog);
 		this.view.setLegendText("logsLegend", "Logs (" + iLength + ")");
 		this.view.setDisabled("removeLogsButton", !iLength);
 	},
@@ -617,8 +617,8 @@ Controller.prototype = {
 				mInfo.id = oWpt.name;
 				mInfo.title = oGrCache["groundspeak:name"];
 				sTitle = ""; // suppress wp as additional wp
-				mInfo.archived = oGrCache.archived;
-				mInfo.available = oGrCache.available;
+				mInfo.archived = String(oGrCache.archived).toLowerCase() === "true";
+				mInfo.available = String(oGrCache.available).toLowerCase() === "true";
 				mInfo.country = oGrCache["groundspeak:country"];
 				mInfo.difficulty = parseFloat(oGrCache["groundspeak:difficulty"]);
 				mInfo.owner = oGrCache["groundspeak:owner"];
@@ -630,6 +630,11 @@ Controller.prototype = {
 				if (!mInfo.script) { // first entry
 					mInfoDescr = this.processDescription(oGrCache["groundspeak:long_description"]);
 					mInfo.script = mInfoDescr.script;
+					if (!mInfo.waypoint) {
+						mInfo.waypoint = new LatLng(oWpt.lat, oWpt.lon).toFormattedString(sWaypointFormat); //TTT
+					}
+					mInfo.encodedHints = oGrCache["groundspeak:encoded_hints"] || ""; //TTT
+					// TODO: logs
 				}
 			} else if (oWpt.desc) {
 				sTitle = oWpt.desc;

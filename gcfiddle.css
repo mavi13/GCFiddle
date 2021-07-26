@@ -74,6 +74,11 @@ body {
 	background-color: white;
 }
 
+.resizable {
+	resize: both;
+    overflow: auto;
+}
+
 .invalid {
 	border-color: red;
 }

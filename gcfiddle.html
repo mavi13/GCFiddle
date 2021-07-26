@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="gcfiddle.css" />
-<title id="title">GCFiddle v0.60.2</title>
+<title id="title">GCFiddle v0.60.3</title>
 </head>
 
 <body>
@@ -18,7 +18,6 @@
 		</legend>
 		<div id="specialArea" class="area">
 			<button id="indexButton" title="Create example index and show it as result">Index</button>
-			<button id="removeLogsButton" title="Remove log entries from input">Remove Logs</button>
 			<button id="consoleButton" title="Toogle console box">Console</button>
 		</div>
 	</fieldset>
@@ -127,7 +126,7 @@
 					</div>
 					<div class="field clearLeft">
 						<label id="varStepLabel" for="varStepInput" class="label" title="Value Increment">Step</label>
-						<input id="varStepInput" value="" type="number">
+						<input id="varStepInput" value="" type="text">
 					</div>
 				</div>
 				<div class="clearLeft"> <!-- clearLeft needed for IE -->
@@ -171,11 +170,11 @@
 				<option value="none" title="No map">None</option>
 			</select>
 		</legend>
-		<div class="canvas" id="mapCanvas-leaflet" hidden></div>
-		<div class="canvas" id="mapCanvas-openlayers" hidden></div>
-		<div class="canvas" id="mapCanvas-google" hidden></div>
-		<div class="canvas" id="mapCanvas-simple" hidden></div>
-		<div class="canvas" id="mapCanvas-none" hidden></div>
+		<div class="canvas area resizable" id="mapCanvas-leaflet" hidden></div>
+		<div class="canvas area resizable" id="mapCanvas-openlayers" hidden></div>
+		<div class="canvas area resizable" id="mapCanvas-google" hidden></div>
+		<div class="canvas area resizable" id="mapCanvas-simple" hidden></div>
+		<div class="canvas area resizable" id="mapCanvas-none" hidden></div>
 		<div>
 			<button id="locationOnButton" title="Show Location On">Location On</button>
 			<button id="locationOffButton" title="Show Location Off"  disabled>Location Off</button>
@@ -186,13 +185,18 @@
 		<legend>
 			<span id="logsLegend" class="legendButton" title="Show/Hide Logs">Logs</span>
 		</legend>
-		<textarea id="logsArea" placeholder="Show logs if available" rows="12" cols="40" readonly></textarea>
+		<div id="logsArea" class="area">
+			<textarea id="logsEditArea" placeholder="Show logs if available" rows="12" cols="40" readonly></textarea>
+			<div class="clearLeft"> <!-- clearLeft needed for IE -->
+				<button id="removeLogsButton" title="Remove log entries from input">Remove Logs</button>
+			</div>
+		</div>
 	</fieldset>
 	<fieldset class="flexBox">
 		<legend>
 			<span id="notesLegend" class="legendButton" title="Show/Hide Notes">Notes</span>
 		</legend>
-		<div id="notesArea" contenteditable="true" class="area editable">&nbsp;</div>
+		<div id="notesArea" contenteditable="true" class="area editable resizable">&nbsp;</div>
 	</fieldset>
 	<fieldset class="flexBox clearLeft" id="consoleBox" hidden>
 		<legend id="consoleLegend" class="legendButton" title="Show/Hide Console log">Console log</legend>

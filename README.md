@@ -41,8 +41,6 @@ GCFiddle Links:
 - The "Help" button opens the Readme on the server.
 - There are additional buttons with some advanced functionality, which will be shown when you click on "GCFiddle" (not shown here, you can skip it for first reading):
   - The "Index" button create an example index and shows it as result. This can be copied into an example index file.
-  - The "Remove Logs" button removes the log entries from the scripts metadata "#GC_INFO", if available.
-    This could be useful, if you want to shrink the script metadata comment.
   - The "Console" button activates the console for debugging
 
 ### Filter box
@@ -105,6 +103,8 @@ GCFiddle Links:
 ### Log box
 
 - To show log entries. These are created during preprocessing and put in the scripts metadata.
+  - The "Remove Logs" button removes the log entries from the scripts metadata "#GC_INFO", if available.
+    This could be useful, if you want to shrink the script metadata comment.
 
 ### Note box
 
@@ -137,7 +137,7 @@ GCFiddle Links:
 ### List of predefined functions
 
 - If not mentioned otherwise, type conversion is done as needed.
-- Functions which are not available in CacheWolf are marked with: 1
+- Functions which are not available in CacheWolf are marked with: "²"
 
 #### Helper functions
 
@@ -357,10 +357,12 @@ URL parameters override settings in file `gcconfig.js` or `gcfiddle.js`.
 
 QUnit test [testsuite.qunit.html](https://mavi13.github.io/GCFiddle/test/testsuite.qunit.html) runs:
 
+- [CommonEventHandler.qunit.html](https://mavi13.github.io/GCFiddle/test/CommonEventHandler.qunit.html)
+- [InputStack.qunit.html](https://mavi13.github.io/GCFiddle/test/InputStack.qunit.html)
 - [LatLng.qunit.html](https://mavi13.github.io/GCFiddle/test/LatLng.qunit.html)
+- [Model.qunit.html](https://mavi13.github.io/GCFiddle/test/Model.qunit.html)
 - [Preprocessor.qunit.html](https://mavi13.github.io/GCFiddle/test/Preprocessor.qunit.html)
 - [ScriptParser.qunit.html](https://mavi13.github.io/GCFiddle/test/ScriptParser.qunit.html)
-- ...
 
 ## Possible Future Enhancements
 
