@@ -11,10 +11,6 @@ body {
 	/* font-size: 2em; */ /* Test */
 }
 
-.boxMinWidth {
-	min-width: 19.375em;
-}
-
 .clearLeft {
 	clear: left;
 }
@@ -23,12 +19,6 @@ body {
 	width: 500px;
 	height: 500px;
 	background-color: #E6E6E6;
-}
-
-@media (max-width: 480px) {
-	.canvas {
-		width: 330px;
-	}
 }
 
 .legendButton {
@@ -98,4 +88,19 @@ body {
 .selectWrap select { 
 	max-width: calc(22em - 6px);
 	text-overflow: ellipsis;
+}
+
+.textAreaWrap textArea {
+	min-width: max-content;
+}
+
+@media (max-width: 480px) {
+	.canvas {
+		width: 330px;
+	}
+	/*
+	.selectWrap select {
+		max-width: calc(22em - 6px);
+	}
+	*/
 }

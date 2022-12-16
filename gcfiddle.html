@@ -4,11 +4,11 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="gcfiddle.css" />
-<title id="title">GCFiddle v0.60.3</title>
+<title id="title">GCFiddle v0.60.4</title>
 </head>
 
 <body>
-	<fieldset class="flexBox boxMinWidth">
+	<fieldset class="flexBox">
 		<legend>
 			<span id="specialLegend" class="legendButton" title="Show/Hide GCFiddle advanced">GCFiddle</span>
 			<select id="databaseSelect" title="Select Database">
@@ -65,7 +65,7 @@
 			</div>
 		</div>
 	</fieldset>
-	<fieldset class="flexBox boxMinWidth clearLeft">
+	<fieldset class="flexBox clearLeft">
 		<legend>
 			<span id="scriptLegend" class="legendButton" title="Show/Hide Script">Script</span>
 			<button id="executeButton" title="Execute script">Execute</button>
@@ -77,7 +77,7 @@
 				</select>
 			</div>
 		</div>
-		<div id="scriptArea" class="area clearLeft">
+		<div id="scriptArea" class="area clearLeft textAreaWrap">
 			<textarea id="inputArea" rows="15" cols="40" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
 			<div>
 				<button id="preprocessButton" title="Preprocess input">Preprocess</button>
@@ -175,7 +175,7 @@
 		<div class="canvas area resizable" id="mapCanvas-google" hidden></div>
 		<div class="canvas area resizable" id="mapCanvas-simple" hidden></div>
 		<div class="canvas area resizable" id="mapCanvas-none" hidden></div>
-		<div>
+		<div class="clearLeft"> <!-- clearLeft needed for IE -->
 			<button id="locationOnButton" title="Show Location On">Location On</button>
 			<button id="locationOffButton" title="Show Location Off"  disabled>Location Off</button>
 			<button id="fitBoundsButton" title="Fit markers into map bounds">Fit Bounds</button>
