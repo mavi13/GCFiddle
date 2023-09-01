@@ -249,6 +249,19 @@ MapProxy.OpenLayers.FeatureGroup.prototype = {
 			this.infoWindow.setContent(this.privGetPopupContent(oMarker));
 		}
 	},
+	setPolyline: function (aList) { // for update
+		var aPath = [],
+			i, oItem, oPosition;
+
+		if (this.polyLine) {
+			for (i = 0; i < aList.length; i += 1) {
+				oItem = aList[i];
+				oPosition = oItem.position.clone();
+				aPath.push(oPosition);
+			}
+			this.polyLine.setPath(aPath);
+		}
+	},
 	addMarkers: function (aList) {
 		//OpenLayers.Geometry.Collection() //CHECK
 		var aMarkers = this.aMarkers,

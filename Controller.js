@@ -215,7 +215,7 @@ Controller.prototype = {
 		return sKey;
 	},
 
-	fnSetMarkers: function (variables) {
+	privPrepareMarkerOptions: function (variables) {
 		var aMarkerOptions = [],
 			i = 0,
 			sPar, oPosition, oSettings;
@@ -232,7 +232,19 @@ Controller.prototype = {
 				i += 1;
 			}
 		}
+		return aMarkerOptions;
+	},
+
+	fnSetMarkers: function (variables) {
+		var aMarkerOptions = this.privPrepareMarkerOptions(variables);
+
 		this.maFa.setMarkers(aMarkerOptions);
+	},
+
+	fnUpdateMarkers: function (variables) {
+		var aMarkerOptions = this.privPrepareMarkerOptions(variables);
+
+		this.maFa.updateMarkers(aMarkerOptions);
 	},
 
 	fnSetWaypointVarSelectOptions: function (sSelect, fnSel, fnTextFormat) {

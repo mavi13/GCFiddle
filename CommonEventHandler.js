@@ -156,7 +156,7 @@ CommonEventHandler.prototype = {
 				this.onVarSelectChange(); // title change?
 				this.controller.fnSetWaypointSelectOptions();
 				oVariables = this.model.getAllVariables();
-				this.controller.fnSetMarkers(oVariables);
+				this.controller.fnUpdateMarkers(oVariables);
 				this.onWaypointSelectChange(null); // do not center on wp
 			}
 		}

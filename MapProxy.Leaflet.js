@@ -166,6 +166,19 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 		}
 	},
 
+	setPolyline: function (aList) { // for update
+		var aPath = [],
+			i, oItem, oPosition;
+
+		for (i = 0; i < aList.length; i += 1) {
+			oItem = aList[i];
+			oPosition = oItem.position.clone();
+			aPath.push(oPosition);
+		}
+
+		this.privSetPolyline(aPath);
+	},
+
 	changeMarker: function (iMarker, oItem) {
 		var aMarkerPool = this.aMarkerPool,
 			markerGroup = this.markerGroup,
@@ -180,6 +193,19 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 			oPopup.setContent(this.privGetPopupContent(oMarker.marker));
 		}
 	},
+
+	/*
+	changeMarkers: function (aList) {
+		var aPath = [],
+			i, oItem;
+
+		for (i = 0; i < aList.length; i += 1) {
+			oItem = aList[i];
+			//...
+		}
+		this.privSetPolyline(aPath);
+	},
+	*/
 
 	addMarkers: function (aList) {
 		var aMarkerPool = this.aMarkerPool,
@@ -224,17 +250,27 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 		this.markerGroup.clearLayers();
 		this.polylineGroup.clearLayers();
 	},
-	setMap: function (map) {
-		var oBounds;
+	fitBounds: function () {
+		var map = this.map,
+			isValid = false,
+			oBounds;
 
 		if (map) {
 			oBounds = this.markerGroup.getBounds();
 			if (oBounds.isValid()) {
+				isValid = true;
 				map.privGetMap().fitBounds(oBounds, {
 					padding: [10, 10] // eslint-disable-line array-element-newline
 				});
-			} else {
-				Utils.console.warn("bounds are not vaild");
+			}
+		}
+		return isValid;
+	},
+	setMap: function (map) {
+		this.map = map;
+		if (map) {
+			if (!this.fitBounds()) {
+				Utils.console.warn("bounds are not valid");
 			}
 			this.polylineGroup.addTo(map.privGetMap());
 			this.markerGroup.addTo(map.privGetMap());
@@ -243,18 +279,6 @@ MapProxy.Leaflet.FeatureGroup.prototype = {
 			this.polylineGroup.removeFrom(this.map.privGetMap());
 		}
 		this.map = map;
-	},
-	fitBounds: function () {
-		var oBounds;
-
-		if (this.map) {
-			oBounds = this.markerGroup.getBounds();
-			if (oBounds.isValid()) {
-				this.map.privGetMap().fitBounds(oBounds, {
-					padding: [10, 10] // eslint-disable-line array-element-newline
-				});
-			}
-		}
 	},
 	privGetPopupContent: function (oLeafletMarker) {
 		var aMarkerPool = this.aMarkerPool,

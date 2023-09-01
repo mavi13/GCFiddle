@@ -182,18 +182,23 @@ QUnit.module("Preprocessor", function (hooks) {
 
 	QUnit.test("Parameters from section: Skip to Content", function (assert) {
 		var oPre = this.pre, // eslint-disable-line no-invalid-this
-			sText1 = "Skip to Content\nThis cache has been archived.\nThis cache is temporarily unavailable.\nYour profile photo myname 1,234 Finds\nGCPREP2 ▼\nMulti-cache\nPreprocessed Test 2\nA cache by GcFiddle\nMessage this owner\nHidden : 07/23/2018\nDifficulty:\n  1.5 out of 5\nTerrain:\n  3.5 out of 5\nSize: Size: regular (regular)\n13 Favorites\nThis is a Premium Member Only cache.\nN 49° 18.071 E 008° 42.167", // Firefox text style
-			sText2 = "Skip to Content\nThis cache has been archived.\nThis cache is temporarily unavailable.\nYour profile photo\nmyname\n1,234 Finds\nGCPREP2 ▼\n\nMulti-cache\nPreprocessed Test 2\nA cache by GcFiddle Message this owner Hidden : 07/23/2018\nDifficulty:  1.5 out of 5\nTerrain:  3.5 out of 5\nSize: Size: regular (regular)\n13 Favorites\nThis is a Premium Member Only cache.\nN 49° 18.071 E 008° 42.167", // Chrome text style
-			sText3 = "Geocache Description:\nmy description\nSkip to Content \nThis is a Premium Member Only cache. \nThis cache has been archived. \nThis cache is temporarily unavailable. \nYour profile photo myname 1,234 Finds \nGCPREP2 \nMulti-cache \n Preprocessed Test 2\nA cache by GcFiddle\nMessage this owner Hidden : 07/23/2018\nDifficulty: 1.5\nTerrain: 3.5\nSize: Size: regular\n13 Favorites \nN 49° 18.071 E 008° 42.167", // modified text
+			//sText1 = "Skip to Content\nThis cache has been archived.\nThis cache is temporarily unavailable.\nYour profile photo myname 1,234 Finds\nGCPREP2 ▼\nMulti-cache\nPreprocessed Test 2\nA cache by GcFiddle\nMessage this owner\nHidden : 07/23/2018\nDifficulty:\n  1.5 out of 5\nTerrain:\n  3.5 out of 5\nSize: Size: regular (regular)\n13 Favorites\nThis is a Premium Member Only cache.\nN 49° 18.071 E 008° 42.167", // Firefox text style
+			sText1 = "Skip to Content\nThis cache has been archived.\nThis cache is temporarily unavailable.\n    myname11,234 Finds\nPreprocessed Test 2 Multi-cache\nGCPREP2 ▼\nPreprocessed Test 2\nA cache by GcFiddle\nMessage this owner\nHidden : 07/23/2018\nDifficulty:\n  1.5 out of 5\nTerrain:\n  3.5 out of 5\nSize: Size: regular (regular)\n13 Favorites\nThis is a Premium Member Only cache.\nN 49° 18.071 E 008° 42.167", // Firefox text style
+			//sText2 = "Skip to Content\nThis cache has been archived.\nThis cache is temporarily unavailable.\nYour profile photo\nmyname\n1,234 Finds\nPreprocessed Test 2 Multi-cache\nGCPREP2 ▼\nPreprocessed Test 2\nA cache by GcFiddle Message this owner Hidden : 07/23/2018\nDifficulty:  1.5 out of 5\nTerrain:  3.5 out of 5\nSize: Size: regular (regular)\n13 Favorites\nThis is a Premium Member Only cache.\nN 49° 18.071 E 008° 42.167", // Chrome text style
+			sText2 = "Skip to Content\nThis cache has been archived.\nThis cache is temporarily unavailable.\nmyname1\n1,234 Finds\nPreprocessed Test 2 Multi-cache\nGCPREP2 ▼\nPreprocessed Test 2\nA cache by GcFiddle Message this owner Hidden : 07/23/2018\nDifficulty:  1.5 out of 5\nTerrain:  3.5 out of 5\nSize: Size: regular (regular)\n13 Favorites\nThis is a Premium Member Only cache.\nN 49° 18.071 E 008° 42.167", // Chrome text style
+			//sText3 = "Geocache Description:\nmy description\nSkip to Content \nThis is a Premium Member Only cache. \nThis cache has been archived. \nThis cache is temporarily unavailable. \nYour profile photo myname 1,234 Finds \nGCPREP2 \nMulti-cache \n Preprocessed Test 2\nA cache by GcFiddle\nMessage this owner Hidden : 07/23/2018\nDifficulty: 1.5\nTerrain: 3.5\nSize: Size: regular\n13 Favorites \nN 49° 18.071 E 008° 42.167", // modified text
+			sText3 = "Geocache Description:\nmy description\nSkip to Content \nThis is a Premium Member Only cache. \nThis cache has been archived. \nThis cache is temporarily unavailable. \n  myname11,234 Finds \nPreprocessed Test 2 Multi-cache \n GCPREP2 \n Preprocessed Test 2\nA cache by GcFiddle\nMessage this owner Hidden : 07/23/2018\nDifficulty: 1.5\nTerrain: 3.5\nSize: Size: regular\n13 Favorites \nN 49° 18.071 E 008° 42.167", // modified text
+
 			mResult = {
 				archived: true,
 				available: false,
 				difficulty: 1.5,
 				favorites: 13,
-				finds: 1234,
+				//finds: 1234,
 				hidden: "2018-07-23",
 				id: "GCPREP2",
-				name: "myname",
+				//name: "myname",
+				nameAndFinds: "myname11234",
 				owner: "GcFiddle",
 				premium: true,
 				size: "regular",

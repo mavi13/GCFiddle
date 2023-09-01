@@ -96,6 +96,7 @@ Preprocessor.prototype = {
 	},
 	fnFindInfo: function (str) {
 		var aPat = [
+				/*
 				{
 					pattern: /\nYour profile photo[\s\n]?(.+?)[\s\n]?([\d,]+) Finds/, // Your profile photo xxx 2,005 Finds
 					groups: "name,finds",
@@ -105,10 +106,20 @@ Preprocessor.prototype = {
 						}
 					}
 				},
+				*/
 				{
-					pattern: /\n(GC\w+)[^\n]*\n([^\n ]*)[^\n]*\n([^\n]*)/, // GCxxx ▼\nTraditional Geocache\nTitle
-					// Traditional Geocache, Mystery Cache,...
-					groups: "id,type,title",
+					pattern: /\n(\S*[\n]?\S+) Finds\n/, // <name><finds> Finds
+					groups: "nameAndFinds",
+					formatter: {
+						nameAndFinds: function (sVal) {
+							return sVal.replace("\n", "").replace(",", ""); // remove decimal separator
+						}
+					}
+				},
+				{
+					// old: pattern: /\n(GC\w+)[^\n]*\n([^\n ]*)[^\n]*\n([^\n]*)/, // GCxxx ▼\nTraditional Geocache\nTitle	// Traditional Geocache, Mystery Cache,...
+					pattern: /\n(GC\w+)[^\n]*\n([^\n]*)/, // type\n\nGCxxx ▼\nTitle
+					groups: "id,title",
 					formatter: {
 						type: function (sVal) {
 							return sVal.toLowerCase();
@@ -207,9 +218,28 @@ Preprocessor.prototype = {
 					}
 				}
 			],
-			mOut;
+			mOut,
+			aPat2 = [
+				{
+					pattern: "", // will be set later to \n<found title> (\S+)\n
+					groups: "type",
+					formatter: {
+						type: function (sVal) {
+							return sVal.toLowerCase();
+						}
+					}
+				}
+			],
+			mOut2;
 
 		mOut = this.fnMatchPatterns(str, aPat);
+		if (mOut.title) {
+			aPat2[0].pattern = new RegExp("\n" + mOut.title + " (\\S+)\n");
+			mOut2 = this.fnMatchPatterns(str, aPat2);
+			if (mOut2.type) {
+				mOut.type = mOut2.type;
+			}
+		}
 		return mOut;
 	},
 	fnFindLoggedInfo: function (str) {
@@ -247,9 +277,25 @@ Preprocessor.prototype = {
 					}
 				}
 			],
-			mOut;
+			mOut,
+			aPat2 = [
+				{
+					pattern: /\n(Log geocache)\n/, // Log geocache
+					groups: "notLogged",
+					formatter: {
+						notLogged: function (sVal) {
+							return sVal === "Log geocache";
+						}
+					}
+				}
+			];
 
 		mOut = this.fnMatchPatterns(str, aPat);
+
+		if (this.iMatchFirstIndex === null) { // nothing found
+			mOut = this.fnMatchPatterns(str, aPat2);
+		}
+
 		return mOut;
 	},
 	fnFindFooterInfo: function (str) {
@@ -721,7 +767,7 @@ Preprocessor.prototype = {
 		// find parts
 		aParts = ("\n" + sInput).split(oRe1);
 		aParts[0] = aParts[0].substr(1); // remove leading "\n"
-		if (aParts.length === 1) {
+		if (aParts.length <= 3) { // only "Get to Know Us"?
 			// try German pattern
 			oRe1 = new RegExp("\\n(" + Object.keys(mLanguageMap).join("|") + ")");
 			aParts = ("\n" + sInput).split(oRe1);

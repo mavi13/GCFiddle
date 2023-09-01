@@ -348,6 +348,17 @@ MapProxy.Simple.FeatureGroup.prototype = {
 		oMarker = aMarkers[iMarker];
 		oMarker.setLabel(oItem.label).setTitle(oItem.title).setPosition(oPosition);
 	},
+	setPolyline: function (aList) { // for update
+		var aPath = [],
+			i, oItem, oPosition;
+
+		for (i = 0; i < aList.length; i += 1) {
+			oItem = aList[i];
+			oPosition = oItem.position.clone();
+			aPath.push(oPosition);
+		}
+		this.polyLine.setPath(aPath);
+	},
 	addMarkers: function (aList) {
 		var aMarkers = this.aMarkers,
 			aPath = [],
@@ -388,6 +399,7 @@ MapProxy.Simple.FeatureGroup.prototype = {
 					oBounds.extend(aMarkers[i].getPosition());
 				}
 				this.map.fitBounds(oBounds);
+				this.polyLine.setMap(this.map); // update as well
 			}
 		}
 	},
@@ -398,7 +410,7 @@ MapProxy.Simple.FeatureGroup.prototype = {
 		this.map = map;
 		if (map) {
 			this.fitBounds();
-			this.polyLine.setMap(map);
+			//this.polyLine.setMap(map);
 		}
 		for (i = 0; i < aMarkers.length; i += 1) {
 			oMarker = aMarkers[i];
