@@ -14,7 +14,7 @@ $GC45QJ1="N 49° 23.372 E 008° 47.635!archived!Sinnenpfad Neckargemünd (soluti
 # Steps how to generate this script:
 # 1. Open https://coord.info/GC45QJ1 (with user logged on) and copy the complete cache description
 #    Select all (ctrl-a), Copy (ctrl-c)
-# 2. Open GCFiddle (https://mavi13.github.io/GCFiddle/gcfiddle.html) and paste the description into "Script" area
+# 2. Open GCFiddle (https://mavi13.github.io/GCFiddle/) and paste the description into "Script" area
 #    Insert: (strg-v)
 # 3. Press "Preprocess" button to create a script with waypoints and variables detected
 # 4. Adapt the script, press "Execute" button to see the effect. Possible adaptions:
@@ -22,7 +22,7 @@ $GC45QJ1="N 49° 23.372 E 008° 47.635!archived!Sinnenpfad Neckargemünd (soluti
 #    - Adapt final formula: $W16=["N 49° 2" Y/1000 " E 008° 4" Z/1000]
 #    - Insert computation for X: X=A+B+C+D+E+F+G+H+I+K+L+M+N+P+Q+R
 #    - Set variables, insert formulas: Crosstotal: e.g. A=ct(287), word value: e.g. C=ct(val("Douglasie")), length, e.g. K=len("Ooooooommmmmm")
-#       For help press the "Help" button or chack the test page: https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GC45QJ1
+#       For help press the "Help" button or chack the test page: https://mavi13.github.io/GCFiddle/index.html?example=GC45QJ1
 # 5. After pressing the "Execute" button, variables and waypoints from the script are copied to other areas on the screen and can be changed there temporary.
 #    Try it to see how the final waypoint will change
 #

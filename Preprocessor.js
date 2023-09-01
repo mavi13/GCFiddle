@@ -753,6 +753,7 @@ Preprocessor.prototype = {
 			},
 			sOutput = "",
 			mInfo = this.mInfo,
+			isGerman = false,
 			aParts,	sSectionName, iIndex, i;
 
 		// replace all kinds of spaces by an ordinary space but keep ""\n"
@@ -764,10 +765,13 @@ Preprocessor.prototype = {
 		// replace Unicode dash by minus (dash and minus are hard to distinguish, sometimes dash is written in formulas instead of minus)
 		sInput = sInput.replace("\u2013", "-");
 
+		isGerman = sInput.startsWith(Object.keys(mLanguageMap)[0]);
+
 		// find parts
 		aParts = ("\n" + sInput).split(oRe1);
+
 		aParts[0] = aParts[0].substr(1); // remove leading "\n"
-		if (aParts.length <= 3) { // only "Get to Know Us"?
+		if (aParts.length === 1 || isGerman) { // only "Get to Know Us"?
 			// try German pattern
 			oRe1 = new RegExp("\\n(" + Object.keys(mLanguageMap).join("|") + ")");
 			aParts = ("\n" + sInput).split(oRe1);

@@ -8,9 +8,9 @@ It can also extract waypoints and variables from geocache descriptions.
 GCFiddle Links:
 [Source code](https://github.com/mavi13/GCFiddle/),
 [HTML Readme](https://github.com/mavi13/GCFiddle/#readme),
-[GCNEW1](https://mavi13.github.io/GCFiddle/gcfiddle.html),
-[GCJVT3](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCJVT3),
-[GC45QJ1](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GC45QJ1)
+[GCNEW1](https://mavi13.github.io/GCFiddle/index.html),
+[GCJVT3](https://mavi13.github.io/GCFiddle/index.html?example=GCJVT3),
+[GC45QJ1](https://mavi13.github.io/GCFiddle/index.html?example=GC45QJ1)
 
 [![Build Status](https://travis-ci.com/mavi13/GCFiddle.svg?branch=master)](https://travis-ci.com/mavi13/GCFiddle)
 
@@ -26,7 +26,7 @@ GCFiddle Links:
 
 ## Usage
 
-- Simply open gcfiddle.html in a browser.
+- Simply open index.html in a browser.
   The user interface shows several boxes which can be shrunk and expanded by pressing the green buttons.
   There are boxes for Script, Result, Variables, Waypoints, Map and some special boxes
   for GCFiddle andvanced, Filter, Sort, Logs and Notes.
@@ -243,7 +243,7 @@ $W2="N 49° 15.903 E 008° 40.777"
 ### Differences in the calculation language of GCFiddle and WolfLanguage from CacheWolf
 
 - Most of the functions are also available in CacheWolf, so it is possible to write calculation scripts for both interpreters. (Functions which are not available in CacheWolf are marked with ².)
-- Please see the examples on the test page [GCTEST1](https://mavi13.github.io/GCFiddle/gcfiddle.html?example=GCTEST1).
+- Please see the examples on the test page [GCTEST1](https://mavi13.github.io/GCFiddle/index.html?example=GCTEST1).
 - Please check the description of the [WolfLanguage](http://cachewolf.aldos.de/index.php/Doku/WolfLanguage) (only in German).
 
 #### Some differences when using GCFiddle

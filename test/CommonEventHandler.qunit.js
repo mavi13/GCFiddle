@@ -167,6 +167,9 @@ TestController.prototype = {
 	fnSetWaypointSelectOptions: function () {
 		// empty
 	},
+	fnUpdateMarkers: function () {
+		// empty
+	},
 	fnSetMarkers: function () {
 		// empty
 	},
