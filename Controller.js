@@ -13,7 +13,7 @@ Controller.prototype = {
 
 	init: function (oModel, oView) {
 		var that = this,
-			sFilterId, sFilterTitle, sSort, sLocation, sVarType, iVarMin, iVarMax, iVarStep, sWaypointFormat, sMapType, sExample, sUrl,
+			sFilterId, sFilterTitle, sSort, sLocation, sVarType, iVarMin, iVarMax, iVarStep, sWaypointFormat, sMapType, sExample, sUrl, bIsText,
 			onDatabaseIndexLoaded = function () {
 				Utils.console.log(sUrl + " loaded");
 				that.fnSetDatabaseSelect();
@@ -75,7 +75,9 @@ Controller.prototype = {
 		oView.setHidden("logsArea", !oModel.getProperty("showLogs"));
 		oView.setHidden("consoleArea", !oModel.getProperty("showConsole"));
 
-		oView.setHidden("varOptionGroup", oModel.getProperty("varType") === "text");
+		bIsText = this.model.getProperty("varType") === "text";
+		oView.setHidden("varDecIncGroup", bIsText, "inline");
+		oView.setHidden("varOptionGroup", bIsText);
 
 		sMapType = oModel.getProperty("mapType");
 		if (!document.getElementById("mapCanvas-" + sMapType)) {

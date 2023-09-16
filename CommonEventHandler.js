@@ -173,22 +173,24 @@ CommonEventHandler.prototype = {
 	onVarMinInputChange: function () {
 		var sValue = this.view.getInputValue("varMinInput");
 
-		this.model.setProperty("varMin", sValue);
+		this.model.setProperty("varMin", Number(sValue));
 		this.onVarSelectChange();
 	},
 
 	onVarMaxInputChange: function () {
 		var sValue = this.view.getInputValue("varMaxInput");
 
-		this.model.setProperty("varMax", sValue);
+		this.model.setProperty("varMax", Number(sValue));
 		this.onVarSelectChange();
 	},
 
 	onVarTypeSelectChange: function () {
-		var sVarType = this.view.getSelectValue("varTypeSelect");
+		var sVarType = this.view.getSelectValue("varTypeSelect"),
+			bIsText = sVarType === "text";
 
 		this.model.setProperty("varType", sVarType);
-		this.view.setHidden("varOptionGroup", sVarType === "text");
+		this.view.setHidden("varDecIncGroup", bIsText, "inline");
+		this.view.setHidden("varOptionGroup", bIsText);
 		this.view.setSelectTitleFromSelectedOption("varTypeSelect");
 		this.onVarSelectChange();
 	},
@@ -196,15 +198,38 @@ CommonEventHandler.prototype = {
 	onVarStepInputChange: function () {
 		var sValue = this.view.getInputValue("varStepInput");
 
-		this.model.setProperty("varStep", sValue);
+		this.model.setProperty("varStep", Number(sValue));
 		this.onVarSelectChange();
+	},
+
+	onVarDecrementButtonClick: function () {
+		var sValue = this.view.getInputValue("varInput"),
+			iValue = Number(sValue);
+
+		if (!isNaN(iValue) && iValue > this.model.getProperty("varMin")) {
+			iValue -= this.model.getProperty("varStep");
+			this.view.setInputValue("varInput", String(iValue));
+			this.onVarInputChange();
+		}
+	},
+
+	onVarIncrementButtonClick: function () {
+		var sValue = this.view.getInputValue("varInput"),
+			iValue = Number(sValue);
+
+		if (!isNaN(iValue) && iValue < this.model.getProperty("varMax")) {
+			iValue += this.model.getProperty("varStep");
+			this.view.setInputValue("varInput", String(iValue));
+			this.onVarInputChange();
+		}
 	},
 
 	onVarResetButtonClick: function () {
 		var iMin = 0,
 			iMax = 9999,
 			iStep = 1,
-			sType = "number";
+			sType = "number",
+			bIsText = this.model.getProperty("varType") === "text";
 
 		this.model.setProperty("varMin", iMin);
 		this.view.setInputValue("varMinInput", iMin);
@@ -218,7 +243,8 @@ CommonEventHandler.prototype = {
 		this.model.setProperty("varType", sType);
 		this.view.setSelectValue("varTypeSelect", sType);
 
-		this.view.setHidden("varOptionGroup", this.model.getProperty("varType") === "text");
+		this.view.setHidden("varDecIncGroup", bIsText, "inline");
+		this.view.setHidden("varOptionGroup", bIsText);
 
 		this.onVarSelectChange();
 	},
@@ -261,6 +287,19 @@ CommonEventHandler.prototype = {
 		}
 
 		this.onWaypointSelectChange(null); // do not center on wp
+	},
+
+	onCopyTextButtonClick: function () {
+		var textText = this.view.getElementById1("inputArea");
+
+		textText.select();
+
+		this.view.setAreaSelection("inputArea", 0, 99999); // for mobile devices
+		if (window.navigator && window.navigator.clipboard) {
+			window.navigator.clipboard.writeText(textText.value);
+		} else {
+			Utils.console.warn("Copy to clipboard not available");
+		}
 	},
 
 	fnUpdateArea: function (sInput) {

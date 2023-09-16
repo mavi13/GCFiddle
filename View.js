@@ -15,14 +15,23 @@ View.prototype = {
 		this.bDirty = false;
 	},
 
+	getElementById1: function (id) {
+		var element = window.document.getElementById(id);
+
+		if (!element) {
+			throw new Error("Unknown " + id);
+		}
+		return element;
+	},
+
 	getHidden: function (sId) {
 		return document.getElementById(sId).hidden;
 	},
-	setHidden: function (sId, bHidden) {
+	setHidden: function (sId, bHidden, display) { // display?: string
 		var element = document.getElementById(sId);
 
 		element.hidden = bHidden;
-		element.style.display = (bHidden) ? "none" : "block"; // for old browsers
+		element.style.display = (bHidden) ? "none" : (display || "block"); // for old browsers
 		return this;
 	},
 	toogleHidden: function (sId) {
