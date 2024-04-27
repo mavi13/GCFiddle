@@ -405,6 +405,7 @@ QUnit.module("CommonEventHandler test", function (hooks) {
 				}
 			},
 			mViewResultA = {
+				varDecIncGroupHidden: false,
 				varInputMax: 9999,
 				varInputMin: 0,
 				varInputStep: 1,
